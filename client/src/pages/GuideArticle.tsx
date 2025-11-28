@@ -11,6 +11,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { Moon, Sun, ArrowLeft, Clock, BookOpen } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { guideArticles, type GuideArticle as ArticleType } from '@/data/guide-articles';
+import { cn } from '@/lib/utils';
 
 export default function GuideArticle() {
   const { theme, toggleTheme } = useTheme();
@@ -111,8 +112,8 @@ export default function GuideArticle() {
                       // 處理表格
                       if (paragraph.startsWith('|')) {
                         return (
-                          <div key={pIndex} className="overflow-x-auto my-4">
-                            <table className="min-w-full border-collapse border border-border">
+                          <div key={pIndex} className="overflow-x-auto my-4 rounded-lg border border-border dark:border-border/50 bg-card dark:bg-card/50">
+                            <table className="min-w-full border-collapse">
                               <tbody>
                                 {paragraph.split('\n').filter(row => row.trim()).map((row, rIndex) => {
                                   const cells = row.split('|').filter(cell => cell.trim());
@@ -122,13 +123,25 @@ export default function GuideArticle() {
                                   if (isSeparator) return null;
                                   
                                   return (
-                                    <tr key={rIndex} className={isHeader ? 'bg-muted' : ''}>
+                                    <tr 
+                                      key={rIndex} 
+                                      className={cn(
+                                        isHeader 
+                                          ? 'bg-muted/50 dark:bg-muted/30 border-b border-border dark:border-border/50' 
+                                          : 'border-b border-border/50 dark:border-border/30 hover:bg-muted/30 dark:hover:bg-muted/20 transition-colors'
+                                      )}
+                                    >
                                       {cells.map((cell, cIndex) => {
                                         const Tag = isHeader ? 'th' : 'td';
                                         return (
                                           <Tag
                                             key={cIndex}
-                                            className="border border-border px-4 py-2 text-left"
+                                            className={cn(
+                                              "px-4 py-2 text-left",
+                                              isHeader 
+                                                ? "font-semibold text-foreground dark:text-foreground" 
+                                                : "text-foreground/90 dark:text-foreground/80"
+                                            )}
                                           >
                                             {cell.trim()}
                                           </Tag>

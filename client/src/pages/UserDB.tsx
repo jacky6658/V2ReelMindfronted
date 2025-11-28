@@ -338,8 +338,8 @@ export default function UserDB() {
                     </div>
                   ) : scripts.length === 0 ? (
                     <div className="text-center py-12">
-                      <FileText className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-                      <p className="text-muted-foreground">暫無腳本記錄</p>
+                      <FileText className="w-12 h-12 mx-auto mb-4 text-muted-foreground dark:text-muted-foreground/70 opacity-50" />
+                      <p className="text-muted-foreground dark:text-muted-foreground/80">暫無腳本記錄</p>
                     </div>
                   ) : (
                     <Table>
@@ -404,8 +404,8 @@ export default function UserDB() {
                     </div>
                   ) : conversations.length === 0 ? (
                     <div className="text-center py-12">
-                      <MessageSquare className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-                      <p className="text-muted-foreground">暫無對話記錄</p>
+                      <MessageSquare className="w-12 h-12 mx-auto mb-4 text-muted-foreground dark:text-muted-foreground/70 opacity-50" />
+                      <p className="text-muted-foreground dark:text-muted-foreground/80">暫無對話記錄</p>
                     </div>
                   ) : (
                     <Table>
@@ -467,8 +467,8 @@ export default function UserDB() {
                     </div>
                   ) : generations.length === 0 ? (
                     <div className="text-center py-12">
-                      <Sparkles className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-                      <p className="text-muted-foreground">暫無生成記錄</p>
+                      <Sparkles className="w-12 h-12 mx-auto mb-4 text-muted-foreground dark:text-muted-foreground/70 opacity-50" />
+                      <p className="text-muted-foreground dark:text-muted-foreground/80">暫無生成記錄</p>
                     </div>
                   ) : (
                     <Table>
@@ -533,9 +533,9 @@ export default function UserDB() {
                     </div>
                   ) : ipPlanningResults.length === 0 ? (
                     <div className="text-center py-12">
-                      <Sparkles className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-                      <p className="text-muted-foreground">暫無 IP 人設規劃記錄</p>
-                      <p className="text-sm text-muted-foreground mt-2">前往 Mode1 頁面生成並儲存內容</p>
+                      <Sparkles className="w-12 h-12 mx-auto mb-4 text-muted-foreground dark:text-muted-foreground/70 opacity-50" />
+                      <p className="text-muted-foreground dark:text-muted-foreground/80">暫無 IP 人設規劃記錄</p>
+                      <p className="text-sm text-muted-foreground dark:text-muted-foreground/70 mt-2">前往 Mode1 頁面生成並儲存內容</p>
                     </div>
                   ) : (
                     <Table>

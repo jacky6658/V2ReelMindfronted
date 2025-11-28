@@ -59,20 +59,20 @@ const AppDashboard: React.FC = () => {
       </div>
       
       {/* API 對接狀態檢查 */}
-      <div className="mt-8 p-4 bg-muted rounded-lg">
-        <h3 className="font-semibold mb-2">API 對接狀態</h3>
-        <ul className="space-y-2 text-sm text-muted-foreground">
+      <div className="mt-8 p-4 bg-muted/50 dark:bg-muted/30 rounded-lg border border-border dark:border-border/50">
+        <h3 className="font-semibold mb-2 text-foreground dark:text-foreground">API 對接狀態</h3>
+        <ul className="space-y-2 text-sm text-muted-foreground dark:text-muted-foreground">
           <li className="flex items-center gap-2">
-            <span className="text-green-600">✓</span>
-            <span>Mode1: 使用 <code className="bg-muted px-1 rounded">/api/mode1/chat/stream</code></span>
+            <span className="text-green-600 dark:text-green-400">✓</span>
+            <span>Mode1: 使用 <code className="bg-background dark:bg-background/50 px-1 rounded border border-border dark:border-border/50">/api/mode1/chat/stream</code></span>
           </li>
           <li className="flex items-center gap-2">
-            <span className="text-green-600">✓</span>
-            <span>Mode3: 使用 <code className="bg-muted px-1 rounded">/api/mode3/generate/*</code></span>
+            <span className="text-green-600 dark:text-green-400">✓</span>
+            <span>Mode3: 使用 <code className="bg-background dark:bg-background/50 px-1 rounded border border-border dark:border-border/50">/api/mode3/generate/*</code></span>
           </li>
           <li className="flex items-center gap-2">
-            <span className="text-green-600">✓</span>
-            <span>Experience: 使用 <code className="bg-muted px-1 rounded">/api/mode3/generate/*</code></span>
+            <span className="text-green-600 dark:text-green-400">✓</span>
+            <span>Experience: 使用 <code className="bg-background dark:bg-background/50 px-1 rounded border border-border dark:border-border/50">/api/mode3/generate/*</code></span>
           </li>
         </ul>
       </div>
