@@ -22,7 +22,6 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import jsPDF from 'jspdf';
 
 interface ScriptEditorProps {
   content: string;
@@ -100,8 +99,9 @@ export default function ScriptEditor({
         URL.revokeObjectURL(url);
         toast.success('已匯出為 TXT');
       } else if (format === 'pdf') {
-        // 使用 jsPDF 生成 PDF
+        // 使用動態導入 jsPDF（避免建構時錯誤）
         try {
+          const { default: jsPDF } = await import('jspdf');
           const doc = new jsPDF();
           const pageWidth = doc.internal.pageSize.getWidth();
           const pageHeight = doc.internal.pageSize.getHeight();
@@ -136,7 +136,7 @@ export default function ScriptEditor({
           toast.success('已匯出為 PDF');
         } catch (error) {
           console.error('PDF 匯出失敗:', error);
-          toast.error('PDF 匯出失敗');
+          toast.error('PDF 匯出失敗，請稍後再試');
         }
       } else if (format === 'word') {
         // Word 匯出需要額外的庫，這裡先提示
