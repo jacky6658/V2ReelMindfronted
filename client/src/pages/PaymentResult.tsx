@@ -100,7 +100,7 @@ export default function PaymentResult() {
               <div className="space-y-3">
                 <Button
                   className="w-full"
-                  onClick={() => navigate('/subscription')}
+                  onClick={() => navigate('/pricing')}
                 >
                   重新訂閱
                 </Button>

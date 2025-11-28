@@ -532,7 +532,7 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
               <Button onClick={() => setCurrentStep(1)} variant="outline">
                 重新生成
               </Button>
-              <Button onClick={() => navigate('/subscription')}>
+              <Button onClick={() => navigate('/pricing')}>
                 升級解鎖完整功能
               </Button>
             </div>
