@@ -283,11 +283,11 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigate('/')}
+              onClick={() => navigate('/app')}
               className="gap-2"
             >
               <ArrowLeft className="h-4 w-4" />
-              返回首頁
+              返回主控台
             </Button>
             <h1 className="text-xl font-bold">一鍵生成</h1>
           </div>

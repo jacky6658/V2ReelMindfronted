@@ -161,7 +161,7 @@ export default function Subscription() {
               onClick={() => setBillingCycle('monthly')}
               className="rounded-full"
             >
-              月繳
+              月
             </Button>
             <Button
               variant={billingCycle === 'yearly' ? 'default' : 'ghost'}
@@ -169,7 +169,7 @@ export default function Subscription() {
               onClick={() => setBillingCycle('yearly')}
               className="rounded-full"
             >
-              年繳
+              年
               {billingCycle === 'yearly' && (
                 <Badge variant="secondary" className="ml-2">
                   省 {(currentPlan as any).savePercent}%
@@ -179,11 +179,11 @@ export default function Subscription() {
           </div>
         </div>
 
-        {/* Two Column Layout: Free Plan (Left) + Custom Project (Right) */}
+        {/* Two Column Layout: Free Plan (Left) + Full Feature Plan (Right) */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-6xl mx-auto mb-16">
           {/* 左邊：免費方案卡片 */}
-          <Card className="border-2 border-muted">
-            <CardHeader className="text-center pb-6">
+          <Card className="border-2 border-muted flex flex-col h-full">
+            <CardHeader className="text-center pb-6 flex-shrink-0">
               <div className="flex justify-center mb-4">
                 <div className="p-3 bg-green-100 dark:bg-green-900/20 rounded-full">
                   <Sparkles className="w-8 h-8 text-green-600 dark:text-green-400" />
@@ -205,13 +205,13 @@ export default function Subscription() {
               </div>
             </CardHeader>
 
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-6 flex-1 flex flex-col">
               {/* Features */}
-              <div className="space-y-3">
+              <div className="space-y-3 flex-1">
                 {[
                   '免費體驗一鍵生成功能',
-                  '使用自己的 Gemini API Key',
-                  '無限次生成腳本',
+                  '支援自訂 AI 模型，使用自己的 API Key 完全掌控生成品質',
+                  '無限次生成腳本，不受系統配額限制',
                   '帳號定位分析',
                   '選題推薦',
                   '短影音腳本生成'
@@ -226,28 +226,24 @@ export default function Subscription() {
               </div>
 
               {/* CTA Button */}
-              <Button
-                size="lg"
-                variant="outline"
-                className="w-full text-lg h-14 border-green-600 dark:border-green-400 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20"
-                onClick={() => window.location.href = '/#/experience'}
-              >
-                <Sparkles className="w-5 h-5 mr-2" />
-                立即體驗
-              </Button>
+              <div className="mt-auto">
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="w-full text-lg h-14 border-green-600 dark:border-green-400 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20"
+                  onClick={() => window.location.href = '/#/experience'}
+                >
+                  <Sparkles className="w-5 h-5 mr-2" />
+                  立即體驗
+                </Button>
 
-              {/* Note */}
-              <div className="text-center pt-4 border-t border-border">
-                <p className="text-xs text-muted-foreground">
-                  需要自行準備 Gemini API Key
-                </p>
               </div>
             </CardContent>
           </Card>
 
-          {/* 右邊：客製化專案卡片 */}
-          <Card className="border-2 border-primary shadow-lg">
-            <CardHeader className="text-center pb-6">
+          {/* 右邊：ReelMind 全功能方案卡片 */}
+          <Card className="border-2 border-primary shadow-lg flex flex-col h-full">
+            <CardHeader className="text-center pb-6 flex-shrink-0">
               <div className="flex justify-center mb-4">
                 <div className="p-3 bg-primary/10 rounded-full">
                   <Zap className="w-8 h-8 text-primary" />
@@ -284,9 +280,9 @@ export default function Subscription() {
               </div>
             </CardHeader>
 
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-6 flex-1 flex flex-col">
               {/* Features */}
-              <div className="space-y-3">
+              <div className="space-y-3 flex-1">
                 {currentPlan.features.map((feature, index) => (
                   <div key={index} className="flex items-start gap-3">
                     <div className="mt-0.5">
@@ -298,45 +294,55 @@ export default function Subscription() {
               </div>
 
               {/* CTA Button */}
-              <Button
-                size="lg"
-                className="w-full text-lg h-14"
-                onClick={handleCheckout}
-                disabled={isProcessing}
-              >
-                {isProcessing ? (
-                  <>
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                    處理中...
-                  </>
-                ) : (
-                  <>
-                    <CreditCard className="w-5 h-5 mr-2" />
-                    立即訂閱
-                  </>
-                )}
-              </Button>
+              <div className="mt-auto">
+                <Button
+                  size="lg"
+                  className="w-full text-lg h-14"
+                  onClick={() => {
+                    const token = getToken();
+                    if (!token) {
+                      toast.error('請先登入');
+                      return;
+                    }
+                    // 導向到 Checkout 頁面，並帶上方案資訊
+                    window.location.href = `/#/checkout?plan=${billingCycle}&amount=${billingCycle === 'yearly' ? (currentPlan as any).actualPrice : currentPlan.price}`;
+                  }}
+                  disabled={isProcessing}
+                >
+                  {isProcessing ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                      處理中...
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard className="w-5 h-5 mr-2" />
+                      前往付款
+                    </>
+                  )}
+                </Button>
 
-              {/* Payment Methods */}
-              <div className="text-center pt-4 border-t border-border">
-                <p className="text-sm text-muted-foreground mb-3">
-                  支援多種付款方式
-                </p>
-                <div className="flex justify-center gap-4 text-xs text-muted-foreground">
-                  <span>信用卡</span>
-                  <span>•</span>
-                  <span>LINE Pay</span>
-                  <span>•</span>
-                  <span>Apple Pay</span>
-                  <span>•</span>
-                  <span>ATM 轉帳</span>
+                {/* Payment Methods */}
+                <div className="text-center pt-4 border-t border-border mt-4">
+                  <p className="text-sm text-muted-foreground mb-3">
+                    支援多種付款方式
+                  </p>
+                  <div className="flex justify-center gap-4 text-xs text-muted-foreground">
+                    <span>信用卡</span>
+                    <span>•</span>
+                    <span>LINE Pay</span>
+                    <span>•</span>
+                    <span>Apple Pay</span>
+                    <span>•</span>
+                    <span>ATM 轉帳</span>
+                  </div>
                 </div>
-              </div>
 
-              {/* Security Badge */}
-              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground pt-2">
-                <Shield className="w-4 h-4" />
-                <span>由綠界金流（ECPay）提供安全加密付款</span>
+                {/* Security Badge */}
+                <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground pt-2">
+                  <Shield className="w-4 h-4" />
+                  <span>由綠界金流（ECPay）提供安全加密付款</span>
+                </div>
               </div>
             </CardContent>
           </Card>

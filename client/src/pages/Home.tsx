@@ -41,8 +41,10 @@ export default function Home() {
           
           <div className="hidden md:flex items-center gap-6">
             <a href="#features" className="text-sm font-medium hover:text-primary transition-colors">功能</a>
+            <span className="text-sm font-medium hover:text-primary transition-colors cursor-pointer" onClick={() => navigate('/intro')}>產品介紹</span>
             <span className="text-sm font-medium hover:text-primary transition-colors cursor-pointer" onClick={() => navigate('/guide')}>實戰指南</span>
-            <span className="text-sm font-medium hover:text-primary transition-colors cursor-pointer" onClick={() => navigate('/about')}>關於我們</span>
+            <span className="text-sm font-medium hover:text-primary transition-colors cursor-pointer" onClick={() => navigate('/forum')}>論壇</span>
+            <span className="text-sm font-medium hover:text-primary transition-colors cursor-pointer" onClick={() => navigate('/pricing')}>方案</span>
             <a href="#pricing" className="text-sm font-medium hover:text-primary transition-colors">定價</a>
           </div>
 
@@ -386,7 +388,7 @@ export default function Home() {
                   className="w-full" 
                   variant="outline"
                   onClick={() => {
-                    navigate('/subscription');
+                    navigate('/pricing');
                   }}
                 >
                   選擇方案
@@ -427,7 +429,12 @@ export default function Home() {
                     <span className="text-sm">優先客服支援</span>
                   </li>
                 </ul>
-                <Button className="w-full">
+                <Button 
+                  className="w-full"
+                  onClick={() => {
+                    navigate('/pricing');
+                  }}
+                >
                   選擇方案
                 </Button>
               </CardContent>
@@ -446,11 +453,29 @@ export default function Home() {
             立即體驗 AI 短影音智能體，從靈感枯竭到內容量產
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" variant="secondary" className="text-base px-8">
-              立即開始
+            <Button 
+              size="lg" 
+              variant="secondary" 
+              className="text-base px-8"
+              onClick={() => navigate('/intro')}
+            >
+              產品介紹
             </Button>
-            <Button size="lg" variant="outline" className="text-base px-8 bg-transparent text-primary-foreground border-primary-foreground hover:bg-primary-foreground/10">
+            <Button 
+              size="lg" 
+              variant="outline" 
+              className="text-base px-8 bg-transparent text-primary-foreground border-primary-foreground hover:bg-primary-foreground/10"
+              onClick={() => navigate('/experience')}
+            >
               免費體驗
+            </Button>
+            <Button 
+              size="lg" 
+              variant="outline" 
+              className="text-base px-8 bg-transparent text-primary-foreground border-primary-foreground hover:bg-primary-foreground/10"
+              onClick={() => navigate('/forum')}
+            >
+              加入論壇
             </Button>
           </div>
         </div>

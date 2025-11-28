@@ -30,7 +30,8 @@ import {
   Edit2,
   X,
   Copy,
-  Maximize2
+  Maximize2,
+  ArrowLeft
 } from 'lucide-react';
 import { apiPost, apiGet, apiDelete, apiStream } from '@/lib/api-client';
 import { useNavigate } from 'react-router-dom';
@@ -305,6 +306,15 @@ export default function Mode1() {
       <nav className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center justify-between">
           <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/app')}
+              className="hidden md:flex"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              返回主控台
+            </Button>
             <h1 className="text-xl font-bold cursor-pointer" onClick={() => navigate('/')}>
               ReelMind
             </h1>
