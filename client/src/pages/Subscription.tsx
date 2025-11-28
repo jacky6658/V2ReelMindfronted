@@ -77,6 +77,8 @@ export default function Subscription() {
 
     try {
       // 調用後端 API 創建訂單
+      // 傳遞 frontend_return_url 以便後端在付款完成後重定向到新版前端的付款結果頁面
+      const frontend_return_url = `${window.location.origin}/payment-result`;
       const response = await fetch('https://api.aijob.com.tw/api/payment/checkout', {
         method: 'POST',
         headers: {
@@ -85,7 +87,8 @@ export default function Subscription() {
         },
         body: JSON.stringify({
           plan: billingCycle,
-              amount: billingCycle === 'yearly' ? (currentPlan as any).actualPrice : currentPlan.price
+          amount: billingCycle === 'yearly' ? (currentPlan as any).actualPrice : currentPlan.price,
+          frontend_return_url: frontend_return_url  // 新增：告知後端付款完成後的重定向目標
         })
       });
 

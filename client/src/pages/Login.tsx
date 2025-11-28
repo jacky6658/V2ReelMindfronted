@@ -23,8 +23,8 @@ const Login: React.FC = () => {
   const handleGoogleLogin = async () => {
     try {
       // 任務 3: 按下「使用 Google 登入」按鈕時，直接導向後端的 OAuth URL
-      // ❗不要變更任何 OAuth 相關 API 的 URL
-      const { auth_url } = await apiGet<{ auth_url: string }>('/api/auth/google');
+      // 使用新版前端的專用端點 /api/auth/google-new
+      const { auth_url } = await apiGet<{ auth_url: string }>('/api/auth/google-new');
       // 重定向到 Google 登入頁面
       window.location.href = auth_url;
     } catch (error) {

@@ -38,6 +38,8 @@ export default function OAuthCallback() {
 
       // 任務 3: 調用後端的 OAuth callback 結果 / 使用者資訊 API
       // ❗不要變更任何 OAuth 相關 API 的 URL、Query Params、Body、回傳格式
+      // 傳遞完整的 redirect_uri 以便後端判斷使用哪組 Google OAuth 憑證
+      const redirect_uri = window.location.origin + '/oauth/callback';
       const response = await apiPost<{
         access_token: string;
         refresh_token: string;
@@ -50,7 +52,7 @@ export default function OAuthCallback() {
         };
       }>('/api/auth/google/callback', {
         code,
-        redirect_uri: window.location.origin + '/auth/callback'
+        redirect_uri: redirect_uri
       });
 
       // 任務 3: 若成功取得 user + token → 呼叫前端 auth 狀態的 setAuth() 寫入資料
