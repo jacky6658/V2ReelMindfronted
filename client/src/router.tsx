@@ -212,7 +212,7 @@ export const router = createHashRouter([
     path: '/subscription',
     element: (
       <Suspense fallback={<LoadingFallback />}>
-        <Subscription />
+        <Navigate to="/pricing" replace />
       </Suspense>
     ),
   },
