@@ -1,6 +1,23 @@
 :8080
 
 root * ./dist/public
-file_server
-try_files {path} /index.html
+
+# 靜態資源（assets 目錄）直接提供，不進行回退
+handle /assets/* {
+    file_server
+}
+
+# 其他靜態文件（favicon 等）
+handle {
+    @static {
+        file *.js *.css *.woff *.woff2 *.png *.jpg *.jpeg *.gif *.svg *.ico *.json
+    }
+    handle @static {
+        file_server
+    }
+    
+    # 其他所有請求回退到 index.html（SPA 路由）
+    try_files {path} /index.html
+    file_server
+}
 
