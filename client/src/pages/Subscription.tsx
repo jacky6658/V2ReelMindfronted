@@ -179,10 +179,75 @@ export default function Subscription() {
           </div>
         </div>
 
-        {/* Pricing Card */}
-        <div className="max-w-2xl mx-auto">
+        {/* Two Column Layout: Free Plan (Left) + Custom Project (Right) */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-6xl mx-auto mb-16">
+          {/* 左邊：免費方案卡片 */}
+          <Card className="border-2 border-muted">
+            <CardHeader className="text-center pb-6">
+              <div className="flex justify-center mb-4">
+                <div className="p-3 bg-green-100 dark:bg-green-900/20 rounded-full">
+                  <Sparkles className="w-8 h-8 text-green-600 dark:text-green-400" />
+                </div>
+              </div>
+              <CardTitle className="text-2xl mb-2">免費方案</CardTitle>
+              <CardDescription className="text-base">
+                體驗 AI 短影音生成功能
+              </CardDescription>
+              
+              {/* Price */}
+              <div className="mt-6">
+                <div className="flex items-baseline justify-center gap-2">
+                  <span className="text-5xl font-bold text-green-600 dark:text-green-400">
+                    NT$0
+                  </span>
+                  <span className="text-muted-foreground">/ 永久</span>
+                </div>
+              </div>
+            </CardHeader>
+
+            <CardContent className="space-y-6">
+              {/* Features */}
+              <div className="space-y-3">
+                {[
+                  '免費體驗一鍵生成功能',
+                  '使用自己的 Gemini API Key',
+                  '無限次生成腳本',
+                  '帳號定位分析',
+                  '選題推薦',
+                  '短影音腳本生成'
+                ].map((feature, index) => (
+                  <div key={index} className="flex items-start gap-3">
+                    <div className="mt-0.5">
+                      <Check className="w-5 h-5 text-green-600 dark:text-green-400" />
+                    </div>
+                    <span className="text-foreground">{feature}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* CTA Button */}
+              <Button
+                size="lg"
+                variant="outline"
+                className="w-full text-lg h-14 border-green-600 dark:border-green-400 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20"
+                onClick={() => window.location.href = '/#/experience'}
+              >
+                <Sparkles className="w-5 h-5 mr-2" />
+                立即體驗
+              </Button>
+
+              {/* Note */}
+              <div className="text-center pt-4 border-t border-border">
+                <p className="text-xs text-muted-foreground">
+                  需要自行準備 Gemini API Key
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 右邊：客製化專案卡片 */}
           <Card className="border-2 border-primary shadow-lg">
-            <CardHeader className="text-center pb-8">
+            <CardHeader className="text-center pb-6">
               <div className="flex justify-center mb-4">
                 <div className="p-3 bg-primary/10 rounded-full">
                   <Zap className="w-8 h-8 text-primary" />
