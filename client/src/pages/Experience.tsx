@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import { ArrowLeft, Sparkles, CheckCircle2, Loader2, Copy } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { apiStream } from '@/lib/api-client';
+import { ThinkingAnimation } from '@/components/ThinkingAnimation';
 
 // 腳本結構選項
 const SCRIPT_STRUCTURES = [
@@ -489,9 +490,10 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
             <Card>
               <CardContent className="pt-6">
                 {loading && !results[activeResultTab as keyof typeof results] && (
-                  <div className="flex items-center justify-center py-12">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                  </div>
+                  <ThinkingAnimation text={`AI 正在為您生成${
+                    activeResultTab === 'positioning' ? '帳號定位' :
+                    activeResultTab === 'topics' ? '選題建議' : '短影音腳本'
+                  }...`} />
                 )}
                 {results[activeResultTab as keyof typeof results] && (
                   <div className="space-y-4">
