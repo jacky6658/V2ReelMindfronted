@@ -18,7 +18,46 @@ import { apiStream, apiPost } from '@/lib/api-client';
 import ThinkingAnimation from '@/components/ThinkingAnimation';
 import { useAuthStore } from '@/stores/authStore';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import ReactMarkdown from 'react-markdown';
+
+// 格式化文字：將 **文字** 轉換為粗體
+const FormatText = ({ content }: { content: string }) => {
+  // 使用正則表達式匹配 **文字** 格式（非貪婪匹配）
+  const parts: (string | { type: 'bold'; text: string })[] = [];
+  let lastIndex = 0;
+  const regex = /\*\*(.+?)\*\*/g;
+  let match;
+  
+  while ((match = regex.exec(content)) !== null) {
+    // 添加匹配前的普通文字
+    if (match.index > lastIndex) {
+      parts.push(content.substring(lastIndex, match.index));
+    }
+    // 添加粗體文字
+    parts.push({ type: 'bold', text: match[1] });
+    lastIndex = regex.lastIndex;
+  }
+  
+  // 添加剩餘的文字
+  if (lastIndex < content.length) {
+    parts.push(content.substring(lastIndex));
+  }
+  
+  // 如果沒有匹配到任何粗體，直接返回原文字
+  if (parts.length === 0) {
+    return <div className="whitespace-pre-wrap">{content}</div>;
+  }
+  
+  return (
+    <div className="whitespace-pre-wrap">
+      {parts.map((part, index) => {
+        if (typeof part === 'object' && part.type === 'bold') {
+          return <strong key={index} className="font-bold">{part.text}</strong>;
+        }
+        return <span key={index}>{part}</span>;
+      })}
+    </div>
+  );
+};
 
 // 腳本結構選項
 const SCRIPT_STRUCTURES = [
@@ -653,16 +692,8 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
                 )}
                 {results[activeResultTab as keyof typeof results] && (
                   <div className="space-y-4">
-                    <div className="prose prose-sm max-w-none dark:prose-invert">
-                      <ReactMarkdown
-                        components={{
-                          // 自定義渲染，確保粗體正確顯示
-                          strong: ({ children }) => <strong className="font-bold text-foreground">{children}</strong>,
-                          p: ({ children }) => <p className="mb-2 whitespace-pre-wrap">{children}</p>,
-                        }}
-                      >
-                        {results[activeResultTab as keyof typeof results]}
-                      </ReactMarkdown>
+                    <div className="prose prose-sm max-w-none dark:prose-invert whitespace-pre-wrap">
+                      <FormatText content={results[activeResultTab as keyof typeof results]} />
                     </div>
                     <div className="flex justify-end gap-2">
                       <Button
