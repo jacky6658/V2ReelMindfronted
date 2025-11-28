@@ -275,11 +275,39 @@ export default function Mode1() {
   // 儲存到 UserDB
   const handleSaveToUserDB = async (result: SavedResult) => {
     try {
-      // 這裡應該調用 API 儲存到 UserDB
-      // await apiPost('/api/userdb/save', { ...result });
+      if (!user?.user_id) {
+        toast.error('請先登入');
+        return;
+      }
+
+      // 將 category 映射到 result_type
+      const resultTypeMap: Record<string, string> = {
+        'positioning': 'profile',
+        'topics': 'plan',
+        'script': 'scripts'
+      };
+
+      const result_type = resultTypeMap[result.category] || 'profile';
+
+      // 調用 API 儲存到 UserDB
+      await apiPost('/api/ip-planning/save', {
+        user_id: user.user_id,
+        result_type: result_type,
+        title: result.title,
+        content: result.content,
+        metadata: {
+          category: result.category,
+          timestamp: result.timestamp.toISOString()
+        }
+      });
+
       toast.success('已儲存到創作者資料庫');
+      
+      // 從本地 savedResults 中移除已儲存的項目
+      setSavedResults(prev => prev.filter(r => r.id !== result.id));
     } catch (error: any) {
-      toast.error(error.message || '儲存失敗');
+      console.error('儲存到 UserDB 失敗:', error);
+      toast.error(error?.response?.data?.error || error.message || '儲存失敗');
     }
   };
 

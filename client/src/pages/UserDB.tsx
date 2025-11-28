@@ -60,13 +60,23 @@ interface Generation {
   created_at: string;
 }
 
+interface IPPlanningResult {
+  id: string;
+  result_type: 'profile' | 'plan' | 'scripts';
+  title: string;
+  content: string;
+  metadata?: any;
+  created_at: string;
+}
+
 export default function UserDB() {
   const navigate = useNavigate();
-  const { logout } = useAuthStore();
-  const [activeTab, setActiveTab] = useState<'scripts' | 'conversations' | 'generations'>('scripts');
+  const { logout, user } = useAuthStore();
+  const [activeTab, setActiveTab] = useState<'scripts' | 'conversations' | 'generations' | 'ip-planning'>('scripts');
   const [scripts, setScripts] = useState<Script[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [generations, setGenerations] = useState<Generation[]>([]);
+  const [ipPlanningResults, setIpPlanningResults] = useState<IPPlanningResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [showDetail, setShowDetail] = useState(false);
@@ -97,6 +107,9 @@ export default function UserDB() {
           break;
         case 'generations':
           await loadGenerations();
+          break;
+        case 'ip-planning':
+          await loadIPPlanningResults();
           break;
       }
     } catch (error: any) {
@@ -140,6 +153,17 @@ export default function UserDB() {
     }
   };
 
+  // 載入 IP 人設規劃結果
+  const loadIPPlanningResults = async () => {
+    try {
+      const data = await apiGet<{ results: IPPlanningResult[] }>('/api/ip-planning/my');
+      setIpPlanningResults(data.results || []);
+    } catch (error) {
+      console.error('載入 IP 人設規劃結果失敗:', error);
+      setIpPlanningResults([]);
+    }
+  };
+
   // 刪除項目
   const handleDelete = async (id: string, type: string) => {
     try {
@@ -153,6 +177,9 @@ export default function UserDB() {
           break;
         case 'generation':
           endpoint = `/api/user/generations/${id}`;
+          break;
+        case 'ip-planning':
+          endpoint = `/api/ip-planning/results/${id}`;
           break;
       }
       
@@ -251,7 +278,7 @@ export default function UserDB() {
 
           <CardContent>
             <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="scripts" className="flex items-center gap-2">
                   <FileText className="w-4 h-4" />
                   我的腳本
@@ -263,6 +290,10 @@ export default function UserDB() {
                 <TabsTrigger value="generations" className="flex items-center gap-2">
                   <Sparkles className="w-4 h-4" />
                   生成記錄
+                </TabsTrigger>
+                <TabsTrigger value="ip-planning" className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4" />
+                  IP 人設規劃
                 </TabsTrigger>
               </TabsList>
 
@@ -455,6 +486,80 @@ export default function UserDB() {
                             </TableCell>
                           </TableRow>
                         ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </ScrollArea>
+              </TabsContent>
+
+              {/* IP 人設規劃結果 */}
+              <TabsContent value="ip-planning" className="mt-6">
+                <ScrollArea className="h-[calc(100vh-350px)]">
+                  {isLoading ? (
+                    <div className="text-center py-12">
+                      <RefreshCw className="w-8 h-8 mx-auto mb-4 animate-spin text-muted-foreground" />
+                      <p className="text-muted-foreground">載入中...</p>
+                    </div>
+                  ) : ipPlanningResults.length === 0 ? (
+                    <div className="text-center py-12">
+                      <Sparkles className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+                      <p className="text-muted-foreground">暫無 IP 人設規劃記錄</p>
+                      <p className="text-sm text-muted-foreground mt-2">前往 Mode1 頁面生成並儲存內容</p>
+                    </div>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>類型</TableHead>
+                          <TableHead>標題</TableHead>
+                          <TableHead>建立時間</TableHead>
+                          <TableHead className="text-right">操作</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {ipPlanningResults.map((result) => {
+                          const typeLabels: Record<string, string> = {
+                            'profile': '帳號定位',
+                            'plan': '選題規劃',
+                            'scripts': '腳本'
+                          };
+                          return (
+                            <TableRow key={result.id}>
+                              <TableCell>
+                                <Badge variant="outline">{typeLabels[result.result_type] || result.result_type}</Badge>
+                              </TableCell>
+                              <TableCell className="font-medium">{result.title || '未命名'}</TableCell>
+                              <TableCell className="text-muted-foreground text-sm">
+                                {formatDate(result.created_at)}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex justify-end gap-2">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleView(result)}
+                                  >
+                                    <Eye className="w-4 h-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleCopy(result.content)}
+                                  >
+                                    <Copy className="w-4 h-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDelete(result.id, 'ip-planning')}
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
                       </TableBody>
                     </Table>
                   )}
