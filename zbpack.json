@@ -1,5 +1,5 @@
 {
   "spa": true,
-  "output": "dist"
+  "output": "dist/public"
 }
 
