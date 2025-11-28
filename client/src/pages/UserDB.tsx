@@ -38,25 +38,30 @@ import { toast } from 'sonner';
 import ScriptEditor from '@/components/ScriptEditor';
 
 interface Script {
-  id: string;
+  id: string | number;
+  name?: string; // 後端返回的是 name（script_name）
   title: string;
   content: string;
+  script_data?: any;
   platform: string;
+  topic?: string;
+  profile?: string;
   created_at: string;
+  updated_at?: string;
 }
 
 interface Conversation {
   id: string;
-  title: string;
+  mode: string; // 後端返回的是 mode 而不是 title
+  summary: string; // 後端返回的是 summary 而不是 last_message
   message_count: number;
-  last_message: string;
   created_at: string;
 }
 
 interface Generation {
-  id: string;
-  type: string;
-  title: string;
+  id?: string; // 後端可能沒有 id
+  platform: string; // 後端返回的是 platform 而不是 type
+  topic: string; // 後端返回的是 topic 而不是 title
   content: string;
   created_at: string;
 }
@@ -154,8 +159,13 @@ export default function UserDB() {
 
   // 載入腳本
   const loadScripts = async () => {
+    if (!user?.user_id) {
+      setScripts([]);
+      return;
+    }
     try {
-      const data = await apiGet<{ scripts: Script[] }>('/api/user/scripts/me');
+      // 後端端點：/api/scripts/my（自動使用當前登入用戶）
+      const data = await apiGet<{ scripts: Script[] }>('/api/scripts/my');
       setScripts(data.scripts || []);
     } catch (error) {
       console.error('載入腳本失敗:', error);
@@ -165,8 +175,14 @@ export default function UserDB() {
 
   // 載入對話記錄
   const loadConversations = async () => {
+    if (!user?.user_id) {
+      setConversations([]);
+      return;
+    }
     try {
-      const data = await apiGet<{ conversations: Conversation[] }>('/api/user/conversations/me');
+      // 後端端點：/api/user/conversations/{user_id}（需要傳入實際的 user_id）
+      // 後端返回格式：{ user_id, conversations: [{ id, mode, summary, message_count, created_at }] }
+      const data = await apiGet<{ conversations: Conversation[] }>(`/api/user/conversations/${user.user_id}`);
       setConversations(data.conversations || []);
     } catch (error) {
       console.error('載入對話記錄失敗:', error);
@@ -176,8 +192,14 @@ export default function UserDB() {
 
   // 載入生成記錄
   const loadGenerations = async () => {
+    if (!user?.user_id) {
+      setGenerations([]);
+      return;
+    }
     try {
-      const data = await apiGet<{ generations: Generation[] }>('/api/user/generations/me');
+      // 後端端點：/api/user/generations/{user_id}（需要傳入實際的 user_id）
+      // 後端返回格式：{ user_id, generations: [{ platform, topic, content, created_at }] }
+      const data = await apiGet<{ generations: Generation[] }>(`/api/user/generations/${user.user_id}`);
       setGenerations(data.generations || []);
     } catch (error) {
       console.error('載入生成記錄失敗:', error);
@@ -202,7 +224,8 @@ export default function UserDB() {
       let endpoint = '';
       switch (type) {
         case 'script':
-          endpoint = `/api/user/scripts/${id}`;
+          // 後端端點：DELETE /api/scripts/{script_id}
+          endpoint = `/api/scripts/${id}`;
           break;
         case 'conversation':
           endpoint = `/api/user/conversations/${id}`;
@@ -562,9 +585,9 @@ export default function UserDB() {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>標題</TableHead>
+                          <TableHead>類型</TableHead>
                           <TableHead>訊息數</TableHead>
-                          <TableHead>最後訊息</TableHead>
+                          <TableHead>摘要</TableHead>
                           <TableHead>時間</TableHead>
                           <TableHead className="text-right">操作</TableHead>
                         </TableRow>
@@ -572,12 +595,14 @@ export default function UserDB() {
                       <TableBody>
                         {conversations.map((conv) => (
                           <TableRow key={conv.id}>
-                            <TableCell className="font-medium">{conv.title}</TableCell>
+                            <TableCell className="font-medium">
+                              <Badge variant="outline">{conv.mode}</Badge>
+                            </TableCell>
                             <TableCell>
                               <Badge variant="secondary">{conv.message_count}</Badge>
                             </TableCell>
                             <TableCell className="max-w-xs truncate text-muted-foreground text-sm">
-                              {conv.last_message}
+                              {conv.summary || '無摘要'}
                             </TableCell>
                             <TableCell className="text-muted-foreground text-sm">
                               {formatDate(conv.created_at)}
@@ -625,19 +650,23 @@ export default function UserDB() {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>類型</TableHead>
-                          <TableHead>標題</TableHead>
+                          <TableHead>平台</TableHead>
+                          <TableHead>主題</TableHead>
+                          <TableHead>內容預覽</TableHead>
                           <TableHead>建立時間</TableHead>
                           <TableHead className="text-right">操作</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {generations.map((gen) => (
-                          <TableRow key={gen.id}>
+                        {generations.map((gen, index) => (
+                          <TableRow key={gen.id || `gen-${index}`}>
                             <TableCell>
-                              <Badge>{gen.type}</Badge>
+                              <Badge variant="outline">{gen.platform || '未知'}</Badge>
                             </TableCell>
-                            <TableCell className="font-medium">{gen.title}</TableCell>
+                            <TableCell className="font-medium">{gen.topic || '無主題'}</TableCell>
+                            <TableCell className="max-w-xs truncate text-muted-foreground text-sm">
+                              {gen.content || '無內容'}
+                            </TableCell>
                             <TableCell className="text-muted-foreground text-sm">
                               {formatDate(gen.created_at)}
                             </TableCell>
@@ -660,7 +689,7 @@ export default function UserDB() {
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  onClick={() => handleDelete(gen.id, 'generation')}
+                                  onClick={() => handleDelete(gen.id || `gen-${index}`, 'generation')}
                                 >
                                   <Trash2 className="w-4 h-4" />
                                 </Button>

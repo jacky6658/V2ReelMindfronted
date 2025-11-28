@@ -363,20 +363,23 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
       return;
     }
 
+    // 映射類型到後端格式
+    const resultTypeMap: Record<string, 'profile' | 'plan' | 'scripts'> = {
+      positioning: 'profile',
+      topics: 'plan',
+      script: 'scripts'
+    };
+
+    const titleMap: Record<string, string> = {
+      positioning: `帳號定位 - ${formData.topic}`,
+      topics: `選題建議 - ${formData.topic}`,
+      script: `短影音腳本 - ${formData.topic}`
+    };
+
+    // 顯示載入提示
+    const loadingToast = toast.loading('正在儲存...');
+
     try {
-      // 映射類型到後端格式
-      const resultTypeMap: Record<string, 'profile' | 'plan' | 'scripts'> = {
-        positioning: 'profile',
-        topics: 'plan',
-        script: 'scripts'
-      };
-
-      const titleMap: Record<string, string> = {
-        positioning: `帳號定位 - ${formData.topic}`,
-        topics: `選題建議 - ${formData.topic}`,
-        script: `短影音腳本 - ${formData.topic}`
-      };
-
       await apiPost('/api/ip-planning/save', {
         user_id: user.user_id,
         result_type: resultTypeMap[type],
@@ -392,11 +395,13 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
         }
       });
 
+      toast.dismiss(loadingToast);
       toast.success('已儲存到創作者資料庫');
       // 發送自定義事件通知 UserDB 刷新
       window.dispatchEvent(new CustomEvent('userdb-data-updated', { detail: { type: 'ip-planning' } }));
     } catch (error: any) {
       console.error('儲存失敗:', error);
+      toast.dismiss(loadingToast);
       if (error?.response?.status === 403) {
         toast.error('您沒有權限儲存此內容，請訂閱以解鎖此功能');
       } else {
