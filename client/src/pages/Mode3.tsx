@@ -150,7 +150,7 @@ export default function Mode3() {
 格式要求：分段清楚，短句，每段換行，適度加入表情符號（如：✅✨🔥📌），避免口頭禪。絕對不要使用 ** 或任何 Markdown 格式符號，所有內容必須是純文字格式。`;
 
     let result = '';
-    await apiStream('/api/generate/positioning', { prompt }, (chunk) => {
+    await apiStream('/api/generate/positioning', { message: prompt }, (chunk) => {
       result += chunk;
       setResults(prev => ({ ...prev, positioning: result }));
     });
@@ -169,7 +169,7 @@ export default function Mode3() {
 格式要求：分段清楚，短句，每段換行，適度加入表情符號（如：✅✨🔥📌），避免口頭禪。絕對不要使用 ** 或任何 Markdown 格式符號，所有內容必須是純文字格式。`;
 
     let result = '';
-    await apiStream('/api/generate/topics', { prompt }, (chunk) => {
+    await apiStream('/api/generate/topics', { message: prompt }, (chunk) => {
       result += chunk;
       setResults(prev => ({ ...prev, topics: result }));
     });
@@ -195,7 +195,7 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
 格式要求：分段清楚，短句，每段換行，適度加入表情符號（如：✅✨🔥📌），避免口頭禪。絕對不要使用 ** 或任何 Markdown 格式符號，所有內容必須是純文字格式。`;
 
     let result = '';
-    await apiStream('/api/generate/script', { prompt }, (chunk) => {
+    await apiStream('/api/generate/script', { message: prompt }, (chunk) => {
       result += chunk;
       setResults(prev => ({ ...prev, script: result }));
     });
