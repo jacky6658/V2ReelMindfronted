@@ -12,12 +12,13 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { ArrowLeft, Sparkles, CheckCircle2, Loader2, Copy, Lock } from 'lucide-react';
+import { ArrowLeft, Sparkles, CheckCircle2, Loader2, Copy, Lock, Save } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { apiStream } from '@/lib/api-client';
+import { apiStream, apiPost } from '@/lib/api-client';
 import ThinkingAnimation from '@/components/ThinkingAnimation';
 import { useAuthStore } from '@/stores/authStore';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import ReactMarkdown from 'react-markdown';
 
 // 腳本結構選項
 const SCRIPT_STRUCTURES = [
@@ -155,9 +156,18 @@ export default function Mode3() {
 
   // 生成內容
   const handleGenerate = async () => {
-    setLoading(true);
-    setCurrentStep(3);
+    // 清空之前的結果
+    setResults({
+      positioning: '',
+      topics: '',
+      script: ''
+    });
+    setActiveResultTab('positioning');
     setPermissionError('');
+    
+    // 先跳到步驟3並設置loading，確保動畫立即顯示
+    setCurrentStep(3);
+    setLoading(true);
     
     try {
       // 生成帳號定位
@@ -173,7 +183,8 @@ export default function Mode3() {
       if (!handlePermissionError(error)) {
           toast.error('生成失敗，請稍後再試');
       } else {
-          // 如果是權限錯誤，停止後續生成
+          // 如果是權限錯誤，停止後續生成，返回確認頁面
+          setCurrentStep(2);
           setLoading(false);
           return; 
       }
@@ -184,22 +195,28 @@ export default function Mode3() {
 
   // 生成帳號定位
   const generatePositioning = async () => {
-    const prompt = `根據以下資訊，生成帳號定位分析：
+    // 使用簡潔直接的 prompt，要求直接生成不要詢問
+    const prompt = `請幫我進行帳號定位分析。直接生成結果，不要詢問任何問題。
+
 主題：${formData.topic}
 目標受眾：${formData.positioning}
 平台：${formData.platform}
 
-請提供：
+請直接提供：
 1. 帳號定位描述
 2. 目標受眾分析
 3. 內容方向建議
 
-格式要求：分段清楚，短句，每段換行，適度加入表情符號（如：✅✨🔥📌），避免口頭禪。絕對不要使用 ** 或任何 Markdown 格式符號，所有內容必須是純文字格式。`;
+重要：直接生成完整內容，不要詢問任何問題，不要說「需要您先提供資訊」之類的話。格式要求：分段清楚，短句，每段換行，適度加入表情符號（如：✅✨🔥📌）。`;
 
     let result = '';
-    // 使用 Mode3 專用端點
+    // 使用 Mode3 專用端點，傳遞結構化參數
     await apiStream('/api/mode3/generate/positioning', { 
         message: prompt,
+        platform: formData.platform,
+        topic: formData.topic,
+        profile: formData.positioning,
+        conversation_type: 'one_click',
         user_id: user?.user_id || null
     }, (chunk) => {
       result += chunk;
@@ -211,20 +228,26 @@ export default function Mode3() {
 
   // 生成選題
   const generateTopics = async () => {
-    const prompt = `根據以下資訊，生成 5 個短影音選題：
+    // 使用簡潔直接的 prompt，要求直接生成不要詢問
+    const prompt = `請幫我推薦選題。直接生成結果，不要詢問任何問題。
+
 主題：${formData.topic}
 目標受眾：${formData.positioning}
 影片目標：${formData.goal}
 平台：${formData.platform}
 
-請提供 5 個具體的選題，每個選題包含標題和簡短說明。
+請直接提供 5 個具體的選題，每個選題包含標題和簡短說明。
 
-格式要求：分段清楚，短句，每段換行，適度加入表情符號（如：✅✨🔥📌），避免口頭禪。絕對不要使用 ** 或任何 Markdown 格式符號，所有內容必須是純文字格式。`;
+重要：直接生成完整內容，不要詢問任何問題。格式要求：分段清楚，短句，每段換行，適度加入表情符號（如：✅✨🔥📌）。`;
 
     let result = '';
-    // 使用 Mode3 專用端點
+    // 使用 Mode3 專用端點，傳遞結構化參數
     await apiStream('/api/mode3/generate/topics', { 
         message: prompt,
+        platform: formData.platform,
+        topic: formData.topic,
+        profile: formData.positioning,
+        conversation_type: 'one_click',
         user_id: user?.user_id || null
     }, (chunk) => {
       result += chunk;
@@ -237,28 +260,41 @@ export default function Mode3() {
   // 生成腳本
   const generateScript = async () => {
     const structureInfo = SCRIPT_STRUCTURES.find(s => s.id === formData.structure);
-    const prompt = `根據以下資訊，生成短影音腳本：
+    const structureMessages: Record<string, string> = {
+      'A': '請使用標準行銷三段式（Hook → Value → CTA）結構生成完整腳本',
+      'B': '請使用問題 → 解決 → 證明（Problem → Solution → Proof）結構生成完整腳本',
+      'C': '請使用Before → After → 秘密揭露結構生成完整腳本',
+      'D': '請使用教學知識型（迷思 → 原理 → 要點 → 行動）結構生成完整腳本',
+      'E': '請使用故事敘事型（起 → 承 → 轉 → 合）結構生成完整腳本'
+    };
+    
+    // 使用簡潔直接的 prompt，要求直接生成不要詢問
+    const prompt = `${structureMessages[formData.structure] || '請生成完整短影音腳本'}。直接生成結果，不要詢問任何問題。
+
 主題：${formData.topic}
 目標受眾：${formData.positioning}
 影片目標：${formData.goal}
 平台：${formData.platform}
 腳本秒數：${formData.duration}秒
-腳本結構：${structureInfo?.name} - ${structureInfo?.desc}
 ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
 
-請生成完整的短影音腳本，包含：
+請直接生成完整的短影音腳本，包含：
 1. 開場 Hook（前 3 秒）
 2. 主要內容
 3. CTA 行動呼籲
 
-格式要求：分段清楚，短句，每段換行，適度加入表情符號（如：✅✨🔥📌），避免口頭禪。絕對不要使用 ** 或任何 Markdown 格式符號，所有內容必須是純文字格式。`;
+重要：直接生成完整內容，不要詢問任何問題。格式要求：分段清楚，短句，每段換行，適度加入表情符號（如：✅✨🔥📌）。`;
 
     let result = '';
-    // 使用 Mode3 專用端點
+    // 使用 Mode3 專用端點，傳遞結構化參數
     await apiStream('/api/mode3/generate/script', { 
         message: prompt,
-        script_structure: formData.structure,
+        platform: formData.platform,
+        topic: formData.topic,
+        profile: formData.positioning,
         duration: formData.duration,
+        script_structure: formData.structure,
+        conversation_type: 'one_click',
         user_id: user?.user_id || null
     }, (chunk) => {
       result += chunk;
@@ -272,6 +308,62 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     toast.success('已複製到剪貼簿');
+  };
+
+  // 儲存結果到 UserDB
+  const handleSaveResult = async (type: 'positioning' | 'topics' | 'script') => {
+    if (!user?.user_id) {
+      toast.error('請先登入');
+      navigate('/login');
+      return;
+    }
+
+    const content = results[type];
+    if (!content.trim()) {
+      toast.error('沒有可儲存的內容');
+      return;
+    }
+
+    try {
+      // 映射類型到後端格式
+      const resultTypeMap: Record<string, 'profile' | 'plan' | 'scripts'> = {
+        positioning: 'profile',
+        topics: 'plan',
+        script: 'scripts'
+      };
+
+      const titleMap: Record<string, string> = {
+        positioning: `帳號定位 - ${formData.topic}`,
+        topics: `選題建議 - ${formData.topic}`,
+        script: `短影音腳本 - ${formData.topic}`
+      };
+
+      await apiPost('/api/ip-planning/save', {
+        user_id: user.user_id,
+        result_type: resultTypeMap[type],
+        title: titleMap[type],
+        content: content,
+        metadata: {
+          platform: formData.platform,
+          goal: formData.goal,
+          duration: formData.duration,
+          structure: formData.structure,
+          topic: formData.topic,
+          positioning: formData.positioning
+        }
+      });
+
+      toast.success('已儲存到創作者資料庫');
+      // 發送自定義事件通知 UserDB 刷新
+      window.dispatchEvent(new CustomEvent('userdb-data-updated', { detail: { type: 'ip-planning' } }));
+    } catch (error: any) {
+      console.error('儲存失敗:', error);
+      if (error?.response?.status === 403) {
+        toast.error('您沒有權限儲存此內容，請訂閱以解鎖此功能');
+      } else {
+        toast.error('儲存失敗，請稍後再試');
+      }
+    }
   };
 
   return (
@@ -561,8 +653,16 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
                 )}
                 {results[activeResultTab as keyof typeof results] && (
                   <div className="space-y-4">
-                    <div className="prose prose-sm max-w-none whitespace-pre-wrap">
-                      {results[activeResultTab as keyof typeof results]}
+                    <div className="prose prose-sm max-w-none dark:prose-invert">
+                      <ReactMarkdown
+                        components={{
+                          // 自定義渲染，確保粗體正確顯示
+                          strong: ({ children }) => <strong className="font-bold text-foreground">{children}</strong>,
+                          p: ({ children }) => <p className="mb-2 whitespace-pre-wrap">{children}</p>,
+                        }}
+                      >
+                        {results[activeResultTab as keyof typeof results]}
+                      </ReactMarkdown>
                     </div>
                     <div className="flex justify-end gap-2">
                       <Button
@@ -579,9 +679,50 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
             </Card>
 
             <div className="flex justify-between gap-3">
-              <Button onClick={() => setCurrentStep(1)} variant="outline">
+              <Button 
+                onClick={() => {
+                  // 清空結果並返回第一步
+                  setResults({
+                    positioning: '',
+                    topics: '',
+                    script: ''
+                  });
+                  setActiveResultTab('positioning');
+                  setCurrentStep(1);
+                }} 
+                variant="outline"
+              >
                 重新生成
               </Button>
+              <div className="flex gap-2">
+                {results.positioning && (
+                  <Button
+                    variant="outline"
+                    onClick={() => handleSaveResult('positioning')}
+                  >
+                    <Save className="mr-2 h-4 w-4" />
+                    儲存帳號定位
+                  </Button>
+                )}
+                {results.topics && (
+                  <Button
+                    variant="outline"
+                    onClick={() => handleSaveResult('topics')}
+                  >
+                    <Save className="mr-2 h-4 w-4" />
+                    儲存選題建議
+                  </Button>
+                )}
+                {results.script && (
+                  <Button
+                    variant="outline"
+                    onClick={() => handleSaveResult('script')}
+                  >
+                    <Save className="mr-2 h-4 w-4" />
+                    儲存腳本內容
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         )}
