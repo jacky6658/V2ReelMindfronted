@@ -2,21 +2,34 @@
 
 root * ./dist/public
 
-# 靜態資源（assets 目錄）直接提供，不進行回退
+# 優先處理 /assets/ 目錄下的所有文件（最重要）
 handle /assets/* {
     file_server
 }
 
-# 其他靜態文件（favicon 等）
+# 處理其他靜態文件（根目錄下的 .js, .css 等）
 handle {
-    @static {
-        file *.js *.css *.woff *.woff2 *.png *.jpg *.jpeg *.gif *.svg *.ico *.json
+    @static_files {
+        file *.js
+        file *.css
+        file *.woff
+        file *.woff2
+        file *.png
+        file *.jpg
+        file *.jpeg
+        file *.gif
+        file *.svg
+        file *.ico
+        file *.json
+        file *.map
     }
-    handle @static {
+    handle @static_files {
         file_server
     }
-    
-    # 其他所有請求回退到 index.html（SPA 路由）
+}
+
+# 最後處理所有其他請求，回退到 index.html（SPA 路由）
+handle {
     try_files {path} /index.html
     file_server
 }
