@@ -20,12 +20,25 @@ import { useNavigate } from 'react-router-dom';
 import { apiPost } from '@/lib/api-client';
 import { useAuthStore } from '@/stores/authStore';
 import { toast } from 'sonner';
+import { useEffect } from 'react';
 
 export default function Subscription() {
   const navigate = useNavigate();
-  const { getToken } = useAuthStore();
+  const { getToken, isLoggedIn } = useAuthStore();
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('yearly');
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // 處理「立即體驗」按鈕點擊
+  const handleFreeExperience = () => {
+    if (isLoggedIn) {
+      // 已登入：跳轉到 Mode3（一鍵生成）
+      navigate('/mode3');
+    } else {
+      // 未登入：跳轉到登入頁
+      navigate('/login');
+      toast.info('請先登入以使用一鍵生成功能');
+    }
+  };
 
   // 方案資訊
   const plans = {
@@ -261,7 +274,7 @@ export default function Subscription() {
                   size="lg"
                   variant="outline"
                   className="w-full text-lg h-14 border-green-600 dark:border-green-400 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20"
-                  onClick={() => window.location.href = '/#/experience'}
+                  onClick={handleFreeExperience}
                 >
                   <Sparkles className="w-5 h-5 mr-2" />
                   立即體驗
