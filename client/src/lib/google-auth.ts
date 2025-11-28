@@ -6,7 +6,7 @@
  * - @/pages/OAuthCallback.tsx - 處理 OAuth 回調
  * 
  * 新的登入流程：
- * 1. 用戶點擊登入按鈕 → 調用 /api/auth/google 獲取 auth_url
+ * 1. 用戶點擊登入按鈕 → 調用 /api/auth/google-new 獲取 auth_url（新版前端）
  * 2. 重定向到 Google OAuth 頁面
  * 3. Google 回調到 /auth/callback
  * 4. OAuthCallback.tsx 處理回調並更新 authStore
@@ -19,7 +19,7 @@ let loginWindow: Window | null = null;
 
 /**
  * Google OAuth 登入（已廢棄）
- * @deprecated 請在 Login.tsx 中使用 apiGet('/api/auth/google') 獲取 auth_url
+ * @deprecated 請在 Login.tsx 中使用 apiGet('/api/auth/google-new') 獲取 auth_url（新版前端）
  */
 export async function googleLogin(): Promise<void> {
   console.warn('googleLogin() 已廢棄，請在 Login.tsx 中使用新的登入流程');

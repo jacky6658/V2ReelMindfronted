@@ -16,7 +16,8 @@ export default function Home() {
   const handleGoogleLogin = async () => {
     try {
       // 使用與 Login.tsx 相同的登入邏輯
-      const { auth_url } = await apiGet<{ auth_url: string }>('/api/auth/google');
+      // 使用新版前端的專用端點 /api/auth/google-new
+      const { auth_url } = await apiGet<{ auth_url: string }>('/api/auth/google-new');
       window.location.href = auth_url;
     } catch (error) {
       console.error('登入失敗:', error);
