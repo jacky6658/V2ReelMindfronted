@@ -1,0 +1,9 @@
+# Netlify/Vercel style redirects (for compatibility)
+# Zeabur should use Caddyfile, but this is a fallback
+
+# Static assets - no redirect
+/assets/* 200
+
+# All other routes to index.html for SPA
+/*    /index.html   200
+
