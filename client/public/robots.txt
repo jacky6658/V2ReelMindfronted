@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+
+Disallow: /mode1.html
+Disallow: /mode2.html
+Disallow: /mode3.html
+
+Disallow: /auth/
+Disallow: /api/
+Disallow: /userDB.html
+Disallow: /checkout.html
+Disallow: /payment-result.html
+
+Sitemap: https://reelmind.aijob.com.tw/sitemap.xml
