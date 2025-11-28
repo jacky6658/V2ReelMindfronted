@@ -305,6 +305,11 @@ export default function Mode1() {
       
       // 從本地 savedResults 中移除已儲存的項目
       setSavedResults(prev => prev.filter(r => r.id !== result.id));
+      
+      // 發送自定義事件，通知 UserDB 頁面刷新資料
+      window.dispatchEvent(new CustomEvent('userdb-data-updated', {
+        detail: { type: 'ip-planning' }
+      }));
     } catch (error: any) {
       console.error('儲存到 UserDB 失敗:', error);
       toast.error(error?.response?.data?.error || error.message || '儲存失敗');

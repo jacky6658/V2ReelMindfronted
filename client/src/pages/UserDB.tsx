@@ -94,6 +94,37 @@ export default function UserDB() {
     loadData();
   }, [activeTab]);
 
+  // 監聽資料更新事件（當 Mode1 儲存內容到 UserDB 時）
+  useEffect(() => {
+    const handleDataUpdate = (event: CustomEvent) => {
+      const { type } = event.detail || {};
+      
+      // 如果更新的是 IP 人設規劃資料
+      if (type === 'ip-planning') {
+        if (activeTab === 'ip-planning') {
+          // 如果當前在 IP 人設規劃標籤，自動刷新
+          loadIPPlanningResults();
+          toast.info('資料已更新', { duration: 2000 });
+        } else {
+          // 如果不在 IP 人設規劃標籤，顯示提示
+          toast.info('有新的 IP 人設規劃內容已儲存', {
+            duration: 4000,
+            action: {
+              label: '前往查看',
+              onClick: () => setActiveTab('ip-planning')
+            }
+          });
+        }
+      }
+    };
+
+    window.addEventListener('userdb-data-updated', handleDataUpdate as EventListener);
+    
+    return () => {
+      window.removeEventListener('userdb-data-updated', handleDataUpdate as EventListener);
+    };
+  }, [activeTab]);
+
   // 載入資料
   const loadData = async () => {
     setIsLoading(true);
