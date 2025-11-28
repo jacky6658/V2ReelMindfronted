@@ -31,10 +31,11 @@ import {
   ArrowLeft
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { apiGet, apiDelete } from '@/lib/api-client';
+import { apiGet, apiDelete, apiPost } from '@/lib/api-client';
 import { useAuthStore } from '@/stores/authStore';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import ScriptEditor from '@/components/ScriptEditor';
 
 interface Script {
   id: string;
@@ -232,6 +233,156 @@ export default function UserDB() {
   const handleView = (item: any) => {
     setSelectedItem(item);
     setShowDetail(true);
+  };
+
+  // 儲存編輯後的內容
+  const handleSaveContent = async (content: string) => {
+    if (!selectedItem) return;
+    
+    try {
+      // 根據類型選擇不同的 API endpoint
+      // 注意：後端可能沒有更新 API，這裡先嘗試，如果失敗則提示
+      let endpoint = '';
+      let method = 'POST';
+      
+      // 判斷類型（從 selectedItem 的結構判斷）
+      if (selectedItem.platform) {
+        // Script 類型
+        endpoint = `/api/user/scripts/${selectedItem.id}`;
+      } else if (selectedItem.message_count !== undefined) {
+        // Conversation 類型
+        endpoint = `/api/user/conversations/${selectedItem.id}`;
+      } else if (selectedItem.type) {
+        // Generation 類型
+        endpoint = `/api/user/generations/${selectedItem.id}`;
+      } else if (selectedItem.result_type) {
+        // IP Planning 類型
+        endpoint = `/api/ip-planning/results/${selectedItem.id}`;
+      } else {
+        // 預設為 script
+        endpoint = `/api/user/scripts/${selectedItem.id}`;
+      }
+      
+      try {
+        await apiPost(endpoint, { content });
+        toast.success('已儲存');
+        
+        // 更新本地狀態
+        setSelectedItem({ ...selectedItem, content });
+        loadData();
+      } catch (apiError: any) {
+        // 如果 API 不存在，提示用戶
+        if (apiError?.response?.status === 404 || apiError?.response?.status === 405) {
+          toast.info('此功能需要後端 API 支援，目前僅支援本地編輯');
+          // 仍然更新本地狀態（僅前端）
+          setSelectedItem({ ...selectedItem, content });
+        } else {
+          throw apiError;
+        }
+      }
+    } catch (error: any) {
+      toast.error(error.message || '儲存失敗');
+    }
+  };
+
+  // 匯出功能
+  const handleExport = async (format: 'txt' | 'pdf' | 'word') => {
+    if (!selectedItem) return;
+    
+    const content = selectedItem.content || '';
+    const title = selectedItem.title || 'script';
+    
+    if (format === 'txt') {
+      const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${title}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success('已匯出為 TXT');
+    } else if (format === 'pdf') {
+      // 使用瀏覽器列印功能生成 PDF
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.write(`
+          <html>
+            <head>
+              <title>${title}</title>
+              <style>
+                body { font-family: Arial, sans-serif; padding: 20px; }
+                h1 { color: #333; }
+                pre { white-space: pre-wrap; line-height: 1.6; }
+              </style>
+            </head>
+            <body>
+              <h1>${title}</h1>
+              <pre>${content}</pre>
+            </body>
+          </html>
+        `);
+        printWindow.document.close();
+        setTimeout(() => {
+          printWindow.print();
+        }, 250);
+      }
+    } else if (format === 'word') {
+      // Word 格式匯出（使用 HTML 格式）
+      const htmlContent = `
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <title>${title}</title>
+          </head>
+          <body>
+            <h1>${title}</h1>
+            <pre style="white-space: pre-wrap; font-family: Arial, sans-serif;">${content}</pre>
+          </body>
+        </html>
+      `;
+      const blob = new Blob(['\ufeff', htmlContent], { type: 'application/msword' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${title}.doc`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success('已匯出為 Word');
+    }
+  };
+
+  // 分享功能
+  const handleShare = async () => {
+    if (!selectedItem) return;
+    
+    const shareData = {
+      title: selectedItem.title || '腳本',
+      text: selectedItem.content?.substring(0, 100) + '...' || '',
+      url: window.location.href
+    };
+    
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+        toast.success('已分享');
+      } catch (error: any) {
+        if (error.name !== 'AbortError') {
+          // 如果不支援分享，則複製連結
+          const shareUrl = `${window.location.origin}${window.location.pathname}#/share/${selectedItem.id}`;
+          navigator.clipboard.writeText(shareUrl);
+          toast.success('連結已複製到剪貼簿');
+        }
+      }
+    } else {
+      // 降級方案：複製連結
+      const shareUrl = `${window.location.origin}${window.location.pathname}#/share/${selectedItem.id}`;
+      navigator.clipboard.writeText(shareUrl);
+      toast.success('連結已複製到剪貼簿');
+    }
   };
 
   // 登出
@@ -612,20 +763,17 @@ export default function UserDB() {
           </DialogHeader>
 
           <div className="space-y-4">
-            <ScrollArea className="max-h-[500px]">
-              <div className="whitespace-pre-wrap break-words p-4 bg-muted rounded-lg">
-                {selectedItem?.content}
-              </div>
-            </ScrollArea>
-
+            <ScriptEditor
+              content={selectedItem?.content || ''}
+              title={selectedItem?.title}
+              onSave={handleSaveContent}
+              onExport={handleExport}
+              onShare={handleShare}
+              readOnly={false}
+              showToolbar={true}
+            />
+            
             <div className="flex justify-end gap-2">
-              <Button
-                variant="outline"
-                onClick={() => handleCopy(selectedItem?.content)}
-              >
-                <Copy className="w-4 h-4 mr-2" />
-                複製
-              </Button>
               <Button onClick={() => setShowDetail(false)}>
                 關閉
               </Button>
