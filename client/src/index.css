@@ -1,0 +1,184 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+}
+
+:root {
+  /* 淺色模式（白天）配色 */
+  --primary: oklch(0.571 0.191 237.321);
+  --primary-foreground: oklch(0.985 0 0);
+  --chart-1: oklch(0.571 0.191 237.321);
+  --chart-2: oklch(0.658 0.182 164.364);
+  --chart-3: oklch(0.718 0.157 142.495);
+  --chart-4: oklch(0.765 0.181 85.869);
+  --chart-5: oklch(0.805 0.141 71.783);
+  --radius: 0.65rem;
+  --background: oklch(0.985 0.002 247.839);
+  --foreground: oklch(0.235 0.015 65);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.235 0.015 65);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.235 0.015 65);
+  --secondary: oklch(0.98 0.001 286.375);
+  --secondary-foreground: oklch(0.4 0.015 65);
+  --muted: oklch(0.967 0.001 286.375);
+  --muted-foreground: oklch(0.552 0.016 285.938);
+  --accent: oklch(0.967 0.001 286.375);
+  --accent-foreground: oklch(0.141 0.005 285.823);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.985 0 0);
+  --border: oklch(0.92 0.004 286.32);
+  --input: oklch(0.92 0.004 286.32);
+  --ring: oklch(0.571 0.191 237.321);
+  
+  /* 影片背景遮罩 - 淺色模式（較淺） */
+  --video-overlay-opacity: 0.75;
+  --video-overlay-color: 248 249 251;
+}
+
+.dark {
+  /* 深色模式（夜間）配色 */
+  --primary: oklch(0.571 0.191 237.321);
+  --primary-foreground: oklch(0.985 0 0);
+  --background: oklch(0.141 0.01 247.858);
+  --foreground: oklch(0.92 0.005 65);
+  --card: oklch(0.21 0.012 247.896);
+  --card-foreground: oklch(0.92 0.005 65);
+  --popover: oklch(0.21 0.012 247.896);
+  --popover-foreground: oklch(0.92 0.005 65);
+  --secondary: oklch(0.24 0.012 248.033);
+  --secondary-foreground: oklch(0.8 0.005 65);
+  --muted: oklch(0.274 0.012 248.033);
+  --muted-foreground: oklch(0.705 0.015 248.067);
+  --accent: oklch(0.274 0.012 248.033);
+  --accent-foreground: oklch(0.985 0.002 247.839);
+  --destructive: oklch(0.704 0.191 22.216);
+  --destructive-foreground: oklch(0.985 0 0);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.488 0.243 264.376);
+  --chart-1: oklch(0.571 0.191 237.321);
+  --chart-2: oklch(0.658 0.182 164.364);
+  --chart-3: oklch(0.718 0.157 142.495);
+  --chart-4: oklch(0.765 0.181 85.869);
+  --chart-5: oklch(0.805 0.141 71.783);
+  
+  /* 影片背景遮罩 - 深色模式（獨立設定） */
+  --video-overlay-opacity: 0.7;
+  --video-overlay-color: 15 20 25;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [type="button"]:not(:disabled),
+  [type="submit"]:not(:disabled),
+  [type="reset"]:not(:disabled),
+  a[href],
+  select:not(:disabled),
+  input[type="checkbox"]:not(:disabled),
+  input[type="radio"]:not(:disabled) {
+    @apply cursor-pointer;
+  }
+}
+
+@layer components {
+  .container {
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .flex {
+    min-height: 0;
+    min-width: 0;
+  }
+
+  @media (min-width: 640px) {
+    .container {
+      padding-left: 1.5rem;
+      padding-right: 1.5rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .container {
+      padding-left: 2rem;
+      padding-right: 2rem;
+      max-width: 1280px;
+    }
+  }
+  
+  /* 影片背景樣式 */
+  .video-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    z-index: 0;
+  }
+  
+  .video-background video {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    min-width: 100%;
+    min-height: 100%;
+    width: auto;
+    height: auto;
+    transform: translate(-50%, -50%);
+    object-fit: cover;
+  }
+  
+  .video-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgb(var(--video-overlay-color) / var(--video-overlay-opacity));
+    z-index: 1;
+  }
+}
