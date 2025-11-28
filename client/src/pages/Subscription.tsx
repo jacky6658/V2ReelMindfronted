@@ -351,22 +351,6 @@ export default function Subscription() {
                   )}
                 </Button>
 
-                {/* Payment Methods */}
-                <div className="text-center pt-4 border-t border-border mt-4">
-                  <p className="text-sm text-muted-foreground mb-3">
-                    支援多種付款方式
-                  </p>
-                  <div className="flex justify-center gap-4 text-xs text-muted-foreground">
-                    <span>信用卡</span>
-                    <span>•</span>
-                    <span>LINE Pay</span>
-                    <span>•</span>
-                    <span>Apple Pay</span>
-                    <span>•</span>
-                    <span>ATM 轉帳</span>
-                  </div>
-                </div>
-
                 {/* Security Badge */}
                 <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground pt-2">
                   <Shield className="w-4 h-4" />
