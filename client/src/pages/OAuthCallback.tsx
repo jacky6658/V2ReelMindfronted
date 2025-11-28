@@ -4,25 +4,25 @@
  */
 
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { apiPost } from '@/lib/api-client';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/stores/authStore';
 
 export default function OAuthCallback() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { setAuth } = useAuthStore();
 
   useEffect(() => {
     handleCallback();
-  }, []);
+  }, [searchParams]);
 
   const handleCallback = async () => {
     try {
       // 從 URL 獲取授權碼
-      const params = new URLSearchParams(window.location.search);
-      const code = params.get('code');
-      const error = params.get('error');
+      const code = searchParams.get('code');
+      const error = searchParams.get('error');
 
       if (error) {
         toast.error('登入失敗');
