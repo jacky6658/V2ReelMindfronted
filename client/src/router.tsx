@@ -4,7 +4,7 @@
  */
 
 import React, { lazy, Suspense } from 'react';
-import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { createHashRouter, Navigate } from 'react-router-dom';
 import PrivateRoute from './components/PrivateRoute';
 
 // Lazy load components for better performance
@@ -41,7 +41,7 @@ const LoadingFallback = () => (
 );
 
 // 創建路由配置
-export const router = createBrowserRouter([
+export const router = createHashRouter([
   {
     path: '/',
     element: (
