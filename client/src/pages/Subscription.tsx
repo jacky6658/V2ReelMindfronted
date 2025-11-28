@@ -26,7 +26,7 @@ export default function Subscription() {
   // 方案資訊
   const plans = {
     monthly: {
-      price: 1980,
+      price: 399,
       period: '月',
       save: 0,
       features: [
@@ -41,12 +41,12 @@ export default function Subscription() {
       ]
     },
     yearly: {
-      price: 23760,
-      monthlyPrice: 1980,
-      period: '年',
-      save: 23760 - 19800,
-      savePercent: Math.round(((23760 - 19800) / 23760) * 100),
-      actualPrice: 19800,
+      price: 4788, // 原價 399 * 12
+      monthlyPrice: 332, // 優惠後的平均月費 (3990 / 12)
+      period: '月', // 顯示為每月價格
+      save: 4788 - 3990,
+      savePercent: Math.round(((4788 - 3990) / 4788) * 100),
+      actualPrice: 3990, // 實際付款金額
       features: [
         'AI 顧問無限次對話',
         'AI 一鍵生成腳本',
@@ -144,7 +144,7 @@ export default function Subscription() {
               <span className="text-primary">.</span>
             </h1>
             <p className="text-xl text-muted-foreground">
-              單一訂閱制，解鎖所有功能。付費即使用，無免費體驗。
+              單一訂閱制，解鎖所有功能。包含 7 天免費試用期（註冊後）。
             </p>
           </div>
         </div>
@@ -197,20 +197,23 @@ export default function Subscription() {
               <div className="mt-6">
                 {billingCycle === 'yearly' && (
                   <div className="text-sm text-muted-foreground line-through mb-2">
-                    原價 NT${currentPlan.price.toLocaleString()}
+                    原價 NT${currentPlan.price.toLocaleString()} / 年
                   </div>
                 )}
                 <div className="flex items-baseline justify-center gap-2">
                   <span className="text-5xl font-bold text-primary">
-                    NT${(billingCycle === 'yearly' ? (currentPlan as any).actualPrice : currentPlan.price).toLocaleString()}
+                    NT${(billingCycle === 'yearly' ? (currentPlan as any).monthlyPrice : currentPlan.price).toLocaleString()}
                   </span>
                   <span className="text-muted-foreground">/ {currentPlan.period}</span>
                 </div>
                 {billingCycle === 'yearly' && (
-                  <div className="mt-2">
+                  <div className="mt-2 flex flex-col items-center gap-1">
                     <Badge variant="secondary" className="text-sm">
-                      每月只要 NT${Math.round((currentPlan as any).actualPrice / 12)}
+                      年繳 NT${(currentPlan as any).actualPrice.toLocaleString()}
                     </Badge>
+                    <span className="text-xs text-green-600 font-medium">
+                      省下 NT${(currentPlan as any).save} ({Math.round((currentPlan as any).savePercent)}%)
+                    </span>
                   </div>
                 )}
               </div>

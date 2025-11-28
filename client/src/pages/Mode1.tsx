@@ -173,7 +173,8 @@ export default function Mode1() {
           content: m.content
         })),
         conversation_type: 'ip_planning', // IP 人設規劃類型
-        user_id: user?.user_id || null // 使用當前登入用戶的 ID
+        user_id: user?.user_id || null, // 使用當前登入用戶的 ID
+        feature_mode: 'mode1' // 新增：指定使用 Mode1 權限檢查
       };
 
       // 使用流式 API
@@ -202,7 +203,17 @@ export default function Mode1() {
         },
         (error) => {
           console.error('流式請求錯誤:', error);
-          toast.error('生成失敗，請重試');
+          // 處理 403 錯誤 (權限不足/試用期已過)
+          if (error && typeof error === 'object' && 'status' in error && error.status === 403) {
+             toast.error('試用期已過，請訂閱以繼續使用', {
+               action: {
+                 label: '去訂閱',
+                 onClick: () => navigate('/pricing')
+               }
+             });
+          } else {
+             toast.error('生成失敗，請重試');
+          }
         },
         () => {
           setIsLoading(false);

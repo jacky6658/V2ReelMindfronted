@@ -1,3 +1,4 @@
+
 /**
  * Mode3 - 一鍵生成
  * 表單式 AI 腳本生成（3 步驟流程）
@@ -11,10 +12,12 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { ArrowLeft, Sparkles, CheckCircle2, Loader2, Copy } from 'lucide-react';
+import { ArrowLeft, Sparkles, CheckCircle2, Loader2, Copy, Lock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { apiStream } from '@/lib/api-client';
-import { ThinkingAnimation } from '@/components/ThinkingAnimation';
+import ThinkingAnimation from '@/components/ThinkingAnimation';
+import { useAuthStore } from '@/stores/authStore';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 
 // 腳本結構選項
 const SCRIPT_STRUCTURES = [
@@ -47,9 +50,15 @@ const SCRIPT_STRUCTURES = [
 
 export default function Mode3() {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   
+  // 權限相關狀態
+  const [showPermissionDialog, setShowPermissionDialog] = useState(false);
+  const [apiKey, setApiKey] = useState('');
+  const [permissionError, setPermissionError] = useState('');
+
   // 表單資料
   const [formData, setFormData] = useState({
     topic: '',
@@ -113,10 +122,42 @@ export default function Mode3() {
     setCurrentStep(prev => Math.max(prev - 1, 1));
   };
 
+  // 通用的權限錯誤處理
+  const handlePermissionError = (error: any) => {
+      if (error && typeof error === 'object' && 'status' in error && error.status === 403) {
+          setPermissionError('您的試用期已過，請訂閱或輸入 Gemini API Key 以繼續使用。');
+          setShowPermissionDialog(true);
+          return true;
+      }
+      return false;
+  }
+
+  // 處理 API Key 保存
+  const handleSaveApiKey = async () => {
+      if (!apiKey.trim()) {
+          toast.error('請輸入 API Key');
+          return;
+      }
+      // 這裡可以實作保存 API Key 的邏輯，例如存到 localStorage 或發送到後端
+      // 暫時先假設保存成功並重試
+      // 實際應用中應該有一個專門的 API 設置用戶的 Key
+      
+      // 假設這裡調用一個設置 Key 的 API
+      // await apiPost('/api/user/settings/key', { provider: 'gemini', key: apiKey });
+      
+      // 由於我們現在沒有這個 API，我們提示用戶去個人設定頁面，或者如果後端支援在請求頭帶 Key
+      toast.info('請前往個人設定頁面設置 API Key，或直接訂閱解鎖全部功能。');
+      
+      // 導向訂閱頁面是商業邏輯首選
+      navigate('/pricing');
+      setShowPermissionDialog(false);
+  };
+
   // 生成內容
   const handleGenerate = async () => {
     setLoading(true);
     setCurrentStep(3);
+    setPermissionError('');
     
     try {
       // 生成帳號定位
@@ -129,7 +170,13 @@ export default function Mode3() {
       toast.success('生成完成！');
     } catch (error) {
       console.error('生成失敗:', error);
-      toast.error('生成失敗，請稍後再試');
+      if (!handlePermissionError(error)) {
+          toast.error('生成失敗，請稍後再試');
+      } else {
+          // 如果是權限錯誤，停止後續生成
+          setLoading(false);
+          return; 
+      }
     } finally {
       setLoading(false);
     }
@@ -150,9 +197,15 @@ export default function Mode3() {
 格式要求：分段清楚，短句，每段換行，適度加入表情符號（如：✅✨🔥📌），避免口頭禪。絕對不要使用 ** 或任何 Markdown 格式符號，所有內容必須是純文字格式。`;
 
     let result = '';
-    await apiStream('/api/generate/positioning', { message: prompt }, (chunk) => {
+    // 使用 Mode3 專用端點
+    await apiStream('/api/mode3/generate/positioning', { 
+        message: prompt,
+        user_id: user?.user_id || null
+    }, (chunk) => {
       result += chunk;
       setResults(prev => ({ ...prev, positioning: result }));
+    }, (error) => {
+        throw error; // 拋出錯誤供 handleGenerate 捕獲處理
     });
   };
 
@@ -169,9 +222,15 @@ export default function Mode3() {
 格式要求：分段清楚，短句，每段換行，適度加入表情符號（如：✅✨🔥📌），避免口頭禪。絕對不要使用 ** 或任何 Markdown 格式符號，所有內容必須是純文字格式。`;
 
     let result = '';
-    await apiStream('/api/generate/topics', { message: prompt }, (chunk) => {
+    // 使用 Mode3 專用端點
+    await apiStream('/api/mode3/generate/topics', { 
+        message: prompt,
+        user_id: user?.user_id || null
+    }, (chunk) => {
       result += chunk;
       setResults(prev => ({ ...prev, topics: result }));
+    }, (error) => {
+        throw error;
     });
   };
 
@@ -195,9 +254,17 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
 格式要求：分段清楚，短句，每段換行，適度加入表情符號（如：✅✨🔥📌），避免口頭禪。絕對不要使用 ** 或任何 Markdown 格式符號，所有內容必須是純文字格式。`;
 
     let result = '';
-    await apiStream('/api/generate/script', { message: prompt }, (chunk) => {
+    // 使用 Mode3 專用端點
+    await apiStream('/api/mode3/generate/script', { 
+        message: prompt,
+        script_structure: formData.structure,
+        duration: formData.duration,
+        user_id: user?.user_id || null
+    }, (chunk) => {
       result += chunk;
       setResults(prev => ({ ...prev, script: result }));
+    }, (error) => {
+        throw error;
     });
   };
 
@@ -487,7 +554,7 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
             <Card>
               <CardContent className="pt-6">
                 {loading && !results[activeResultTab as keyof typeof results] && (
-                  <ThinkingAnimation text={`AI 正在為您生成${
+                  <ThinkingAnimation message={`AI 正在為您生成${
                     activeResultTab === 'positioning' ? '帳號定位' :
                     activeResultTab === 'topics' ? '選題建議' : '短影音腳本'
                   }...`} />
@@ -519,6 +586,67 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
           </div>
         )}
       </div>
+
+        {/* 權限提示 Dialog */}
+        <Dialog open={showPermissionDialog} onOpenChange={setShowPermissionDialog}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                        <Lock className="w-5 h-5 text-amber-500" />
+                        需要權限
+                    </DialogTitle>
+                    <DialogDescription>
+                        {permissionError || '您需要訂閱或配置 API Key 才能繼續使用此功能。'}
+                    </DialogDescription>
+                </DialogHeader>
+                
+                <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                        <Label>訂閱解鎖完整功能（推薦）</Label>
+                        <p className="text-sm text-muted-foreground">
+                            升級為 VIP 會員，無限制使用所有 AI 生成功能，無需煩惱 API Key。
+                        </p>
+                        <Button className="w-full" onClick={() => navigate('/pricing')}>
+                            查看訂閱方案
+                        </Button>
+                    </div>
+
+                    <div className="relative">
+                        <div className="absolute inset-0 flex items-center">
+                            <span className="w-full border-t" />
+                        </div>
+                        <div className="relative flex justify-center text-xs uppercase">
+                            <span className="bg-background px-2 text-muted-foreground">
+                                或者
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label>我有 Gemini API Key</Label>
+                        <Input 
+                            type="password" 
+                            placeholder="輸入您的 Google Gemini API Key" 
+                            value={apiKey}
+                            onChange={(e) => setApiKey(e.target.value)}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                            我們不會儲存您的 Key 用於其他用途，僅用於本次生成。
+                        </p>
+                    </div>
+                </div>
+
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setShowPermissionDialog(false)}>
+                        取消
+                    </Button>
+                    <Button onClick={handleSaveApiKey} disabled={!apiKey.trim()}>
+                        確認使用 Key
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
     </div>
   );
 }
