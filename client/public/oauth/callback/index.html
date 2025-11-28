@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Redirecting...</title>
+    <script>
+        // 獲取當前 URL 的查詢參數 (例如 ?code=...&state=...)
+        const search = window.location.search;
+        
+        // 重定向到 Hash 路由
+        // 將 /oauth/callback?code=... 轉換為 /#/auth/callback?code=...
+        // 注意：router.tsx 中定義的路由是 /auth/callback
+        window.location.href = '/#/auth/callback' + search;
+    </script>
+</head>
+<body>
+    <p>Redirecting to application...</p>
+</body>
+</html>
