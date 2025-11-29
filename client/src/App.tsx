@@ -14,12 +14,13 @@ import { useEffect } from "react";
 // - If you want to make theme switchable, pass `switchable` ThemeProvider and use `useTheme` hook
 
 function App() {
-  const { fetchCurrentUser } = useAuthStore();
+  const fetchCurrentUser = useAuthStore((state) => state.fetchCurrentUser);
 
   useEffect(() => {
     // 在應用程式啟動時，嘗試從 localStorage 獲取 token 並驗證登入狀態
     fetchCurrentUser();
-  }, [fetchCurrentUser]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // 只在組件掛載時執行一次
 
   return (
     <ErrorBoundary>
