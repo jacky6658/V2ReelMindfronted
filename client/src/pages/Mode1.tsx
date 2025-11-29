@@ -37,6 +37,7 @@ import {
 import { apiPost, apiGet, apiDelete, apiStream } from '@/lib/api-client';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import ThinkingAnimation from '@/components/ThinkingAnimation';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -549,6 +550,35 @@ export default function Mode1() {
                     </div>
                   </div>
                 ))}
+
+                {/* AI 思考中動畫 */}
+                {isLoading && (
+                  <div className="flex justify-start">
+                    <div className="max-w-[80%] bg-muted rounded-lg p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="relative w-8 h-8 flex-shrink-0">
+                          {/* 旋轉的載入動畫 */}
+                          <div className="absolute inset-0 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium text-foreground">AI 思考中</span>
+                          <div className="flex gap-1 mt-1">
+                            {[0, 1, 2].map((i) => (
+                              <div
+                                key={i}
+                                className="w-1.5 h-1.5 bg-primary/50 rounded-full animate-pulse"
+                                style={{
+                                  animationDelay: `${i * 0.2}s`,
+                                  animationDuration: '1s'
+                                }}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <div ref={messagesEndRef} />
               </div>
