@@ -5,80 +5,267 @@
 
 import React from 'react';
 import { useAuthStore } from '@/stores/authStore';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Sparkles, Target, Zap, Database, ArrowRight, CheckCircle2, TrendingUp, MessageSquare, Home, BookOpen, Users, ExternalLink } from 'lucide-react';
 
 const AppDashboard: React.FC = () => {
   const { user } = useAuthStore();
+  const navigate = useNavigate();
+
+  const features = [
+    {
+      id: 'mode1',
+      title: 'IP人設規劃',
+      description: 'AI 對話式規劃，打造專屬 IP 人設與內容策略',
+      icon: MessageSquare,
+      link: '/mode1',
+      gradient: 'from-blue-500 to-cyan-500',
+      bgGradient: 'from-blue-500/10 to-cyan-500/10',
+      features: ['AI 對話規劃', '智能內容建議', '個性化策略']
+    },
+    {
+      id: 'mode3',
+      title: '一鍵生成',
+      description: '快速生成短影音腳本，三步驟完成專業內容',
+      icon: Zap,
+      link: '/mode3',
+      gradient: 'from-purple-500 to-pink-500',
+      bgGradient: 'from-purple-500/10 to-pink-500/10',
+      features: ['帳號定位', '選題建議', '腳本生成']
+    },
+    {
+      id: 'userdb',
+      title: '創作者資料庫',
+      description: '管理您的所有創作內容，隨時查看與編輯',
+      icon: Database,
+      link: '/userdb',
+      gradient: 'from-emerald-500 to-teal-500',
+      bgGradient: 'from-emerald-500/10 to-teal-500/10',
+      features: ['腳本管理', '對話記錄', '生成歷史']
+    }
+  ];
 
   return (
-    <div className="p-8">
-      <h1 className="text-3xl font-bold mb-6">歡迎來到 ReelMind 主操作介面</h1>
-      {user && (
-        <p className="mb-6 text-muted-foreground">您好，{user.name || user.email}！</p>
-      )}
-      <p className="mb-8">在這裡您可以開始使用智能體功能。</p>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>IP人設規劃</CardTitle>
-            <CardDescription>規劃您的 IP 人設</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link to="/mode1">
-              <Button>開始使用</Button>
-            </Link>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle>一鍵生成</CardTitle>
-            <CardDescription>快速生成短影音腳本</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link to="/mode3">
-              <Button>開始使用</Button>
-            </Link>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle>創作者資料庫</CardTitle>
-            <CardDescription>管理您的創作者資料</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link to="/userdb">
-              <Button>開始使用</Button>
-            </Link>
-          </CardContent>
-        </Card>
+    <div className="min-h-screen bg-background">
+      {/* Hero 區塊 */}
+      <div className="relative overflow-hidden border-b">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent" />
+        <div className="container relative py-12 md:py-16">
+          <div className="max-w-3xl">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center shadow-lg">
+                <Sparkles className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
+                  歡迎回來
+                  {user && (
+                    <span className="block mt-1 text-xl md:text-2xl text-muted-foreground font-normal">
+                      {user.name || user.email}
+                    </span>
+                  )}
+                </h1>
+              </div>
+            </div>
+            <p className="text-lg text-muted-foreground">
+              開始使用 AI 智能體，讓內容創作變得更簡單高效
+            </p>
+          </div>
+        </div>
       </div>
-      
-      {/* API 對接狀態檢查 */}
-      <div className="mt-8 p-4 bg-muted/50 dark:bg-muted/30 rounded-lg border border-border dark:border-border/50">
-        <h3 className="font-semibold mb-2 text-foreground dark:text-foreground">API 對接狀態</h3>
-        <ul className="space-y-2 text-sm text-muted-foreground dark:text-muted-foreground">
-          <li className="flex items-center gap-2">
-            <span className="text-green-600 dark:text-green-400">✓</span>
-            <span>Mode1: 使用 <code className="bg-background dark:bg-background/50 px-1 rounded border border-border dark:border-border/50">/api/mode1/chat/stream</code></span>
-          </li>
-          <li className="flex items-center gap-2">
-            <span className="text-green-600 dark:text-green-400">✓</span>
-            <span>Mode3: 使用 <code className="bg-background dark:bg-background/50 px-1 rounded border border-border dark:border-border/50">/api/mode3/generate/*</code></span>
-          </li>
-          <li className="flex items-center gap-2">
-            <span className="text-green-600 dark:text-green-400">✓</span>
-            <span>Experience: 使用 <code className="bg-background dark:bg-background/50 px-1 rounded border border-border dark:border-border/50">/api/mode3/generate/*</code></span>
-          </li>
-        </ul>
+
+      {/* 功能卡片區塊 */}
+      <div className="container py-8 md:py-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {features.map((feature) => {
+            const Icon = feature.icon;
+            return (
+              <Card
+                key={feature.id}
+                className="group relative overflow-hidden border-2 hover:border-primary/50 transition-all duration-300 hover:shadow-lg hover:shadow-primary/10"
+              >
+                {/* 背景漸變 */}
+                <div className={`absolute inset-0 bg-gradient-to-br ${feature.bgGradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
+                
+                <CardHeader className="relative">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${feature.gradient} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+                      <Icon className="w-7 h-7 text-white" />
+                    </div>
+                    <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all duration-300" />
+                  </div>
+                  <CardTitle className="text-xl mb-2">{feature.title}</CardTitle>
+                  <CardDescription className="text-base leading-relaxed">
+                    {feature.description}
+                  </CardDescription>
+                </CardHeader>
+                
+                <CardContent className="relative space-y-4">
+                  {/* 功能列表 */}
+                  <ul className="space-y-2">
+                    {feature.features.map((item, index) => (
+                      <li key={index} className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  
+                  {/* 操作按鈕 */}
+                  <Link to={feature.link} className="block">
+                    <Button 
+                      className={`w-full bg-gradient-to-r ${feature.gradient} hover:opacity-90 text-white border-0 shadow-md hover:shadow-lg transition-all duration-300`}
+                    >
+                      開始使用
+                      <ArrowRight className="ml-2 w-4 h-4" />
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+
+        {/* 快速提示區塊 */}
+        <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card className="border-2 border-primary/20 bg-primary/5">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
+                  <Target className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-sm">智能規劃</h3>
+                  <p className="text-xs text-muted-foreground">AI 協助制定策略</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-2 border-purple-500/20 bg-purple-500/5">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                  <Zap className="w-5 h-5 text-purple-500" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-sm">快速生成</h3>
+                  <p className="text-xs text-muted-foreground">三步驟完成內容</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-2 border-emerald-500/20 bg-emerald-500/5">
+            <CardContent className="pt-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center">
+                  <TrendingUp className="w-5 h-5 text-emerald-500" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-sm">數據管理</h3>
+                  <p className="text-xs text-muted-foreground">集中管理所有內容</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* 導航連結區塊 */}
+        <div className="mt-12">
+          <div className="text-center mb-6">
+            <h2 className="text-2xl md:text-3xl font-bold mb-2">探索更多資源</h2>
+            <p className="text-muted-foreground">了解更多功能與使用技巧</p>
+          </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+            {/* 回首頁 */}
+            <Card 
+              className="group relative overflow-hidden border-2 hover:border-primary/50 transition-all duration-300 hover:shadow-lg cursor-pointer"
+              onClick={() => navigate('/')}
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <CardContent className="pt-6 pb-6">
+                <div className="flex flex-col sm:flex-row items-center gap-4">
+                  <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300 flex-shrink-0">
+                    <Home className="w-7 h-7 text-white" />
+                  </div>
+                  <div className="flex-1 text-center sm:text-left">
+                    <h3 className="font-semibold text-lg mb-1">回到首頁</h3>
+                    <p className="text-sm text-muted-foreground mb-3">查看產品介紹與功能特色</p>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="w-full sm:w-auto group-hover:border-primary group-hover:text-primary"
+                    >
+                      前往首頁
+                      <ExternalLink className="ml-2 w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* 實戰指南 */}
+            <Card 
+              className="group relative overflow-hidden border-2 hover:border-purple-500/50 transition-all duration-300 hover:shadow-lg cursor-pointer"
+              onClick={() => navigate('/guide')}
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-pink-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <CardContent className="pt-6 pb-6">
+                <div className="flex flex-col sm:flex-row items-center gap-4">
+                  <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300 flex-shrink-0">
+                    <BookOpen className="w-7 h-7 text-white" />
+                  </div>
+                  <div className="flex-1 text-center sm:text-left">
+                    <h3 className="font-semibold text-lg mb-1">實戰指南</h3>
+                    <p className="text-sm text-muted-foreground mb-3">學習使用技巧與最佳實踐</p>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="w-full sm:w-auto group-hover:border-purple-500 group-hover:text-purple-500"
+                    >
+                      查看指南
+                      <ExternalLink className="ml-2 w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* 論壇 */}
+            <Card 
+              className="group relative overflow-hidden border-2 hover:border-emerald-500/50 transition-all duration-300 hover:shadow-lg cursor-pointer sm:col-span-2 lg:col-span-1"
+              onClick={() => navigate('/forum')}
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-teal-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <CardContent className="pt-6 pb-6">
+                <div className="flex flex-col sm:flex-row items-center gap-4">
+                  <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300 flex-shrink-0">
+                    <Users className="w-7 h-7 text-white" />
+                  </div>
+                  <div className="flex-1 text-center sm:text-left">
+                    <h3 className="font-semibold text-lg mb-1">論壇</h3>
+                    <p className="text-sm text-muted-foreground mb-3">與其他創作者交流分享</p>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="w-full sm:w-auto group-hover:border-emerald-500 group-hover:text-emerald-500"
+                    >
+                      進入論壇
+                      <ExternalLink className="ml-2 w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     </div>
   );
 };
 
 export default AppDashboard;
-
