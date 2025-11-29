@@ -955,22 +955,21 @@ guideArticles['how-to-get-llm-api-key'] = {
       content: [
         'LLM API Key 是使用 AI 模型（如 Google Gemini）的授權金鑰。',
         '',
-        '在 ReelMind 中，你可以選擇：',
-        '• **使用系統提供的 API Key**（訂閱用戶）',
-        '• **使用自己的 API Key**（免費方案或想要更多控制）',
+        '在 ReelMind 中，所有用戶都需要使用自己的 LLM API Key 來進行 AI 生成。',
         '',
         '使用自己的 API Key 的好處：',
         '✅ 完全掌控生成品質',
         '✅ 可選擇更高階的 AI 模型',
         '✅ 不受系統配額限制',
-        '✅ 更靈活的用量控制'
+        '✅ 更靈活的用量控制',
+        '✅ 更好的隱私保護'
       ]
     },
     {
       heading: '為什麼需要自己的 API Key？',
       level: 1,
       content: [
-        '雖然訂閱用戶可以使用系統提供的 API Key，但使用自己的 API Key 可以：',
+        'ReelMind 採用 BYOK（Bring Your Own Key）模式，所有用戶都需要綁定自己的 LLM API Key。這樣做可以：',
         '',
         '**1. 更多控制權**',
         '• 選擇不同的 AI 模型',
@@ -984,7 +983,11 @@ guideArticles['how-to-get-llm-api-key'] = {
         '',
         '**3. 更划算**',
         '• 對於大量使用的用戶，直接使用 API 可能更經濟',
-        '• 可以選擇適合的計費方案'
+        '• 可以選擇適合的計費方案',
+        '',
+        '**4. 更好的隱私**',
+        '• 您的 API Key 完全由您掌控',
+        '• 資料處理更透明'
       ]
     },
     {
