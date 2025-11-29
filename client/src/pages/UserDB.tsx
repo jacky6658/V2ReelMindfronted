@@ -228,21 +228,30 @@ export default function UserDB() {
           endpoint = `/api/scripts/${id}`;
           break;
         case 'conversation':
-          endpoint = `/api/user/conversations/${id}`;
-          break;
+          // 注意：後端目前沒有刪除對話記錄的端點
+          toast.error('目前不支援刪除對話記錄');
+          return;
         case 'generation':
-          endpoint = `/api/user/generations/${id}`;
+          // 後端端點：DELETE /api/generations/{gen_id}（不是 /api/user/generations/{id}）
+          endpoint = `/api/generations/${id}`;
           break;
         case 'ip-planning':
+          // 後端端點：DELETE /api/ip-planning/results/{result_id}
+          // 注意：/api/ip-planning/ 在 CSRF 排除列表中，不需要 CSRF Token
           endpoint = `/api/ip-planning/results/${id}`;
           break;
+        default:
+          toast.error('未知的刪除類型');
+          return;
       }
       
       await apiDelete(endpoint);
       toast.success('刪除成功');
       loadData();
     } catch (error: any) {
-      toast.error(error.message || '刪除失敗');
+      console.error('刪除失敗:', error);
+      const errorMessage = error?.response?.data?.error || error?.message || '刪除失敗';
+      toast.error(errorMessage);
     }
   };
 
@@ -999,7 +1008,7 @@ export default function UserDB() {
 
       {/* 詳情 Dialog */}
       <Dialog open={showDetail} onOpenChange={setShowDetail}>
-        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto w-[95vw] md:w-full">
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto w-[95vw] md:w-full">
           <DialogHeader>
             <DialogTitle>{selectedItem?.title || '詳情'}</DialogTitle>
             <DialogDescription>

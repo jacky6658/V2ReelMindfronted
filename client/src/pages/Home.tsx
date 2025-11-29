@@ -1,8 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet";
+import { Separator } from "@/components/ui/separator";
 import { useTheme } from "@/contexts/ThemeContext";
-import { Moon, Sun, Sparkles, Target, Zap, TrendingUp, CheckCircle2, Play, Check, Mail, Shield, CreditCard } from "lucide-react";
+import { Moon, Sun, Sparkles, Target, Zap, TrendingUp, CheckCircle2, Play, Check, Mail, Shield, CreditCard, Menu, User, LogOut, Home as HomeIcon, BookOpen, Users, Settings } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useAuthStore } from "@/stores/authStore";
@@ -12,8 +14,9 @@ import { toast } from "sonner";
 export default function Home() {
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
-  const { isLoggedIn, getToken } = useAuthStore();
+  const { isLoggedIn, getToken, user, logout } = useAuthStore();
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('yearly');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // 處理錨點滾動（因為使用 HashRouter，需要手動處理）
   const handleScrollTo = (elementId: string) => {
@@ -69,11 +72,12 @@ export default function Home() {
           </div>
 
           <div className="flex items-center gap-3">
+            {/* 桌面版：主題切換和登入按鈕 */}
             <Button
               variant="ghost"
               size="icon"
               onClick={toggleTheme}
-              className="rounded-full"
+              className="rounded-full hidden md:flex"
               aria-label={theme === 'dark' ? '切換到淺色模式' : '切換到深色模式'}
             >
               {theme === 'dark' ? (
@@ -91,6 +95,191 @@ export default function Home() {
                 登入
               </Button>
             )}
+
+            {/* 移動版：選單按鈕 */}
+            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+              <SheetTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="md:hidden"
+                  aria-label="開啟選單"
+                >
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-[85vw] sm:max-w-sm">
+                <SheetHeader>
+                  <SheetTitle>選單</SheetTitle>
+                  <SheetDescription>
+                    {isLoggedIn ? `歡迎，${user?.name || '用戶'}` : '瀏覽 ReelMind'}
+                  </SheetDescription>
+                </SheetHeader>
+
+                <div className="mt-6 space-y-4">
+                  {/* 用戶資訊（已登入時顯示） */}
+                  {isLoggedIn && user && (
+                    <>
+                      <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                        <img 
+                          src={user.picture} 
+                          alt={user.name} 
+                          className="w-10 h-10 rounded-full"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">{user.name}</p>
+                          <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                        </div>
+                      </div>
+                      <Separator />
+                    </>
+                  )}
+
+                  {/* 快速導航 */}
+                  <div className="space-y-1">
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start"
+                      onClick={() => {
+                        navigate('/');
+                        setMobileMenuOpen(false);
+                      }}
+                    >
+                      <HomeIcon className="w-4 h-4 mr-2" />
+                      首頁
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start"
+                      onClick={() => {
+                        handleScrollTo('features');
+                        setMobileMenuOpen(false);
+                      }}
+                    >
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      功能
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start"
+                      onClick={() => {
+                        navigate('/intro');
+                        setMobileMenuOpen(false);
+                      }}
+                    >
+                      <Target className="w-4 h-4 mr-2" />
+                      產品介紹
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start"
+                      onClick={() => {
+                        navigate('/guide');
+                        setMobileMenuOpen(false);
+                      }}
+                    >
+                      <BookOpen className="w-4 h-4 mr-2" />
+                      實戰指南
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start"
+                      onClick={() => {
+                        navigate('/forum');
+                        setMobileMenuOpen(false);
+                      }}
+                    >
+                      <Users className="w-4 h-4 mr-2" />
+                      論壇
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start"
+                      onClick={() => {
+                        handleScrollTo('pricing');
+                        setMobileMenuOpen(false);
+                      }}
+                    >
+                      <CreditCard className="w-4 h-4 mr-2" />
+                      定價
+                    </Button>
+                  </div>
+
+                  <Separator />
+
+                  {/* 主要操作按鈕 */}
+                  {isLoggedIn ? (
+                    <div className="space-y-2">
+                      <Button
+                        className="w-full"
+                        onClick={() => {
+                          navigate('/app');
+                          setMobileMenuOpen(false);
+                        }}
+                      >
+                        <User className="w-4 h-4 mr-2" />
+                        進入主控台
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => {
+                          navigate('/profile');
+                          setMobileMenuOpen(false);
+                        }}
+                      >
+                        <Settings className="w-4 h-4 mr-2" />
+                        個人設定
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        className="w-full text-destructive hover:text-destructive"
+                        onClick={async () => {
+                          await logout();
+                          setMobileMenuOpen(false);
+                          toast.success('已登出');
+                        }}
+                      >
+                        <LogOut className="w-4 h-4 mr-2" />
+                        登出
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      className="w-full"
+                      onClick={() => {
+                        handleGoogleLogin();
+                        setMobileMenuOpen(false);
+                      }}
+                    >
+                      <User className="w-4 h-4 mr-2" />
+                      登入
+                    </Button>
+                  )}
+
+                  <Separator />
+
+                  {/* 主題切換（移動版） */}
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start md:hidden"
+                    onClick={toggleTheme}
+                  >
+                    {theme === 'dark' ? (
+                      <>
+                        <Sun className="w-4 h-4 mr-2" />
+                        切換到淺色模式
+                      </>
+                    ) : (
+                      <>
+                        <Moon className="w-4 h-4 mr-2" />
+                        切換到深色模式
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </SheetContent>
+            </Sheet>
           </div>
         </div>
       </nav>
