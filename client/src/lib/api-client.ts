@@ -237,10 +237,22 @@ export async function apiStream(
           try {
             // 嘗試解析 JSON
             const parsed = JSON.parse(dataStr);
+            
+            // 過濾掉控制標記（如 {"type": "end"}）
+            if (parsed.type === 'end' || parsed.type === 'error' || parsed.type === 'start') {
+              return; // 跳過這些控制標記，不發送給 onMessage
+            }
+            
             const chunk = parsed.chunk || parsed.content || parsed.text || dataStr;
-            onMessage?.(chunk);
+            if (chunk) {
+              onMessage?.(chunk);
+            }
           } catch {
             // 如果不是 JSON，直接使用原始內容
+            // 過濾掉純 JSON 標記（如 {"type": "end"}）
+            if (dataStr.trim().startsWith('{') && dataStr.includes('"type"')) {
+              return; // 跳過 JSON 標記
+            }
             onMessage?.(dataStr);
           }
         } else {
