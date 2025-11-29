@@ -3,7 +3,7 @@
  * 與 Mode3 相同的表單式 3 步驟生成功能（免費體驗版本）
  */
 
-import { useState } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -70,13 +70,23 @@ export default function Experience() {
   
   const [activeResultTab, setActiveResultTab] = useState('positioning');
 
-  // 處理表單輸入
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
+  // 使用 useMemo 優化當前結果內容
+  const currentResult = useMemo(() => {
+    return results[activeResultTab as keyof typeof results] || '';
+  }, [results, activeResultTab]);
 
-  // 驗證步驟 1
-  const validateStep1 = () => {
+  // 使用 useMemo 優化結構資訊
+  const structureInfo = useMemo(() => {
+    return SCRIPT_STRUCTURES.find(s => s.id === formData.structure);
+  }, [formData.structure]);
+
+  // 處理表單輸入 - 使用 useCallback 優化
+  const handleInputChange = useCallback((field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  }, []);
+
+  // 驗證步驟 1 - 使用 useCallback 優化
+  const validateStep1 = useCallback(() => {
     if (!formData.topic.trim()) {
       toast.error('請填寫主題或產品');
       return false;
@@ -98,20 +108,20 @@ export default function Experience() {
       return false;
     }
     return true;
-  };
+  }, [formData]);
 
-  // 前往下一步
-  const goToNextStep = () => {
+  // 前往下一步 - 使用 useCallback 優化
+  const goToNextStep = useCallback(() => {
     if (currentStep === 1 && !validateStep1()) {
       return;
     }
     setCurrentStep(prev => Math.min(prev + 1, 3));
-  };
+  }, [currentStep, validateStep1]);
 
-  // 返回上一步
-  const goToPrevStep = () => {
+  // 返回上一步 - 使用 useCallback 優化
+  const goToPrevStep = useCallback(() => {
     setCurrentStep(prev => Math.max(prev - 1, 1));
-  };
+  }, []);
 
   // 生成內容
   const handleGenerate = async () => {
@@ -185,7 +195,6 @@ export default function Experience() {
 
   // 生成腳本
   const generateScript = async () => {
-    const structureInfo = SCRIPT_STRUCTURES.find(s => s.id === formData.structure);
     const prompt = `根據以下資訊，生成短影音腳本：
 主題：${formData.topic}
 目標受眾：${formData.positioning}
@@ -215,11 +224,11 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
     });
   };
 
-  // 複製到剪貼簿
-  const copyToClipboard = (text: string) => {
+  // 複製到剪貼簿 - 使用 useCallback 優化
+  const copyToClipboard = useCallback((text: string) => {
     navigator.clipboard.writeText(text);
     toast.success('已複製到剪貼簿');
-  };
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">
@@ -447,7 +456,7 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
                 <div>
                   <div className="text-sm font-medium text-muted-foreground">腳本結構</div>
                   <div className="mt-1">
-                    {SCRIPT_STRUCTURES.find(s => s.id === formData.structure)?.name}
+                    {structureInfo?.name}
                   </div>
                 </div>
               </div>
@@ -503,21 +512,21 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
             {/* 結果內容 */}
             <Card>
               <CardContent className="pt-6">
-                {loading && !results[activeResultTab as keyof typeof results] && (
+                {loading && !currentResult && (
                   <ThinkingAnimation text={`AI 正在為您生成${
                     activeResultTab === 'positioning' ? '帳號定位' :
                     activeResultTab === 'topics' ? '選題建議' : '短影音腳本'
                   }...`} />
                 )}
-                {results[activeResultTab as keyof typeof results] && (
+                {currentResult && (
                   <div className="space-y-4">
                     <div className="prose prose-sm max-w-none whitespace-pre-wrap">
-                      {results[activeResultTab as keyof typeof results]}
+                      {currentResult}
                     </div>
                     <div className="flex justify-end gap-2">
                       <Button
                         variant="outline"
-                        onClick={() => copyToClipboard(results[activeResultTab as keyof typeof results])}
+                        onClick={() => copyToClipboard(currentResult)}
                       >
                         <Copy className="mr-2 h-4 w-4" />
                         複製內容

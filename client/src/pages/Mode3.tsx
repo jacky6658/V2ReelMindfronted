@@ -4,7 +4,7 @@
  * 表單式 AI 腳本生成（3 步驟流程）
  */
 
-import { useState } from 'react';
+import { useState, useMemo, useCallback, memo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -20,27 +20,31 @@ import { useAuthStore } from '@/stores/authStore';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 
 // 格式化文字：將 **文字** 轉換為粗體
-const FormatText = ({ content }: { content: string }) => {
-  // 使用正則表達式匹配 **文字** 格式（非貪婪匹配）
-  const parts: (string | { type: 'bold'; text: string })[] = [];
-  let lastIndex = 0;
-  const regex = /\*\*(.+?)\*\*/g;
-  let match;
-  
-  while ((match = regex.exec(content)) !== null) {
-    // 添加匹配前的普通文字
-    if (match.index > lastIndex) {
-      parts.push(content.substring(lastIndex, match.index));
+const FormatText = memo(({ content }: { content: string }) => {
+  // 使用 useMemo 優化正則匹配結果
+  const parts = useMemo(() => {
+    const result: (string | { type: 'bold'; text: string })[] = [];
+    let lastIndex = 0;
+    const regex = /\*\*(.+?)\*\*/g;
+    let match;
+    
+    while ((match = regex.exec(content)) !== null) {
+      // 添加匹配前的普通文字
+      if (match.index > lastIndex) {
+        result.push(content.substring(lastIndex, match.index));
+      }
+      // 添加粗體文字
+      result.push({ type: 'bold', text: match[1] });
+      lastIndex = regex.lastIndex;
     }
-    // 添加粗體文字
-    parts.push({ type: 'bold', text: match[1] });
-    lastIndex = regex.lastIndex;
-  }
-  
-  // 添加剩餘的文字
-  if (lastIndex < content.length) {
-    parts.push(content.substring(lastIndex));
-  }
+    
+    // 添加剩餘的文字
+    if (lastIndex < content.length) {
+      result.push(content.substring(lastIndex));
+    }
+    
+    return result;
+  }, [content]);
   
   // 如果沒有匹配到任何粗體，直接返回原文字
   if (parts.length === 0) {
@@ -57,7 +61,9 @@ const FormatText = ({ content }: { content: string }) => {
       })}
     </div>
   );
-};
+});
+
+FormatText.displayName = 'FormatText';
 
 // 腳本結構選項
 const SCRIPT_STRUCTURES = [
@@ -90,7 +96,7 @@ const SCRIPT_STRUCTURES = [
 
 export default function Mode3() {
   const navigate = useNavigate();
-  const { user } = useAuthStore();
+  const { user, loading: authLoading } = useAuthStore();
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   
@@ -119,13 +125,23 @@ export default function Mode3() {
   
   const [activeResultTab, setActiveResultTab] = useState('positioning');
 
-  // 處理表單輸入
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
+  // 使用 useMemo 優化當前結果內容
+  const currentResult = useMemo(() => {
+    return results[activeResultTab as keyof typeof results] || '';
+  }, [results, activeResultTab]);
 
-  // 驗證步驟 1
-  const validateStep1 = () => {
+  // 使用 useMemo 優化結構資訊
+  const structureInfo = useMemo(() => {
+    return SCRIPT_STRUCTURES.find(s => s.id === formData.structure);
+  }, [formData.structure]);
+
+  // 處理表單輸入 - 使用 useCallback 優化
+  const handleInputChange = useCallback((field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  }, []);
+
+  // 驗證步驟 1 - 使用 useCallback 優化
+  const validateStep1 = useCallback(() => {
     if (!formData.topic.trim()) {
       toast.error('請填寫主題或產品');
       return false;
@@ -147,20 +163,20 @@ export default function Mode3() {
       return false;
     }
     return true;
-  };
+  }, [formData]);
 
-  // 前往下一步
-  const goToNextStep = () => {
+  // 前往下一步 - 使用 useCallback 優化
+  const goToNextStep = useCallback(() => {
     if (currentStep === 1 && !validateStep1()) {
       return;
     }
     setCurrentStep(prev => Math.min(prev + 1, 3));
-  };
+  }, [currentStep, validateStep1]);
 
-  // 返回上一步
-  const goToPrevStep = () => {
+  // 返回上一步 - 使用 useCallback 優化
+  const goToPrevStep = useCallback(() => {
     setCurrentStep(prev => Math.max(prev - 1, 1));
-  };
+  }, []);
 
   // 通用的權限錯誤處理
   const handlePermissionError = (error: any) => {
@@ -298,7 +314,6 @@ export default function Mode3() {
 
   // 生成腳本
   const generateScript = async () => {
-    const structureInfo = SCRIPT_STRUCTURES.find(s => s.id === formData.structure);
     const structureMessages: Record<string, string> = {
       'A': '請使用標準行銷三段式（Hook → Value → CTA）結構生成完整腳本',
       'B': '請使用問題 → 解決 → 證明（Problem → Solution → Proof）結構生成完整腳本',
@@ -343,14 +358,20 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
     });
   };
 
-  // 複製到剪貼簿
-  const copyToClipboard = (text: string) => {
+  // 複製到剪貼簿 - 使用 useCallback 優化
+  const copyToClipboard = useCallback((text: string) => {
     navigator.clipboard.writeText(text);
     toast.success('已複製到剪貼簿');
-  };
+  }, []);
 
-  // 儲存結果到 UserDB
-  const handleSaveResult = async (type: 'positioning' | 'topics' | 'script') => {
+  // 儲存結果到 UserDB - 使用 useCallback 優化
+  const handleSaveResult = useCallback(async (type: 'positioning' | 'topics' | 'script') => {
+    // 檢查認證載入狀態
+    if (authLoading) {
+      toast.info('正在載入用戶資訊，請稍候...');
+      return;
+    }
+    
     if (!user?.user_id) {
       toast.error('請先登入');
       navigate('/login');
@@ -408,7 +429,7 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
         toast.error('儲存失敗，請稍後再試');
       }
     }
-  };
+  }, [user, authLoading, results, formData, navigate]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -633,7 +654,7 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
                 <div>
                   <div className="text-sm font-medium text-muted-foreground">腳本結構</div>
                   <div className="mt-1">
-                    {SCRIPT_STRUCTURES.find(s => s.id === formData.structure)?.name}
+                    {structureInfo?.name}
                   </div>
                 </div>
               </div>
@@ -689,21 +710,21 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
             {/* 結果內容 */}
             <Card>
               <CardContent className="pt-6">
-                {loading && !results[activeResultTab as keyof typeof results] && (
+                {loading && !currentResult && (
                   <ThinkingAnimation message={`AI 正在為您生成${
                     activeResultTab === 'positioning' ? '帳號定位' :
                     activeResultTab === 'topics' ? '選題建議' : '短影音腳本'
                   }...`} />
                 )}
-                {results[activeResultTab as keyof typeof results] && (
+                {currentResult && (
                   <div className="space-y-4">
                     <div className="prose prose-sm max-w-none dark:prose-invert whitespace-pre-wrap">
-                      <FormatText content={results[activeResultTab as keyof typeof results]} />
+                      <FormatText content={currentResult} />
                     </div>
                     <div className="flex justify-end gap-2">
                       <Button
                         variant="outline"
-                        onClick={() => copyToClipboard(results[activeResultTab as keyof typeof results])}
+                        onClick={() => copyToClipboard(currentResult)}
                       >
                         <Copy className="mr-2 h-4 w-4" />
                         複製內容
@@ -735,6 +756,7 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
                   <Button
                     variant="outline"
                     onClick={() => handleSaveResult('positioning')}
+                    disabled={authLoading || !user?.user_id}
                   >
                     <Save className="mr-2 h-4 w-4" />
                     儲存帳號定位
@@ -744,6 +766,7 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
                   <Button
                     variant="outline"
                     onClick={() => handleSaveResult('topics')}
+                    disabled={authLoading || !user?.user_id}
                   >
                     <Save className="mr-2 h-4 w-4" />
                     儲存選題建議
@@ -753,6 +776,7 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
                   <Button
                     variant="outline"
                     onClick={() => handleSaveResult('script')}
+                    disabled={authLoading || !user?.user_id}
                   >
                     <Save className="mr-2 h-4 w-4" />
                     儲存腳本內容
