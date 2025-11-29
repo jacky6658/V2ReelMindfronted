@@ -218,7 +218,28 @@ export async function apiStream(
     });
     
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
+      // 嘗試解析錯誤響應的 JSON
+      let errorData: any = null;
+      try {
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          errorData = await response.json();
+        } else {
+          errorData = { error: await response.text() };
+        }
+      } catch (e) {
+        errorData = { error: `HTTP ${response.status}` };
+      }
+      
+      // 創建一個包含 status 和 response data 的錯誤對象
+      const error = new Error(errorData?.error || `HTTP ${response.status}`) as any;
+      error.status = response.status;
+      error.response = {
+        status: response.status,
+        statusText: response.statusText,
+        data: errorData
+      };
+      throw error;
     }
     
     const reader = response.body?.getReader();
