@@ -96,9 +96,20 @@ const SCRIPT_STRUCTURES = [
 
 export default function Mode3() {
   const navigate = useNavigate();
-  const { user, loading: authLoading } = useAuthStore();
+  const { user, loading: authLoading, isLoggedIn } = useAuthStore();
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  
+  // 調試：在開發環境中輸出認證狀態
+  if (import.meta.env.DEV) {
+    console.log('[Mode3] 認證狀態:', {
+      authLoading,
+      isLoggedIn,
+      hasUser: !!user,
+      userId: user?.user_id,
+      userEmail: user?.email
+    });
+  }
   
   // 權限相關狀態
   const [showPermissionDialog, setShowPermissionDialog] = useState(false);
@@ -366,13 +377,24 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
 
   // 儲存結果到 UserDB - 使用 useCallback 優化
   const handleSaveResult = useCallback(async (type: 'positioning' | 'topics' | 'script') => {
-    // 檢查認證載入狀態
-    if (authLoading) {
+    // 調試日誌
+    console.log('[Mode3 Save] 儲存請求:', {
+      type,
+      authLoading,
+      isLoggedIn,
+      hasUser: !!user,
+      userId: user?.user_id
+    });
+    
+    // 如果正在載入且沒有用戶資訊，等待載入完成
+    if (authLoading && !user) {
       toast.info('正在載入用戶資訊，請稍候...');
       return;
     }
     
-    if (!user?.user_id) {
+    // 檢查用戶是否已登入
+    if (!isLoggedIn || !user?.user_id) {
+      console.warn('[Mode3 Save] 用戶未登入，導向登入頁');
       toast.error('請先登入');
       navigate('/login');
       return;
@@ -401,12 +423,13 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
     const loadingToast = toast.loading('正在儲存...');
 
     try {
-      await apiPost('/api/ip-planning/save', {
+      const savePayload = {
         user_id: user.user_id,
         result_type: resultTypeMap[type],
         title: titleMap[type],
         content: content,
         metadata: {
+          source: 'mode3',  // 標記來源為 mode3，允許免費版用戶儲存
           platform: formData.platform,
           goal: formData.goal,
           duration: formData.duration,
@@ -414,22 +437,37 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
           topic: formData.topic,
           positioning: formData.positioning
         }
-      });
+      };
+      
+      console.log('[Mode3 Save] 發送儲存請求:', savePayload);
+      
+      await apiPost('/api/ip-planning/save', savePayload);
 
       toast.dismiss(loadingToast);
       toast.success('已儲存到創作者資料庫');
+      console.log('[Mode3 Save] 儲存成功');
+      
       // 發送自定義事件通知 UserDB 刷新
       window.dispatchEvent(new CustomEvent('userdb-data-updated', { detail: { type: 'ip-planning' } }));
     } catch (error: any) {
-      console.error('儲存失敗:', error);
+      console.error('[Mode3 Save] 儲存失敗:', error);
+      console.error('[Mode3 Save] 錯誤詳情:', {
+        status: error?.response?.status,
+        data: error?.response?.data,
+        message: error?.message
+      });
+      
       toast.dismiss(loadingToast);
       if (error?.response?.status === 403) {
         toast.error('您沒有權限儲存此內容，請訂閱以解鎖此功能');
+      } else if (error?.response?.status === 401) {
+        toast.error('登入已過期，請重新登入');
+        navigate('/login');
       } else {
         toast.error('儲存失敗，請稍後再試');
       }
     }
-  }, [user, authLoading, results, formData, navigate]);
+  }, [user, authLoading, isLoggedIn, results, formData, navigate]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -756,7 +794,7 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
                   <Button
                     variant="outline"
                     onClick={() => handleSaveResult('positioning')}
-                    disabled={authLoading || !user?.user_id}
+                    disabled={(authLoading && !user) || !isLoggedIn || !user?.user_id}
                   >
                     <Save className="mr-2 h-4 w-4" />
                     儲存帳號定位
@@ -766,7 +804,7 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
                   <Button
                     variant="outline"
                     onClick={() => handleSaveResult('topics')}
-                    disabled={authLoading || !user?.user_id}
+                    disabled={(authLoading && !user) || !isLoggedIn || !user?.user_id}
                   >
                     <Save className="mr-2 h-4 w-4" />
                     儲存選題建議
@@ -776,7 +814,7 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
                   <Button
                     variant="outline"
                     onClick={() => handleSaveResult('script')}
-                    disabled={authLoading || !user?.user_id}
+                    disabled={(authLoading && !user) || !isLoggedIn || !user?.user_id}
                   >
                     <Save className="mr-2 h-4 w-4" />
                     儲存腳本內容

@@ -107,7 +107,7 @@ export default function Home() {
               <Button size="lg" className="text-base px-8" onClick={() => navigate('/mode1')}>
                 立即開始
               </Button>
-              <Button size="lg" variant="outline" className="text-base px-8" onClick={() => navigate('/experience')}>
+              <Button size="lg" variant="outline" className="text-base px-8" onClick={isLoggedIn ? () => navigate('/mode3') : handleGoogleLogin}>
                 免費體驗
               </Button>
             </div>
@@ -465,7 +465,7 @@ export default function Home() {
               size="lg" 
               variant="outline" 
               className="text-base px-8 bg-transparent text-primary-foreground border-primary-foreground hover:bg-primary-foreground/10"
-              onClick={() => navigate('/experience')}
+              onClick={isLoggedIn ? () => navigate('/mode3') : handleGoogleLogin}
             >
               免費體驗
             </Button>
