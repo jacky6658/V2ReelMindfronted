@@ -21,7 +21,6 @@ const Profile = lazy(() => import('./pages/Profile'));
 const Mode1 = lazy(() => import('./pages/Mode1'));
 const Mode3 = lazy(() => import('./pages/Mode3'));
 const UserDB = lazy(() => import('./pages/UserDB'));
-const Experience = lazy(() => import('./pages/Experience'));
 const About = lazy(() => import('./pages/About'));
 const Contact = lazy(() => import('./pages/Contact'));
 const Forum = lazy(() => import('./pages/Forum'));
@@ -111,14 +110,6 @@ export const router = createHashRouter([
     element: (
       <Suspense fallback={<LoadingFallback />}>
         <Forum />
-      </Suspense>
-    ),
-  },
-  {
-    path: '/experience',
-    element: (
-      <Suspense fallback={<LoadingFallback />}>
-        <Experience />
       </Suspense>
     ),
   },
