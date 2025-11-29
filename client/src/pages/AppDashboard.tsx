@@ -49,32 +49,46 @@ const AppDashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Hero 區塊 */}
-      <div className="relative overflow-hidden border-b">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent" />
-        <div className="container relative py-12 md:py-16">
+      {/* Hero 區塊 - 帶影片背景 */}
+      <section className="relative min-h-[400px] md:min-h-[500px] flex items-center overflow-hidden border-b">
+        {/* 影片背景 */}
+        <div className="video-background">
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="object-cover"
+          >
+            <source src="/reelmind.mp4" type="video/mp4" />
+          </video>
+          <div className="video-overlay"></div>
+        </div>
+
+        {/* Hero 內容 */}
+        <div className="container relative z-10 py-12 md:py-16">
           <div className="max-w-3xl">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center shadow-lg">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center shadow-lg backdrop-blur-sm bg-white/10">
                 <Sparkles className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
+                <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-white drop-shadow-lg">
                   歡迎回來
                   {user && (
-                    <span className="block mt-1 text-xl md:text-2xl text-muted-foreground font-normal">
+                    <span className="block mt-1 text-xl md:text-2xl text-white/90 font-normal drop-shadow-md">
                       {user.name || user.email}
                     </span>
                   )}
                 </h1>
               </div>
             </div>
-            <p className="text-lg text-muted-foreground">
+            <p className="text-lg text-white/90 drop-shadow-md">
               開始使用 AI 智能體，讓內容創作變得更簡單高效
             </p>
           </div>
         </div>
-      </div>
+      </section>
 
       {/* 功能卡片區塊 */}
       <div className="container py-8 md:py-12">
