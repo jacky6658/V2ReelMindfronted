@@ -285,20 +285,32 @@ export async function apiStream(
             // 嘗試解析 JSON
             const parsed = JSON.parse(dataStr);
             
-            // 過濾掉控制標記（如 {"type": "end"}）
-            if (parsed.type === 'end' || parsed.type === 'error' || parsed.type === 'start') {
-              return; // 跳過這些控制標記，不發送給 onMessage
-            }
-            
-            const chunk = parsed.chunk || parsed.content || parsed.text || dataStr;
-            if (chunk) {
-              onMessage?.(chunk);
+            // 處理不同類型的消息
+            if (parsed.type === 'token' && parsed.content) {
+              // 流式 token 消息，發送內容
+              onMessage?.(parsed.content);
+            } else if (parsed.type === 'error') {
+              // 錯誤消息，觸發 onError
+              const error = new Error(parsed.message || '發生錯誤');
+              onError?.(error);
+            } else if (parsed.type === 'end') {
+              // 結束標記，觸發 onComplete
+              onComplete?.();
+            } else if (parsed.type === 'start') {
+              // 開始標記，不做任何處理，繼續等待後續消息
+              continue;
+            } else {
+              // 其他類型，嘗試提取內容
+              const chunk = parsed.chunk || parsed.content || parsed.text;
+              if (chunk) {
+                onMessage?.(chunk);
+              }
             }
           } catch {
             // 如果不是 JSON，直接使用原始內容
             // 過濾掉純 JSON 標記（如 {"type": "end"}）
             if (dataStr.trim().startsWith('{') && dataStr.includes('"type"')) {
-              return; // 跳過 JSON 標記
+              continue; // 跳過 JSON 標記，繼續處理下一行
             }
             onMessage?.(dataStr);
           }
