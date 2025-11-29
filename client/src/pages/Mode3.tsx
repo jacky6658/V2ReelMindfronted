@@ -4,7 +4,7 @@
  * 表單式 AI 腳本生成（3 步驟流程）
  */
 
-import { useState, useMemo, useCallback, memo } from 'react';
+import { useState, useMemo, useCallback, memo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -12,9 +12,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { ArrowLeft, Sparkles, CheckCircle2, Loader2, Copy, Lock, Save } from 'lucide-react';
+import { ArrowLeft, Sparkles, CheckCircle2, Loader2, Copy, Lock, Save, Key } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { apiStream, apiPost } from '@/lib/api-client';
+import { apiStream, apiPost, apiGet } from '@/lib/api-client';
 import ThinkingAnimation from '@/components/ThinkingAnimation';
 import { useAuthStore } from '@/stores/authStore';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -115,6 +115,8 @@ export default function Mode3() {
   const [showPermissionDialog, setShowPermissionDialog] = useState(false);
   const [apiKey, setApiKey] = useState('');
   const [permissionError, setPermissionError] = useState('');
+  const [hasLlmKey, setHasLlmKey] = useState<boolean | null>(null);
+  const [showLlmKeyDialog, setShowLlmKeyDialog] = useState(false);
 
   // 表單資料
   const [formData, setFormData] = useState({
@@ -971,6 +973,61 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
                     </Button>
                 </DialogFooter>
             </DialogContent>
+        </Dialog>
+
+        {/* LLM API Key 綁定提示 Dialog */}
+        <Dialog open={showLlmKeyDialog} onOpenChange={setShowLlmKeyDialog}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="text-2xl text-center">🔑 請先綁定 LLM API Key</DialogTitle>
+              <DialogDescription className="text-center text-base">
+                為了獲得最佳體驗，建議優先綁定您的 LLM API Key
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-6 py-4">
+              {/* 說明 */}
+              <div className="space-y-3">
+                <h3 className="font-semibold text-lg">✨ 綁定 API Key 的好處：</h3>
+                <div className="space-y-2">
+                  {[
+                    '使用您自己的 API Key，完全掌控生成品質',
+                    '優先使用您選擇的 LLM 模型',
+                    '不受系統配額限制',
+                    '更好的隱私保護'
+                  ].map((benefit, index) => (
+                    <div key={index} className="flex items-start gap-3">
+                      <CheckCircle2 className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                      <span className="text-sm">{benefit}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* CTA 按鈕 */}
+              <DialogFooter className="flex flex-col sm:flex-row gap-3">
+                <Button
+                  size="lg"
+                  className="flex-1"
+                  onClick={() => {
+                    setShowLlmKeyDialog(false);
+                    navigate('/profile');
+                  }}
+                >
+                  <Key className="w-5 h-5 mr-2" />
+                  前往綁定 API Key
+                </Button>
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="flex-1"
+                  onClick={() => setShowLlmKeyDialog(false)}
+                >
+                  稍後再說
+                </Button>
+              </DialogFooter>
+            </div>
+          </DialogContent>
         </Dialog>
 
     </div>

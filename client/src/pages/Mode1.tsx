@@ -31,7 +31,8 @@ import {
   X,
   Copy,
   Maximize2,
-  ArrowLeft
+  ArrowLeft,
+  Key
 } from 'lucide-react';
 import { apiPost, apiGet, apiDelete, apiStream } from '@/lib/api-client';
 import { useNavigate } from 'react-router-dom';
@@ -79,6 +80,8 @@ export default function Mode1() {
   const [showSubscriptionDialog, setShowSubscriptionDialog] = useState(false);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [checkingPermission, setCheckingPermission] = useState(true);
+  const [hasLlmKey, setHasLlmKey] = useState<boolean | null>(null);
+  const [showLlmKeyDialog, setShowLlmKeyDialog] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -102,6 +105,20 @@ export default function Mode1() {
 
       setCheckingPermission(true);
       try {
+        // 檢查用戶是否綁定 LLM API Key
+        try {
+          const llmKeyCheck = await apiGet<{ has_key: boolean; provider: string | null }>('/api/user/llm-keys/check');
+          setHasLlmKey(llmKeyCheck.has_key);
+          
+          // 如果沒有綁定 API Key，顯示提示對話框
+          if (!llmKeyCheck.has_key) {
+            setShowLlmKeyDialog(true);
+          }
+        } catch (error) {
+          console.warn('檢查 LLM Key 失敗:', error);
+          setHasLlmKey(null);
+        }
+
         // 如果用戶已訂閱（VIP），直接允許
         if (user.is_subscribed) {
           setHasPermission(true);
@@ -906,6 +923,61 @@ export default function Mode1() {
             <p className="text-xs text-center text-muted-foreground">
               💡 訂閱後立即解鎖所有功能，無需等待
             </p>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* LLM API Key 綁定提示 Dialog */}
+      <Dialog open={showLlmKeyDialog} onOpenChange={setShowLlmKeyDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl text-center">🔑 請先綁定 LLM API Key</DialogTitle>
+            <DialogDescription className="text-center text-base">
+              為了獲得最佳體驗，建議優先綁定您的 LLM API Key
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6 py-4">
+            {/* 說明 */}
+            <div className="space-y-3">
+              <h3 className="font-semibold text-lg">✨ 綁定 API Key 的好處：</h3>
+              <div className="space-y-2">
+                {[
+                  '使用您自己的 API Key，完全掌控生成品質',
+                  '優先使用您選擇的 LLM 模型',
+                  '不受系統配額限制',
+                  '更好的隱私保護'
+                ].map((benefit, index) => (
+                  <div key={index} className="flex items-start gap-3">
+                    <CheckCircle className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                    <span className="text-sm">{benefit}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* CTA 按鈕 */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button
+                size="lg"
+                className="flex-1"
+                onClick={() => {
+                  setShowLlmKeyDialog(false);
+                  navigate('/profile');
+                }}
+              >
+                <Key className="w-5 h-5 mr-2" />
+                前往綁定 API Key
+              </Button>
+              <Button
+                variant="outline"
+                size="lg"
+                className="flex-1"
+                onClick={() => setShowLlmKeyDialog(false)}
+              >
+                稍後再說
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

@@ -21,10 +21,18 @@ export default function Forum() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigate('/')}
+              onClick={() => navigate('/app')}
               className="gap-2"
             >
               <ArrowLeft className="w-4 h-4" />
+              返回主控台
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/')}
+              className="gap-2"
+            >
               返回首頁
             </Button>
             <div 

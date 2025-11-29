@@ -3,16 +3,24 @@
  * 這是登入後用戶會看到的核心功能頁面
  */
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { Link, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Sparkles, Target, Zap, Database, ArrowRight, CheckCircle2, TrendingUp, MessageSquare, Home, BookOpen, Users, ExternalLink, Settings, ShoppingBag, BarChart3, HelpCircle, User } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { apiGet } from '@/lib/api-client';
+import { toast } from 'sonner';
+import { Sparkles, Target, Zap, Database, ArrowRight, CheckCircle2, TrendingUp, MessageSquare, Home, BookOpen, Users, ExternalLink, Settings, ShoppingBag, BarChart3, HelpCircle, User, Key, Download, FileText, Loader2, Brain } from 'lucide-react';
 
 const AppDashboard: React.FC = () => {
   const { user } = useAuthStore();
   const navigate = useNavigate();
+  const [showSettingsDialog, setShowSettingsDialog] = useState(false);
+  const [analyticsOverview, setAnalyticsOverview] = useState<any>(null);
+  const [loadingAnalytics, setLoadingAnalytics] = useState(false);
+  const [aiInsights, setAiInsights] = useState<any>(null);
+  const [loadingInsights, setLoadingInsights] = useState(false);
 
   const features = [
     {
@@ -53,25 +61,26 @@ const AppDashboard: React.FC = () => {
       title: '我的訂單',
       description: '查看訂單記錄與付款狀態',
       icon: ShoppingBag,
-      link: '/checkout',
+      link: '/orders',
       gradient: 'from-orange-500 to-red-500',
       bgGradient: 'from-orange-500/10 to-red-500/10'
     },
     {
       id: 'settings',
       title: '設定',
-      description: '個人設定與偏好',
+      description: 'LLM API Key 管理、數據匯出與設定',
       icon: Settings,
-      link: '/profile',
+      link: '#',
       gradient: 'from-slate-500 to-gray-600',
-      bgGradient: 'from-slate-500/10 to-gray-600/10'
+      bgGradient: 'from-slate-500/10 to-gray-600/10',
+      isDialog: true // 標記為對話框類型
     },
     {
       id: 'statistics',
       title: '使用統計',
       description: '查看使用數據與分析',
       icon: BarChart3,
-      link: '/profile',
+      link: '/statistics',
       gradient: 'from-indigo-500 to-purple-600',
       bgGradient: 'from-indigo-500/10 to-purple-600/10'
     },
@@ -94,6 +103,41 @@ const AppDashboard: React.FC = () => {
       bgGradient: 'from-teal-500/10 to-green-500/10'
     }
   ];
+
+  // 載入統計數據
+  useEffect(() => {
+    const loadAnalytics = async () => {
+      if (!user?.user_id) return;
+      
+      try {
+        setLoadingAnalytics(true);
+        const data = await apiGet('/api/user/analytics/overview');
+        setAnalyticsOverview(data);
+      } catch (error) {
+        console.error('載入統計數據失敗:', error);
+      } finally {
+        setLoadingAnalytics(false);
+      }
+    };
+
+    loadAnalytics();
+  }, [user?.user_id]);
+
+  // 載入 AI 洞察（可選，按需載入）
+  const loadAIInsights = async () => {
+    if (!user?.user_id || loadingInsights) return;
+    
+    try {
+      setLoadingInsights(true);
+      const data = await apiGet('/api/user/analytics/ai-insights');
+      setAiInsights(data);
+    } catch (error: any) {
+      console.error('載入 AI 洞察失敗:', error);
+      toast.error(error?.response?.data?.error || '載入 AI 分析失敗');
+    } finally {
+      setLoadingInsights(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -235,6 +279,211 @@ const AppDashboard: React.FC = () => {
           </Card>
         </div>
 
+        {/* 使用統計區塊 */}
+        <div className="mt-12">
+          <div className="text-center mb-6">
+            <h2 className="text-2xl md:text-3xl font-bold mb-2">使用統計</h2>
+            <p className="text-muted-foreground">查看您的內容產出與使用情況</p>
+          </div>
+          
+          {loadingAnalytics ? (
+            <Card>
+              <CardContent className="py-12">
+                <div className="text-center">
+                  <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin text-primary" />
+                  <p className="text-muted-foreground">載入統計數據中...</p>
+                </div>
+              </CardContent>
+            </Card>
+          ) : analyticsOverview ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* 今日產出 */}
+              <Card className="border-2 border-blue-500/20 bg-blue-500/5">
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1">今日產出</p>
+                      <p className="text-3xl font-bold">{analyticsOverview.today?.total || 0}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        腳本 {analyticsOverview.today?.scripts || 0} · 生成 {analyticsOverview.today?.generations || 0}
+                      </p>
+                    </div>
+                    <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center">
+                      <Zap className="w-6 h-6 text-blue-500" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* 本週產出 */}
+              <Card className="border-2 border-purple-500/20 bg-purple-500/5">
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1">本週產出</p>
+                      <p className="text-3xl font-bold">{analyticsOverview.week?.total || 0}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        腳本 {analyticsOverview.week?.scripts || 0} · 生成 {analyticsOverview.week?.generations || 0}
+                      </p>
+                    </div>
+                    <div className="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center">
+                      <TrendingUp className="w-6 h-6 text-purple-500" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* 本月產出 */}
+              <Card className="border-2 border-emerald-500/20 bg-emerald-500/5">
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1">本月產出</p>
+                      <p className="text-3xl font-bold">{analyticsOverview.month?.total || 0}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        腳本 {analyticsOverview.month?.scripts || 0} · 生成 {analyticsOverview.month?.generations || 0}
+                      </p>
+                    </div>
+                    <div className="w-12 h-12 rounded-xl bg-emerald-500/20 flex items-center justify-center">
+                      <BarChart3 className="w-6 h-6 text-emerald-500" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* 總計 */}
+              <Card className="border-2 border-orange-500/20 bg-orange-500/5">
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1">總計</p>
+                      <p className="text-3xl font-bold">
+                        {(analyticsOverview.total?.scripts || 0) + (analyticsOverview.total?.generations || 0) + (analyticsOverview.total?.conversations || 0)}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        腳本 {analyticsOverview.total?.scripts || 0} · 對話 {analyticsOverview.total?.conversations || 0}
+                      </p>
+                    </div>
+                    <div className="w-12 h-12 rounded-xl bg-orange-500/20 flex items-center justify-center">
+                      <Database className="w-6 h-6 text-orange-500" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          ) : null}
+
+          {/* AI 洞察卡片（可選） */}
+          {analyticsOverview && (
+            <div className="mt-6">
+              {!aiInsights ? (
+                <Card className="border-2 border-primary/20 bg-primary/5 cursor-pointer hover:border-primary/50 transition-all"
+                  onClick={loadAIInsights}
+                >
+                  <CardContent className="pt-6">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
+                          <Brain className="w-6 h-6 text-primary" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-base mb-1">AI 智能分析</h3>
+                          <p className="text-sm text-muted-foreground">點擊獲取 AI 對您使用情況的專業分析與建議</p>
+                        </div>
+                      </div>
+                      <Button variant="outline" size="sm">
+                        開始分析
+                        <ArrowRight className="ml-2 w-4 h-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : loadingInsights ? (
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-center py-8">
+                      <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin text-primary" />
+                      <p className="text-muted-foreground">AI 正在分析您的數據...</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : aiInsights?.ai_insights ? (
+                <Card className="border-2 border-primary/30 bg-gradient-to-br from-primary/10 to-blue-500/10">
+                  <CardHeader>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Brain className="w-5 h-5 text-primary" />
+                      <CardTitle>AI 智能分析</CardTitle>
+                    </div>
+                    <CardDescription>
+                      基於您的使用數據生成的專業分析與建議
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* 整體評分 */}
+                    {aiInsights.ai_insights.overall_score && (
+                      <div className="p-4 rounded-lg bg-background/50 border">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium">整體評分</span>
+                          <span className="text-2xl font-bold text-primary">
+                            {aiInsights.ai_insights.overall_score}/10
+                          </span>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          {aiInsights.ai_insights.overall_assessment}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* 產出效率評估 */}
+                    {aiInsights.ai_insights.efficiency_analysis && (
+                      <div className="p-4 rounded-lg bg-background/50 border">
+                        <h4 className="font-semibold text-sm mb-2">產出效率評估</h4>
+                        <p className="text-sm text-muted-foreground mb-3">
+                          {aiInsights.ai_insights.efficiency_analysis}
+                        </p>
+                        {aiInsights.ai_insights.efficiency_suggestions && (
+                          <ul className="space-y-1">
+                            {aiInsights.ai_insights.efficiency_suggestions.map((suggestion: string, index: number) => (
+                              <li key={index} className="text-xs text-muted-foreground flex items-start gap-2">
+                                <span className="text-primary mt-1">•</span>
+                                <span>{suggestion}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    )}
+
+                    {/* 行動計劃 */}
+                    {aiInsights.ai_insights.action_plan && (
+                      <div className="p-4 rounded-lg bg-background/50 border">
+                        <h4 className="font-semibold text-sm mb-2">建議行動計劃</h4>
+                        <ol className="space-y-2">
+                          {aiInsights.ai_insights.action_plan.map((step: string, index: number) => (
+                            <li key={index} className="text-sm text-muted-foreground flex items-start gap-2">
+                              <span className="font-bold text-primary mt-0.5">{index + 1}.</span>
+                              <span>{step}</span>
+                            </li>
+                          ))}
+                        </ol>
+                      </div>
+                    )}
+
+                    <Button 
+                      variant="outline" 
+                      className="w-full"
+                      onClick={() => navigate('/profile')}
+                    >
+                      查看完整統計分析
+                      <ArrowRight className="ml-2 w-4 h-4" />
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : null}
+            </div>
+          )}
+        </div>
+
         {/* 設定卡片區塊 */}
         <div className="mt-12">
           <div className="text-center mb-6">
@@ -249,7 +498,13 @@ const AppDashboard: React.FC = () => {
                 <Card
                   key={item.id}
                   className="group relative overflow-hidden border-2 hover:border-primary/50 transition-all duration-300 hover:shadow-lg cursor-pointer"
-                  onClick={() => navigate(item.link)}
+                  onClick={() => {
+                    if ((item as any).isDialog) {
+                      setShowSettingsDialog(true);
+                    } else {
+                      navigate(item.link);
+                    }
+                  }}
                 >
                   <div className={`absolute inset-0 bg-gradient-to-br ${item.bgGradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
                   <CardContent className="pt-6 pb-6">
@@ -361,6 +616,154 @@ const AppDashboard: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* 設定 Dialog */}
+      <Dialog open={showSettingsDialog} onOpenChange={setShowSettingsDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">設定與管理</DialogTitle>
+            <DialogDescription>
+              管理您的 LLM API Key、匯出資料與查看教學
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {/* LLM API Key 管理 */}
+            <Card 
+              className="cursor-pointer hover:border-primary/50 transition-all"
+              onClick={() => {
+                setShowSettingsDialog(false);
+                navigate('/profile');
+              }}
+            >
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-lg flex-shrink-0">
+                    <Key className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-base mb-1">LLM API Key 管理</h3>
+                    <p className="text-sm text-muted-foreground">綁定與管理您的 LLM API Key</p>
+                  </div>
+                  <ArrowRight className="w-5 h-5 text-muted-foreground" />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* 數據管理 - 匯出 */}
+            <Card 
+              className="cursor-pointer hover:border-primary/50 transition-all"
+              onClick={async () => {
+                if (!user?.user_id) {
+                  toast.error('請先登入');
+                  return;
+                }
+
+                try {
+                  // 匯出用戶的所有資料
+                  const [scriptsRes, conversationsRes, generationsRes, ipPlanningRes] = await Promise.all([
+                    apiGet<any[]>(`/api/scripts/my`).catch(() => []),
+                    apiGet<any[]>(`/api/user/conversations/${user.user_id}`).catch(() => []),
+                    apiGet<any[]>(`/api/user/generations/${user.user_id}`).catch(() => []),
+                    apiGet<{ results: any[] }>(`/api/ip-planning/my`).catch(() => ({ results: [] }))
+                  ]);
+
+                  const scripts = Array.isArray(scriptsRes) ? scriptsRes : [];
+                  const conversations = Array.isArray(conversationsRes) ? conversationsRes : [];
+                  const generations = Array.isArray(generationsRes) ? generationsRes : [];
+                  const ipPlanning = ipPlanningRes?.results || [];
+
+                  // 創建 CSV 內容
+                  let csvContent = '資料類型,ID,標題/主題,內容,建立時間\n';
+                  
+                  // 匯出腳本
+                  scripts.forEach((script: any) => {
+                    const title = (script.title || script.name || '').replace(/"/g, '""');
+                    const content = (script.content || '').replace(/"/g, '""').replace(/\n/g, ' ').substring(0, 200);
+                    const date = script.created_at || '';
+                    csvContent += `腳本,${script.id},"${title}","${content}",${date}\n`;
+                  });
+
+                  // 匯出對話記錄
+                  conversations.forEach((conv: any) => {
+                    const summary = (conv.summary || '').replace(/"/g, '""').replace(/\n/g, ' ').substring(0, 200);
+                    const date = conv.created_at || '';
+                    csvContent += `對話記錄,${conv.id},"${conv.mode || ''}","${summary}",${date}\n`;
+                  });
+
+                  // 匯出生成記錄
+                  generations.forEach((gen: any) => {
+                    const topic = (gen.topic || '').replace(/"/g, '""');
+                    const content = (gen.content || '').replace(/"/g, '""').replace(/\n/g, ' ').substring(0, 200);
+                    const date = gen.created_at || '';
+                    csvContent += `生成記錄,${gen.id || ''},"${topic}","${content}",${date}\n`;
+                  });
+
+                  // 匯出 IP 規劃結果
+                  ipPlanning.forEach((plan: any) => {
+                    const title = (plan.title || '').replace(/"/g, '""');
+                    const content = (plan.content || '').replace(/"/g, '""').replace(/\n/g, ' ').substring(0, 200);
+                    const date = plan.created_at || '';
+                    csvContent += `IP規劃,${plan.id},"${title}","${content}",${date}\n`;
+                  });
+
+                  // 下載 CSV
+                  const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+                  const url = URL.createObjectURL(blob);
+                  const link = document.createElement('a');
+                  link.href = url;
+                  link.download = `reelmind-data-${new Date().toISOString().split('T')[0]}.csv`;
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                  URL.revokeObjectURL(url);
+
+                  toast.success('資料匯出成功');
+                  setShowSettingsDialog(false);
+                } catch (error: any) {
+                  console.error('匯出失敗:', error);
+                  toast.error('匯出失敗，請稍後再試');
+                }
+              }}
+            >
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center shadow-lg flex-shrink-0">
+                    <Download className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-base mb-1">數據管理</h3>
+                    <p className="text-sm text-muted-foreground">匯出您的所有資料（腳本、對話、生成記錄等）</p>
+                  </div>
+                  <ArrowRight className="w-5 h-5 text-muted-foreground" />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* 如何取得 LLM API Key */}
+            <Card 
+              className="cursor-pointer hover:border-primary/50 transition-all"
+              onClick={() => {
+                setShowSettingsDialog(false);
+                navigate('/guide/how-to-get-llm-api-key');
+              }}
+            >
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg flex-shrink-0">
+                    <FileText className="w-6 h-6 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-base mb-1">如何取得 LLM API Key</h3>
+                    <p className="text-sm text-muted-foreground">查看詳細教學，學習如何取得與設定 API Key</p>
+                  </div>
+                  <ArrowRight className="w-5 h-5 text-muted-foreground" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
