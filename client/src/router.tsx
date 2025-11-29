@@ -27,6 +27,8 @@ const Forum = lazy(() => import('./pages/Forum'));
 const Checkout = lazy(() => import('./pages/Checkout'));
 const PaymentResult = lazy(() => import('./pages/PaymentResult'));
 const Subscription = lazy(() => import('./pages/Subscription'));
+const Orders = lazy(() => import('./pages/Orders'));
+const Statistics = lazy(() => import('./pages/Statistics'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
 // Loading fallback component
@@ -185,6 +187,26 @@ export const router = createHashRouter([
       <Suspense fallback={<LoadingFallback />}>
         <PrivateRoute requiresAuth={true}>
           <Checkout />
+        </PrivateRoute>
+      </Suspense>
+    ),
+  },
+  {
+    path: '/orders',
+    element: (
+      <Suspense fallback={<LoadingFallback />}>
+        <PrivateRoute requiresAuth={true}>
+          <Orders />
+        </PrivateRoute>
+      </Suspense>
+    ),
+  },
+  {
+    path: '/statistics',
+    element: (
+      <Suspense fallback={<LoadingFallback />}>
+        <PrivateRoute requiresAuth={true}>
+          <Statistics />
         </PrivateRoute>
       </Suspense>
     ),
