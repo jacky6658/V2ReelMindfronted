@@ -14,11 +14,30 @@ import {
   Calendar,
   Database,
   ArrowRight,
-  Check
+  Check,
+  ArrowLeft
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '@/stores/authStore';
+import { apiGet } from '@/lib/api-client';
+import { toast } from 'sonner';
 
 export default function Intro() {
+  const navigate = useNavigate();
+  const { isLoggedIn } = useAuthStore();
+
+  const handleGoogleLogin = async () => {
+    try {
+      // 使用與 Login.tsx 相同的登入邏輯
+      // 使用新版前端的專用端點 /api/auth/google-new
+      const { auth_url } = await apiGet<{ auth_url: string }>('/api/auth/google-new');
+      window.location.href = auth_url;
+    } catch (error) {
+      console.error('登入失敗:', error);
+      toast.error('登入失敗，請稍後再試');
+    }
+  };
+  
   const features = [
     {
       icon: Sparkles,
@@ -72,6 +91,32 @@ export default function Intro() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* 導航欄 */}
+      <nav className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container flex h-16 items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/')}
+              className="gap-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              返回首頁
+            </Button>
+            <div 
+              className="flex items-center gap-2 cursor-pointer"
+              onClick={() => navigate('/')}
+            >
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center">
+                <Sparkles className="w-5 h-5 text-white" />
+              </div>
+              <span className="font-bold text-xl">ReelMind</span>
+            </div>
+          </div>
+        </div>
+      </nav>
+
       {/* Hero Section */}
       <div className="border-b border-border bg-gradient-to-br from-primary/5 via-background to-background">
         <div className="container py-16 md:py-24">
@@ -88,16 +133,19 @@ export default function Intro() {
               從靈感枯竭到內容量產，專為 IG、TikTok、YouTube Shorts 打造的 AI 短影音智能體平台
             </p>
             <div className="flex flex-wrap gap-4 justify-center">
-              <Button size="lg" asChild>
-                <Link to="/#/experience">
-                  免費體驗
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </Link>
+              <Button 
+                size="lg" 
+                onClick={isLoggedIn ? () => navigate('/app') : handleGoogleLogin}
+              >
+                免費體驗
+                <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
-              <Button size="lg" variant="outline" asChild>
-                <Link to="/#/pricing">
-                  查看方案
-                </Link>
+              <Button 
+                size="lg" 
+                variant="outline"
+                onClick={() => navigate('/pricing')}
+              >
+                查看方案
               </Button>
             </div>
           </div>
@@ -177,15 +225,18 @@ export default function Intro() {
               立即體驗 ReelMind AI 短影音智能體，或選擇適合的方案開始使用
             </p>
             <div className="flex flex-wrap gap-4 justify-center">
-              <Button size="lg" asChild>
-                <Link to="/#/experience">
-                  免費體驗
-                </Link>
+              <Button 
+                size="lg"
+                onClick={isLoggedIn ? () => navigate('/app') : handleGoogleLogin}
+              >
+                免費體驗
               </Button>
-              <Button size="lg" variant="outline" asChild>
-                <Link to="/#/pricing">
-                  查看方案
-                </Link>
+              <Button 
+                size="lg" 
+                variant="outline"
+                onClick={() => navigate('/pricing')}
+              >
+                查看方案
               </Button>
             </div>
           </CardContent>

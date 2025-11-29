@@ -10,6 +10,9 @@ import { Badge } from '@/components/ui/badge';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Moon, Sun, BookOpen, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '@/stores/authStore';
+import { apiGet } from '@/lib/api-client';
+import { toast } from 'sonner';
 
 // 指南文章列表
 const guides = [
@@ -129,7 +132,20 @@ const categories = [
 export default function Guide() {
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
+  const { isLoggedIn } = useAuthStore();
   const [selectedCategory, setSelectedCategory] = useState('全部');
+
+  const handleGoogleLogin = async () => {
+    try {
+      // 使用與 Login.tsx 相同的登入邏輯
+      // 使用新版前端的專用端點 /api/auth/google-new
+      const { auth_url } = await apiGet<{ auth_url: string }>('/api/auth/google-new');
+      window.location.href = auth_url;
+    } catch (error) {
+      console.error('登入失敗:', error);
+      toast.error('登入失敗，請稍後再試');
+    }
+  };
 
   // 篩選文章
   const filteredGuides = selectedCategory === '全部'
@@ -248,10 +264,10 @@ export default function Guide() {
             閱讀完指南後，立即使用 ReelMind 開始你的短影音創作之旅
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" onClick={() => navigate('/mode1')}>
+            <Button size="lg" onClick={isLoggedIn ? () => navigate('/app') : handleGoogleLogin}>
               立即開始創作
             </Button>
-            <Button size="lg" variant="outline" onClick={() => navigate('/experience')}>
+            <Button size="lg" variant="outline" onClick={isLoggedIn ? () => navigate('/app') : handleGoogleLogin}>
               免費體驗
             </Button>
           </div>

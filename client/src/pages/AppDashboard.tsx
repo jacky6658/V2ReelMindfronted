@@ -8,7 +8,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { Link, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Sparkles, Target, Zap, Database, ArrowRight, CheckCircle2, TrendingUp, MessageSquare, Home, BookOpen, Users, ExternalLink } from 'lucide-react';
+import { Sparkles, Target, Zap, Database, ArrowRight, CheckCircle2, TrendingUp, MessageSquare, Home, BookOpen, Users, ExternalLink, Settings, ShoppingBag, BarChart3, HelpCircle, User } from 'lucide-react';
 
 const AppDashboard: React.FC = () => {
   const { user } = useAuthStore();
@@ -47,6 +47,54 @@ const AppDashboard: React.FC = () => {
     }
   ];
 
+  const settingsItems = [
+    {
+      id: 'orders',
+      title: '我的訂單',
+      description: '查看訂單記錄與付款狀態',
+      icon: ShoppingBag,
+      link: '/checkout',
+      gradient: 'from-orange-500 to-red-500',
+      bgGradient: 'from-orange-500/10 to-red-500/10'
+    },
+    {
+      id: 'settings',
+      title: '設定',
+      description: '個人設定與偏好',
+      icon: Settings,
+      link: '/profile',
+      gradient: 'from-slate-500 to-gray-600',
+      bgGradient: 'from-slate-500/10 to-gray-600/10'
+    },
+    {
+      id: 'statistics',
+      title: '使用統計',
+      description: '查看使用數據與分析',
+      icon: BarChart3,
+      link: '/profile',
+      gradient: 'from-indigo-500 to-purple-600',
+      bgGradient: 'from-indigo-500/10 to-purple-600/10'
+    },
+    {
+      id: 'help',
+      title: '幫助中心',
+      description: '常見問題與支援',
+      icon: HelpCircle,
+      link: '/forum',
+      gradient: 'from-cyan-500 to-blue-500',
+      bgGradient: 'from-cyan-500/10 to-blue-500/10'
+    },
+    {
+      id: 'profile',
+      title: '個人資料',
+      description: '管理個人資訊與帳號',
+      icon: User,
+      link: '/profile',
+      gradient: 'from-teal-500 to-green-500',
+      bgGradient: 'from-teal-500/10 to-green-500/10'
+    }
+  ];
+
   return (
     <div className="min-h-screen bg-background">
       {/* Hero 區塊 - 帶影片背景 */}
@@ -73,17 +121,17 @@ const AppDashboard: React.FC = () => {
                 <Sparkles className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-white drop-shadow-lg">
+                <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">
                   歡迎回來
                   {user && (
-                    <span className="block mt-1 text-xl md:text-2xl text-white/90 font-normal drop-shadow-md">
+                    <span className="block mt-1 text-xl md:text-2xl text-foreground/90 font-normal">
                       {user.name || user.email}
                     </span>
                   )}
                 </h1>
               </div>
             </div>
-            <p className="text-lg text-white/90 drop-shadow-md">
+            <p className="text-lg text-foreground/80">
               開始使用 AI 智能體，讓內容創作變得更簡單高效
             </p>
           </div>
@@ -185,6 +233,41 @@ const AppDashboard: React.FC = () => {
               </div>
             </CardContent>
           </Card>
+        </div>
+
+        {/* 設定卡片區塊 */}
+        <div className="mt-12">
+          <div className="text-center mb-6">
+            <h2 className="text-2xl md:text-3xl font-bold mb-2">設定與管理</h2>
+            <p className="text-muted-foreground">管理您的帳號與查看相關資訊</p>
+          </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+            {settingsItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Card
+                  key={item.id}
+                  className="group relative overflow-hidden border-2 hover:border-primary/50 transition-all duration-300 hover:shadow-lg cursor-pointer"
+                  onClick={() => navigate(item.link)}
+                >
+                  <div className={`absolute inset-0 bg-gradient-to-br ${item.bgGradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
+                  <CardContent className="pt-6 pb-6">
+                    <div className="flex items-center gap-4">
+                      <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${item.gradient} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300 flex-shrink-0`}>
+                        <Icon className="w-6 h-6 text-white" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-base mb-1">{item.title}</h3>
+                        <p className="text-sm text-muted-foreground line-clamp-2">{item.description}</p>
+                      </div>
+                      <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all duration-300 flex-shrink-0" />
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
         </div>
 
         {/* 導航連結區塊 */}

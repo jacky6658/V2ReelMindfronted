@@ -63,7 +63,7 @@ interface SavedResult {
 
 export default function Mode1() {
   const navigate = useNavigate();
-  const { user, logout } = useAuthStore();
+  const { user, logout, isLoggedIn } = useAuthStore();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -76,6 +76,9 @@ export default function Mode1() {
   const [savedResults, setSavedResults] = useState<SavedResult[]>([]);
   const [resultTab, setResultTab] = useState<'positioning' | 'topics' | 'script'>('positioning');
   const [expandedResult, setExpandedResult] = useState<SavedResult | null>(null);
+  const [showSubscriptionDialog, setShowSubscriptionDialog] = useState(false);
+  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [checkingPermission, setCheckingPermission] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -88,18 +91,55 @@ export default function Mode1() {
     { label: '重新定位', prompt: '請顯示短影音內容策略矩陣表格，協助我重新規劃帳號定位。' },
   ];
 
-  // 檢查登入狀態（已移除以便本地預覽）
-  // useEffect(() => {
-  //   if (!isAuthenticated()) {
-  //     toast.error('請先登入');
-  //     navigate('/');
-  //   }
-  // }, [setLocation]);
-
-  // 載入歷史記錄
+  // 檢查登入狀態和權限
   useEffect(() => {
-    loadHistory();
-  }, [activeTab]);
+    const checkPermission = async () => {
+      if (!isLoggedIn || !user) {
+        toast.error('請先登入');
+        navigate('/login');
+        return;
+      }
+
+      setCheckingPermission(true);
+      try {
+        // 如果用戶已訂閱（VIP），直接允許
+        if (user.is_subscribed) {
+          setHasPermission(true);
+          setCheckingPermission(false);
+          return;
+        }
+
+        // 對於未訂閱用戶，嘗試調用後端 API 檢查權限
+        // 後端會根據試用期（7天內）判斷是否有權限
+        try {
+          // 使用 check_user_permission 的邏輯：通過嘗試發送一個測試請求來檢查權限
+          // 但為了避免不必要的請求，我們直接調用權限檢查 API
+          // 注意：/api/user/ip-planning/permission 使用的是 check_ip_planning_permission
+          // 它檢查的是 tier 和 source，而不是試用期
+          // 所以我們需要直接使用 Mode1 的權限檢查邏輯
+          // 最簡單的方式：設為 null，允許進入，但在使用時會檢查權限（遇到 403 時顯示訂閱推廣）
+          setHasPermission(null); // 設為 null 表示未知，允許進入但使用時會檢查
+        } catch (error: any) {
+          console.warn('權限檢查失敗，將在使用時檢查權限:', error);
+          setHasPermission(null);
+        }
+      } catch (error) {
+        console.error('檢查權限時出錯:', error);
+        setHasPermission(null);
+      } finally {
+        setCheckingPermission(false);
+      }
+    };
+
+    checkPermission();
+  }, [isLoggedIn, user, navigate]);
+
+  // 載入歷史記錄（僅在有權限時載入）
+  useEffect(() => {
+    if (hasPermission === true) {
+      loadHistory();
+    }
+  }, [activeTab, hasPermission]);
 
   // 自動滾動到底部
   useEffect(() => {
@@ -202,18 +242,31 @@ export default function Mode1() {
             return newMessages;
           });
         },
-        (error) => {
+        (error: any) => {
           console.error('流式請求錯誤:', error);
+          setIsLoading(false);
+          
           // 處理 403 錯誤 (權限不足/試用期已過)
-          if (error && typeof error === 'object' && 'status' in error && error.status === 403) {
-             toast.error('試用期已過，請訂閱以繼續使用', {
-               action: {
-                 label: '去訂閱',
-                 onClick: () => navigate('/pricing')
-               }
-             });
+          if (error?.response?.status === 403 || (error && typeof error === 'object' && 'status' in error && error.status === 403)) {
+            const errorMessage = error?.response?.data?.error || error?.message || '試用期已過，請訂閱以繼續使用';
+            setHasPermission(false);
+            setShowSubscriptionDialog(true);
+            toast.error(errorMessage, {
+              action: {
+                label: '去訂閱',
+                onClick: () => navigate('/pricing')
+              },
+              duration: 5000
+            });
+          } else if (error?.response?.status === 401) {
+            toast.error('登入已過期，請重新登入', {
+              action: {
+                label: '去登入',
+                onClick: () => navigate('/login')
+              }
+            });
           } else {
-             toast.error('生成失敗，請重試');
+            toast.error(error?.message || '生成失敗，請稍後再試');
           }
         },
         () => {
@@ -391,7 +444,7 @@ export default function Mode1() {
               <Button
                 variant="default"
                 size="sm"
-                onClick={login}
+                onClick={() => navigate('/login')}
               >
                 登入
               </Button>
@@ -494,8 +547,14 @@ export default function Mode1() {
                       key={index}
                       variant="outline"
                       size="sm"
-                      onClick={() => handleQuickButton(button.prompt)}
-                      disabled={isLoading}
+                      onClick={() => {
+                        if (hasPermission === false) {
+                          setShowSubscriptionDialog(true);
+                        } else {
+                          handleQuickButton(button.prompt);
+                        }
+                      }}
+                      disabled={isLoading || checkingPermission || hasPermission === false}
                       className="hover:bg-primary hover:text-primary-foreground transition-colors text-xs md:text-sm"
                     >
                       {button.label}
@@ -512,13 +571,25 @@ export default function Mode1() {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder="輸入你的問題或需求...（輸入「儲存」可自動保存結果）"
+                  placeholder={
+                    checkingPermission 
+                      ? "正在檢查權限..." 
+                      : hasPermission === false 
+                      ? "試用期已過，請訂閱以繼續使用" 
+                      : "輸入你的問題或需求...（輸入「儲存」可自動保存結果）"
+                  }
                   className="min-h-[60px] resize-none"
-                  disabled={isLoading}
+                  disabled={isLoading || checkingPermission || hasPermission === false}
                 />
                 <Button
-                  onClick={handleSend}
-                  disabled={!input.trim() || isLoading}
+                  onClick={() => {
+                    if (hasPermission === false) {
+                      setShowSubscriptionDialog(true);
+                    } else {
+                      handleSend();
+                    }
+                  }}
+                  disabled={!input.trim() || isLoading || checkingPermission || hasPermission === false}
                   size="icon"
                   className="h-[60px] w-[60px]"
                 >
@@ -761,6 +832,80 @@ export default function Mode1() {
               <Save className="w-4 h-4 mr-2" />
               存到資料庫
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 訂閱推廣 Dialog (FOMO) */}
+      <Dialog open={showSubscriptionDialog} onOpenChange={setShowSubscriptionDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl text-center">🎯 解鎖完整 IP 人設規劃功能</DialogTitle>
+            <DialogDescription className="text-center text-base">
+              您的試用期已過，訂閱即可享受完整功能
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6 py-4">
+            {/* 功能列表 */}
+            <div className="space-y-3">
+              <h3 className="font-semibold text-lg">✨ 訂閱後您將獲得：</h3>
+              <div className="space-y-2">
+                {[
+                  'IP 人設規劃工具（AI 深度對話建立個人品牌）',
+                  '14 天短影音內容規劃',
+                  '今日腳本快速生成',
+                  '創作者資料庫完整功能',
+                  '腳本歷史記錄與管理',
+                  '多平台腳本優化建議',
+                  '優先客服支援'
+                ].map((feature, index) => (
+                  <div key={index} className="flex items-start gap-3">
+                    <CheckCircle className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                    <span className="text-sm">{feature}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 價格資訊 */}
+            <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+              <div className="flex items-baseline justify-center gap-2">
+                <span className="text-3xl font-bold text-primary">NT$332</span>
+                <span className="text-muted-foreground">/ 月</span>
+              </div>
+              <p className="text-center text-sm text-muted-foreground">
+                年付方案，平均每月只需 NT$332（原價 NT$399/月）
+              </p>
+            </div>
+
+            {/* CTA 按鈕 */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button
+                size="lg"
+                className="flex-1"
+                onClick={() => {
+                  setShowSubscriptionDialog(false);
+                  navigate('/pricing');
+                }}
+              >
+                <Sparkles className="w-5 h-5 mr-2" />
+                立即訂閱
+              </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                className="flex-1"
+                onClick={() => setShowSubscriptionDialog(false)}
+              >
+                稍後再說
+              </Button>
+            </div>
+
+            {/* 額外提示 */}
+            <p className="text-xs text-center text-muted-foreground">
+              💡 訂閱後立即解鎖所有功能，無需等待
+            </p>
           </div>
         </DialogContent>
       </Dialog>

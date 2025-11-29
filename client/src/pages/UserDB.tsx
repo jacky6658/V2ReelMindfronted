@@ -483,28 +483,32 @@ export default function UserDB() {
 
           <CardContent>
             <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="scripts" className="flex items-center gap-2">
-                  <FileText className="w-4 h-4" />
-                  我的腳本
+              <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 gap-2">
+                <TabsTrigger value="scripts" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
+                  <FileText className="w-3 h-3 md:w-4 md:h-4" />
+                  <span className="hidden sm:inline">我的腳本</span>
+                  <span className="sm:hidden">腳本</span>
                 </TabsTrigger>
-                <TabsTrigger value="conversations" className="flex items-center gap-2">
-                  <MessageSquare className="w-4 h-4" />
-                  對話記錄
+                <TabsTrigger value="conversations" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
+                  <MessageSquare className="w-3 h-3 md:w-4 md:h-4" />
+                  <span className="hidden sm:inline">對話記錄</span>
+                  <span className="sm:hidden">對話</span>
                 </TabsTrigger>
-                <TabsTrigger value="generations" className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4" />
-                  生成記錄
+                <TabsTrigger value="generations" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
+                  <Sparkles className="w-3 h-3 md:w-4 md:h-4" />
+                  <span className="hidden sm:inline">生成記錄</span>
+                  <span className="sm:hidden">生成</span>
                 </TabsTrigger>
-                <TabsTrigger value="ip-planning" className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4" />
-                  IP 人設規劃
+                <TabsTrigger value="ip-planning" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
+                  <Sparkles className="w-3 h-3 md:w-4 md:h-4" />
+                  <span className="hidden sm:inline">IP 人設規劃</span>
+                  <span className="sm:hidden">IP規劃</span>
                 </TabsTrigger>
               </TabsList>
 
               {/* 我的腳本 */}
               <TabsContent value="scripts" className="mt-6">
-                <ScrollArea className="h-[calc(100vh-350px)]">
+                <ScrollArea className="h-[calc(100vh-350px)] md:h-[calc(100vh-400px)]">
                   {isLoading ? (
                     <div className="text-center py-12">
                       <RefreshCw className="w-8 h-8 mx-auto mb-4 animate-spin text-muted-foreground" />
@@ -516,61 +520,113 @@ export default function UserDB() {
                       <p className="text-muted-foreground dark:text-muted-foreground/80">暫無腳本記錄</p>
                     </div>
                   ) : (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>標題</TableHead>
-                          <TableHead>平台</TableHead>
-                          <TableHead>建立時間</TableHead>
-                          <TableHead className="text-right">操作</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
+                    <>
+                      {/* 桌面版：表格布局 */}
+                      <div className="hidden md:block overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>標題</TableHead>
+                              <TableHead>平台</TableHead>
+                              <TableHead>建立時間</TableHead>
+                              <TableHead className="text-right">操作</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {scripts.map((script) => (
+                              <TableRow key={script.id}>
+                                <TableCell className="font-medium">{script.title}</TableCell>
+                                <TableCell>
+                                  <Badge variant="outline">{script.platform}</Badge>
+                                </TableCell>
+                                <TableCell className="text-muted-foreground text-sm">
+                                  {formatDate(script.created_at)}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <div className="flex justify-end gap-2">
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => handleView(script)}
+                                    >
+                                      <Eye className="w-4 h-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => handleCopy(script.content)}
+                                    >
+                                      <Copy className="w-4 h-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => handleDelete(script.id, 'script')}
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                      {/* 移動版：卡片布局 */}
+                      <div className="md:hidden space-y-4">
                         {scripts.map((script) => (
-                          <TableRow key={script.id}>
-                            <TableCell className="font-medium">{script.title}</TableCell>
-                            <TableCell>
-                              <Badge variant="outline">{script.platform}</Badge>
-                            </TableCell>
-                            <TableCell className="text-muted-foreground text-sm">
-                              {formatDate(script.created_at)}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <div className="flex justify-end gap-2">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => handleView(script)}
-                                >
-                                  <Eye className="w-4 h-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => handleCopy(script.content)}
-                                >
-                                  <Copy className="w-4 h-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => handleDelete(script.id, 'script')}
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
+                          <Card key={script.id}>
+                            <CardContent className="p-4">
+                              <div className="space-y-3">
+                                <div className="flex items-start justify-between gap-2">
+                                  <h3 className="font-medium text-sm flex-1">{script.title}</h3>
+                                  <Badge variant="outline" className="text-xs">{script.platform}</Badge>
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                  {formatDate(script.created_at)}
+                                </p>
+                                <div className="flex gap-2 pt-2 border-t">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="flex-1"
+                                    onClick={() => handleView(script)}
+                                  >
+                                    <Eye className="w-4 h-4 mr-1" />
+                                    查看
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="flex-1"
+                                    onClick={() => handleCopy(script.content)}
+                                  >
+                                    <Copy className="w-4 h-4 mr-1" />
+                                    複製
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="flex-1 text-destructive"
+                                    onClick={() => handleDelete(script.id, 'script')}
+                                  >
+                                    <Trash2 className="w-4 h-4 mr-1" />
+                                    刪除
+                                  </Button>
+                                </div>
                               </div>
-                            </TableCell>
-                          </TableRow>
+                            </CardContent>
+                          </Card>
                         ))}
-                      </TableBody>
-                    </Table>
+                      </div>
+                    </>
                   )}
                 </ScrollArea>
               </TabsContent>
 
               {/* 對話記錄 */}
               <TabsContent value="conversations" className="mt-6">
-                <ScrollArea className="h-[calc(100vh-350px)]">
+                <ScrollArea className="h-[calc(100vh-350px)] md:h-[calc(100vh-400px)]">
                   {isLoading ? (
                     <div className="text-center py-12">
                       <RefreshCw className="w-8 h-8 mx-auto mb-4 animate-spin text-muted-foreground" />
@@ -582,60 +638,106 @@ export default function UserDB() {
                       <p className="text-muted-foreground dark:text-muted-foreground/80">暫無對話記錄</p>
                     </div>
                   ) : (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>類型</TableHead>
-                          <TableHead>訊息數</TableHead>
-                          <TableHead>摘要</TableHead>
-                          <TableHead>時間</TableHead>
-                          <TableHead className="text-right">操作</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
+                    <>
+                      {/* 桌面版：表格布局 */}
+                      <div className="hidden md:block overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>類型</TableHead>
+                              <TableHead>訊息數</TableHead>
+                              <TableHead>摘要</TableHead>
+                              <TableHead>時間</TableHead>
+                              <TableHead className="text-right">操作</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {conversations.map((conv) => (
+                              <TableRow key={conv.id}>
+                                <TableCell className="font-medium">
+                                  <Badge variant="outline">{conv.mode}</Badge>
+                                </TableCell>
+                                <TableCell>
+                                  <Badge variant="secondary">{conv.message_count}</Badge>
+                                </TableCell>
+                                <TableCell className="max-w-xs truncate text-muted-foreground text-sm">
+                                  {conv.summary || '無摘要'}
+                                </TableCell>
+                                <TableCell className="text-muted-foreground text-sm">
+                                  {formatDate(conv.created_at)}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <div className="flex justify-end gap-2">
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => handleView(conv)}
+                                    >
+                                      <Eye className="w-4 h-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => handleDelete(conv.id, 'conversation')}
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                      {/* 移動版：卡片布局 */}
+                      <div className="md:hidden space-y-4">
                         {conversations.map((conv) => (
-                          <TableRow key={conv.id}>
-                            <TableCell className="font-medium">
-                              <Badge variant="outline">{conv.mode}</Badge>
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant="secondary">{conv.message_count}</Badge>
-                            </TableCell>
-                            <TableCell className="max-w-xs truncate text-muted-foreground text-sm">
-                              {conv.summary || '無摘要'}
-                            </TableCell>
-                            <TableCell className="text-muted-foreground text-sm">
-                              {formatDate(conv.created_at)}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <div className="flex justify-end gap-2">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => handleView(conv)}
-                                >
-                                  <Eye className="w-4 h-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => handleDelete(conv.id, 'conversation')}
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
+                          <Card key={conv.id}>
+                            <CardContent className="p-4">
+                              <div className="space-y-3">
+                                <div className="flex items-start justify-between gap-2">
+                                  <Badge variant="outline" className="text-xs">{conv.mode}</Badge>
+                                  <Badge variant="secondary" className="text-xs">{conv.message_count} 則訊息</Badge>
+                                </div>
+                                <p className="text-sm text-muted-foreground line-clamp-2">
+                                  {conv.summary || '無摘要'}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {formatDate(conv.created_at)}
+                                </p>
+                                <div className="flex gap-2 pt-2 border-t">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="flex-1"
+                                    onClick={() => handleView(conv)}
+                                  >
+                                    <Eye className="w-4 h-4 mr-1" />
+                                    查看
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="flex-1 text-destructive"
+                                    onClick={() => handleDelete(conv.id, 'conversation')}
+                                  >
+                                    <Trash2 className="w-4 h-4 mr-1" />
+                                    刪除
+                                  </Button>
+                                </div>
                               </div>
-                            </TableCell>
-                          </TableRow>
+                            </CardContent>
+                          </Card>
                         ))}
-                      </TableBody>
-                    </Table>
+                      </div>
+                    </>
                   )}
                 </ScrollArea>
               </TabsContent>
 
               {/* 生成記錄 */}
               <TabsContent value="generations" className="mt-6">
-                <ScrollArea className="h-[calc(100vh-350px)]">
+                <ScrollArea className="h-[calc(100vh-350px)] md:h-[calc(100vh-400px)]">
                   {isLoading ? (
                     <div className="text-center py-12">
                       <RefreshCw className="w-8 h-8 mx-auto mb-4 animate-spin text-muted-foreground" />
@@ -647,65 +749,120 @@ export default function UserDB() {
                       <p className="text-muted-foreground dark:text-muted-foreground/80">暫無生成記錄</p>
                     </div>
                   ) : (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>平台</TableHead>
-                          <TableHead>主題</TableHead>
-                          <TableHead>內容預覽</TableHead>
-                          <TableHead>建立時間</TableHead>
-                          <TableHead className="text-right">操作</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
+                    <>
+                      {/* 桌面版：表格布局 */}
+                      <div className="hidden md:block overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>平台</TableHead>
+                              <TableHead>主題</TableHead>
+                              <TableHead>內容預覽</TableHead>
+                              <TableHead>建立時間</TableHead>
+                              <TableHead className="text-right">操作</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {generations.map((gen, index) => (
+                              <TableRow key={gen.id || `gen-${index}`}>
+                                <TableCell>
+                                  <Badge variant="outline">{gen.platform || '未知'}</Badge>
+                                </TableCell>
+                                <TableCell className="font-medium">{gen.topic || '無主題'}</TableCell>
+                                <TableCell className="max-w-xs truncate text-muted-foreground text-sm">
+                                  {gen.content || '無內容'}
+                                </TableCell>
+                                <TableCell className="text-muted-foreground text-sm">
+                                  {formatDate(gen.created_at)}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <div className="flex justify-end gap-2">
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => handleView(gen)}
+                                    >
+                                      <Eye className="w-4 h-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => handleCopy(gen.content)}
+                                    >
+                                      <Copy className="w-4 h-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => handleDelete(gen.id || `gen-${index}`, 'generation')}
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                      {/* 移動版：卡片布局 */}
+                      <div className="md:hidden space-y-4">
                         {generations.map((gen, index) => (
-                          <TableRow key={gen.id || `gen-${index}`}>
-                            <TableCell>
-                              <Badge variant="outline">{gen.platform || '未知'}</Badge>
-                            </TableCell>
-                            <TableCell className="font-medium">{gen.topic || '無主題'}</TableCell>
-                            <TableCell className="max-w-xs truncate text-muted-foreground text-sm">
-                              {gen.content || '無內容'}
-                            </TableCell>
-                            <TableCell className="text-muted-foreground text-sm">
-                              {formatDate(gen.created_at)}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <div className="flex justify-end gap-2">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => handleView(gen)}
-                                >
-                                  <Eye className="w-4 h-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => handleCopy(gen.content)}
-                                >
-                                  <Copy className="w-4 h-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => handleDelete(gen.id || `gen-${index}`, 'generation')}
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
+                          <Card key={gen.id || `gen-${index}`}>
+                            <CardContent className="p-4">
+                              <div className="space-y-3">
+                                <div className="flex items-start justify-between gap-2">
+                                  <h3 className="font-medium text-sm flex-1">{gen.topic || '無主題'}</h3>
+                                  <Badge variant="outline" className="text-xs">{gen.platform || '未知'}</Badge>
+                                </div>
+                                <p className="text-sm text-muted-foreground line-clamp-3">
+                                  {gen.content || '無內容'}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {formatDate(gen.created_at)}
+                                </p>
+                                <div className="flex gap-2 pt-2 border-t">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="flex-1"
+                                    onClick={() => handleView(gen)}
+                                  >
+                                    <Eye className="w-4 h-4 mr-1" />
+                                    查看
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="flex-1"
+                                    onClick={() => handleCopy(gen.content)}
+                                  >
+                                    <Copy className="w-4 h-4 mr-1" />
+                                    複製
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="flex-1 text-destructive"
+                                    onClick={() => handleDelete(gen.id || `gen-${index}`, 'generation')}
+                                  >
+                                    <Trash2 className="w-4 h-4 mr-1" />
+                                    刪除
+                                  </Button>
+                                </div>
                               </div>
-                            </TableCell>
-                          </TableRow>
+                            </CardContent>
+                          </Card>
                         ))}
-                      </TableBody>
-                    </Table>
+                      </div>
+                    </>
                   )}
                 </ScrollArea>
               </TabsContent>
 
               {/* IP 人設規劃結果 */}
               <TabsContent value="ip-planning" className="mt-6">
-                <ScrollArea className="h-[calc(100vh-350px)]">
+                <ScrollArea className="h-[calc(100vh-350px)] md:h-[calc(100vh-400px)]">
                   {isLoading ? (
                     <div className="text-center py-12">
                       <RefreshCw className="w-8 h-8 mx-auto mb-4 animate-spin text-muted-foreground" />
@@ -718,16 +875,67 @@ export default function UserDB() {
                       <p className="text-sm text-muted-foreground dark:text-muted-foreground/70 mt-2">前往 Mode1 頁面生成並儲存內容</p>
                     </div>
                   ) : (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>類型</TableHead>
-                          <TableHead>標題</TableHead>
-                          <TableHead>建立時間</TableHead>
-                          <TableHead className="text-right">操作</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
+                    <>
+                      {/* 桌面版：表格布局 */}
+                      <div className="hidden md:block overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>類型</TableHead>
+                              <TableHead>標題</TableHead>
+                              <TableHead>建立時間</TableHead>
+                              <TableHead className="text-right">操作</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {ipPlanningResults.map((result) => {
+                              const typeLabels: Record<string, string> = {
+                                'profile': '帳號定位',
+                                'plan': '選題規劃',
+                                'scripts': '腳本'
+                              };
+                              return (
+                                <TableRow key={result.id}>
+                                  <TableCell>
+                                    <Badge variant="outline">{typeLabels[result.result_type] || result.result_type}</Badge>
+                                  </TableCell>
+                                  <TableCell className="font-medium">{result.title || '未命名'}</TableCell>
+                                  <TableCell className="text-muted-foreground text-sm">
+                                    {formatDate(result.created_at)}
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    <div className="flex justify-end gap-2">
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => handleView(result)}
+                                      >
+                                        <Eye className="w-4 h-4" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => handleCopy(result.content)}
+                                      >
+                                        <Copy className="w-4 h-4" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => handleDelete(result.id, 'ip-planning')}
+                                      >
+                                        <Trash2 className="w-4 h-4" />
+                                      </Button>
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
+                          </TableBody>
+                        </Table>
+                      </div>
+                      {/* 移動版：卡片布局 */}
+                      <div className="md:hidden space-y-4">
                         {ipPlanningResults.map((result) => {
                           const typeLabels: Record<string, string> = {
                             'profile': '帳號定位',
@@ -735,44 +943,52 @@ export default function UserDB() {
                             'scripts': '腳本'
                           };
                           return (
-                            <TableRow key={result.id}>
-                              <TableCell>
-                                <Badge variant="outline">{typeLabels[result.result_type] || result.result_type}</Badge>
-                              </TableCell>
-                              <TableCell className="font-medium">{result.title || '未命名'}</TableCell>
-                              <TableCell className="text-muted-foreground text-sm">
-                                {formatDate(result.created_at)}
-                              </TableCell>
-                              <TableCell className="text-right">
-                                <div className="flex justify-end gap-2">
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => handleView(result)}
-                                  >
-                                    <Eye className="w-4 h-4" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => handleCopy(result.content)}
-                                  >
-                                    <Copy className="w-4 h-4" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => handleDelete(result.id, 'ip-planning')}
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </Button>
+                            <Card key={result.id}>
+                              <CardContent className="p-4">
+                                <div className="space-y-3">
+                                  <div className="flex items-start justify-between gap-2">
+                                    <h3 className="font-medium text-sm flex-1">{result.title || '未命名'}</h3>
+                                    <Badge variant="outline" className="text-xs">{typeLabels[result.result_type] || result.result_type}</Badge>
+                                  </div>
+                                  <p className="text-xs text-muted-foreground">
+                                    {formatDate(result.created_at)}
+                                  </p>
+                                  <div className="flex gap-2 pt-2 border-t">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="flex-1"
+                                      onClick={() => handleView(result)}
+                                    >
+                                      <Eye className="w-4 h-4 mr-1" />
+                                      查看
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="flex-1"
+                                      onClick={() => handleCopy(result.content)}
+                                    >
+                                      <Copy className="w-4 h-4 mr-1" />
+                                      複製
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="flex-1 text-destructive"
+                                      onClick={() => handleDelete(result.id, 'ip-planning')}
+                                    >
+                                      <Trash2 className="w-4 h-4 mr-1" />
+                                      刪除
+                                    </Button>
+                                  </div>
                                 </div>
-                              </TableCell>
-                            </TableRow>
+                              </CardContent>
+                            </Card>
                           );
                         })}
-                      </TableBody>
-                    </Table>
+                      </div>
+                    </>
                   )}
                 </ScrollArea>
               </TabsContent>
@@ -783,7 +999,7 @@ export default function UserDB() {
 
       {/* 詳情 Dialog */}
       <Dialog open={showDetail} onOpenChange={setShowDetail}>
-        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto w-[95vw] md:w-full">
           <DialogHeader>
             <DialogTitle>{selectedItem?.title || '詳情'}</DialogTitle>
             <DialogDescription>

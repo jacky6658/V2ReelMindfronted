@@ -428,21 +428,32 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
       userObject: user
     });
     
-    // 如果正在載入且沒有用戶資訊，等待載入完成
-    if (authLoading && !user) {
+    // 檢查用戶是否已登入
+    if (!isLoggedIn) {
+      console.error('[Mode3 Save] 用戶未登入', {
+        isLoggedIn,
+        authLoading
+      });
+      toast.error('請先登入');
+      navigate('/login');
+      return;
+    }
+    
+    // 如果正在載入用戶資訊，等待載入完成
+    if (authLoading) {
       console.warn('[Mode3 Save] 正在載入用戶資訊，等待中...');
       toast.info('正在載入用戶資訊，請稍候...');
       return;
     }
     
-    // 檢查用戶是否已登入
-    if (!isLoggedIn || !user?.user_id) {
-      console.error('[Mode3 Save] 用戶未登入或缺少 user_id', {
-        isLoggedIn,
+    // 檢查是否有 user_id
+    if (!user?.user_id) {
+      console.error('[Mode3 Save] 缺少 user_id', {
         hasUser: !!user,
-        userId: user?.user_id
+        userId: user?.user_id,
+        userObject: user
       });
-      toast.error('請先登入');
+      toast.error('用戶資訊不完整，請重新登入');
       navigate('/login');
       return;
     }
@@ -846,7 +857,7 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
                       console.log('[Mode3] 儲存帳號定位按鈕被點擊');
                       handleSaveResult('positioning');
                     }}
-                    disabled={(authLoading && !user) || !isLoggedIn || !user?.user_id}
+                    disabled={authLoading || !isLoggedIn || !user?.user_id}
                     title={(() => {
                       if (authLoading && !user) return '正在載入用戶資訊...';
                       if (!isLoggedIn) return '請先登入';
@@ -865,7 +876,7 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
                       console.log('[Mode3] 儲存選題建議按鈕被點擊');
                       handleSaveResult('topics');
                     }}
-                    disabled={(authLoading && !user) || !isLoggedIn || !user?.user_id}
+                    disabled={authLoading || !isLoggedIn || !user?.user_id}
                     title={(() => {
                       if (authLoading && !user) return '正在載入用戶資訊...';
                       if (!isLoggedIn) return '請先登入';
@@ -884,7 +895,7 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
                       console.log('[Mode3] 儲存腳本內容按鈕被點擊');
                       handleSaveResult('script');
                     }}
-                    disabled={(authLoading && !user) || !isLoggedIn || !user?.user_id}
+                    disabled={authLoading || !isLoggedIn || !user?.user_id}
                     title={(() => {
                       if (authLoading && !user) return '正在載入用戶資訊...';
                       if (!isLoggedIn) return '請先登入';

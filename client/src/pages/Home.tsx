@@ -1,9 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { useTheme } from "@/contexts/ThemeContext";
-import { Moon, Sun, Sparkles, Target, Zap, TrendingUp, CheckCircle2, Play } from "lucide-react";
+import { Moon, Sun, Sparkles, Target, Zap, TrendingUp, CheckCircle2, Play, Check, Mail, Shield, CreditCard } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAuthStore } from "@/stores/authStore";
 import { apiGet } from "@/lib/api-client";
 import { toast } from "sonner";
@@ -11,7 +12,16 @@ import { toast } from "sonner";
 export default function Home() {
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
-  const { isLoggedIn } = useAuthStore();
+  const { isLoggedIn, getToken } = useAuthStore();
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('yearly');
+
+  // 處理錨點滾動（因為使用 HashRouter，需要手動處理）
+  const handleScrollTo = (elementId: string) => {
+    const element = document.getElementById(elementId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
 
   const handleGoogleLogin = async () => {
     try {
@@ -40,12 +50,22 @@ export default function Home() {
           </div>
           
           <div className="hidden md:flex items-center gap-6">
-            <a href="#features" className="text-sm font-medium hover:text-primary transition-colors">功能</a>
+            <span 
+              className="text-sm font-medium hover:text-primary transition-colors cursor-pointer" 
+              onClick={() => handleScrollTo('features')}
+            >
+              功能
+            </span>
             <span className="text-sm font-medium hover:text-primary transition-colors cursor-pointer" onClick={() => navigate('/intro')}>產品介紹</span>
             <span className="text-sm font-medium hover:text-primary transition-colors cursor-pointer" onClick={() => navigate('/guide')}>實戰指南</span>
             <span className="text-sm font-medium hover:text-primary transition-colors cursor-pointer" onClick={() => navigate('/forum')}>論壇</span>
             <span className="text-sm font-medium hover:text-primary transition-colors cursor-pointer" onClick={() => navigate('/pricing')}>方案</span>
-            <a href="#pricing" className="text-sm font-medium hover:text-primary transition-colors">定價</a>
+            <span 
+              className="text-sm font-medium hover:text-primary transition-colors cursor-pointer" 
+              onClick={() => handleScrollTo('pricing')}
+            >
+              定價
+            </span>
           </div>
 
           <div className="flex items-center gap-3">
@@ -63,8 +83,8 @@ export default function Home() {
               )}
             </Button>
             {isLoggedIn ? (
-              <Button variant="default" className="hidden md:inline-flex" onClick={() => navigate('/userdb')}>
-                我的資料
+              <Button variant="default" className="hidden md:inline-flex" onClick={() => navigate('/app')}>
+                主控台
               </Button>
             ) : (
               <Button variant="default" className="hidden md:inline-flex" onClick={handleGoogleLogin}>
@@ -104,10 +124,15 @@ export default function Home() {
               專為 IG、TikTok、Shorts 打造。AI 生成爆款腳本、精準帳號定位，效率提升 70%
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-              <Button size="lg" className="text-base px-8" onClick={() => navigate('/mode1')}>
+              <Button size="lg" className="text-base px-8" onClick={() => navigate('/app')}>
                 立即開始
               </Button>
-              <Button size="lg" variant="outline" className="text-base px-8" onClick={isLoggedIn ? () => navigate('/mode3') : handleGoogleLogin}>
+              <Button 
+                size="lg" 
+                variant="outline" 
+                className="text-base px-8 border-2 border-primary/50 bg-primary/5 hover:bg-primary/10 hover:border-primary dark:border-primary/70 dark:bg-primary/10 dark:hover:bg-primary/20 font-semibold" 
+                onClick={isLoggedIn ? () => navigate('/app') : handleGoogleLogin}
+              >
                 免費體驗
               </Button>
             </div>
@@ -349,96 +374,300 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 定價區塊 */}
-      <section id="pricing" className="py-16 md:py-24">
+      {/* 定價區塊 - 優化 SEO 和 FOMO */}
+      <section id="pricing" className="py-16 md:py-24 bg-muted/30">
         <div className="container">
+          {/* SEO 優化的標題和描述 */}
           <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">選擇適合的方案</h2>
-            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-              每天不到 NT$66，全年 AI 幫你生成靈感與爆款腳本
+            <Badge className="mb-4">
+              <Sparkles className="w-3 h-3 mr-1" />
+              限時優惠
+            </Badge>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              ReelMind AI 短影音腳本生成工具 - 選擇最適合的方案
+            </h2>
+            <p className="text-muted-foreground text-lg max-w-3xl mx-auto mb-2">
+              <strong className="text-foreground">每天不到 NT$66</strong>，全年 AI 幫你生成靈感與爆款腳本。
+              <span className="block mt-2 text-base">
+                專為 TikTok、Instagram Reels、YouTube Shorts 創作者設計的 AI 智能體，提升內容創作效率 70%
+              </span>
+            </p>
+            <p className="text-sm text-muted-foreground max-w-2xl mx-auto">
+              ⚡ 立即訂閱，解鎖所有功能 | 🎁 年付方案省下 17% | 💎 7 天免費試用期
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 max-w-4xl mx-auto">
-            <Card className="relative hover:shadow-xl transition-shadow">
-              <CardHeader>
-                <CardTitle className="text-2xl">Script Lite 入門版</CardTitle>
-                <CardDescription>適合剛起步的創作者</CardDescription>
-                <div className="mt-4">
-                  <span className="text-4xl font-bold">NT$8,280</span>
-                  <span className="text-muted-foreground">/年</span>
+          {/* Billing Cycle Toggle */}
+          <div className="flex justify-center mb-12">
+            <div className="inline-flex items-center gap-2 p-1 bg-background rounded-full border border-border shadow-sm">
+              <Button
+                variant={billingCycle === 'monthly' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setBillingCycle('monthly')}
+                className="rounded-full"
+              >
+                月付
+              </Button>
+              <Button
+                variant={billingCycle === 'yearly' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setBillingCycle('yearly')}
+                className="rounded-full"
+              >
+                年付
+                {billingCycle === 'yearly' && (
+                  <Badge variant="secondary" className="ml-2">
+                    省 17%
+                  </Badge>
+                )}
+              </Button>
+            </div>
+          </div>
+
+          {/* Three Column Layout: Free Plan + Full Feature Plan + Custom Project */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8 max-w-7xl mx-auto">
+            {/* 左邊：免費方案卡片 */}
+            <Card className="border-2 border-muted flex flex-col h-full hover:shadow-lg transition-shadow">
+              <CardHeader className="text-center pb-6 flex-shrink-0">
+                <div className="flex justify-center mb-4">
+                  <div className="p-3 bg-green-100 dark:bg-green-900/20 rounded-full">
+                    <Sparkles className="w-8 h-8 text-green-600 dark:text-green-400" />
+                  </div>
+                </div>
+                <CardTitle className="text-2xl mb-2">免費方案</CardTitle>
+                <CardDescription className="text-base">
+                  體驗 AI 短影音生成功能
+                </CardDescription>
+                
+                {/* Price */}
+                <div className="mt-6">
+                  <div className="flex items-baseline justify-center gap-2">
+                    <span className="text-5xl font-bold text-green-600 dark:text-green-400">
+                      NT$0
+                    </span>
+                    <span className="text-muted-foreground">/ 永久</span>
+                  </div>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <ul className="space-y-3">
-                  <li className="flex items-start gap-2">
-                    <CheckCircle2 className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                    <span className="text-sm">AI 腳本生成</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <CheckCircle2 className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                    <span className="text-sm">基礎選題建議</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <CheckCircle2 className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                    <span className="text-sm">每月 100 次生成</span>
-                  </li>
-                </ul>
-                <Button 
-                  className="w-full" 
-                  variant="outline"
-                  onClick={() => {
-                    navigate('/pricing');
-                  }}
-                >
-                  選擇方案
-                </Button>
+
+              <CardContent className="space-y-6 flex-1 flex flex-col">
+                {/* Features */}
+                <div className="space-y-3 flex-1">
+                  {[
+                    '免費體驗一鍵生成功能',
+                    '支援自訂 AI 模型，使用自己的 API Key 完全掌控生成品質',
+                    '無限次生成腳本，不受系統配額限制',
+                    '帳號定位分析',
+                    '選題推薦',
+                    '短影音腳本生成'
+                  ].map((feature, index) => (
+                    <div key={index} className="flex items-start gap-3">
+                      <div className="mt-0.5">
+                        <Check className="w-5 h-5 text-green-600 dark:text-green-400" />
+                      </div>
+                      <span className="text-foreground text-sm">{feature}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* CTA Button */}
+                <div className="mt-auto pt-4">
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="w-full text-lg h-14 border-green-600 dark:border-green-400 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20"
+                    onClick={isLoggedIn ? () => navigate('/app') : handleGoogleLogin}
+                  >
+                    <Sparkles className="w-5 h-5 mr-2" />
+                    立即體驗
+                  </Button>
+                </div>
               </CardContent>
             </Card>
 
-            <Card className="relative border-primary hover:shadow-xl transition-shadow">
-              <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                <span className="bg-primary text-primary-foreground px-4 py-1 rounded-full text-sm font-medium">
-                  最受歡迎
-                </span>
+            {/* 中間：ReelMind 全功能方案卡片 - 最受歡迎 */}
+            <Card className="border-2 border-primary shadow-xl flex flex-col h-full relative hover:shadow-2xl transition-shadow">
+              <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-10">
+                <Badge className="bg-primary text-primary-foreground px-4 py-1.5 rounded-full text-sm font-semibold shadow-lg">
+                  ⭐ 最受歡迎
+                </Badge>
               </div>
-              <CardHeader>
-                <CardTitle className="text-2xl">Creator Pro 雙年方案</CardTitle>
-                <CardDescription>專業創作者的最佳選擇</CardDescription>
-                <div className="mt-4">
-                  <span className="text-4xl font-bold">NT$9,900</span>
-                  <span className="text-muted-foreground">/2年</span>
+              <CardHeader className="text-center pb-6 flex-shrink-0 pt-8">
+                <div className="flex justify-center mb-4">
+                  <div className="p-3 bg-primary/10 rounded-full">
+                    <Zap className="w-8 h-8 text-primary" />
+                  </div>
+                </div>
+                <CardTitle className="text-2xl mb-2">ReelMind 全功能方案</CardTitle>
+                <CardDescription className="text-base">
+                  解鎖所有 AI 短影音創作工具
+                </CardDescription>
+                
+                {/* Price */}
+                <div className="mt-6">
+                  {billingCycle === 'yearly' && (
+                    <div className="text-sm text-muted-foreground line-through mb-2">
+                      原價 NT$4,788 / 年
+                    </div>
+                  )}
+                  <div className="flex items-baseline justify-center gap-2">
+                    <span className="text-5xl font-bold text-primary">
+                      NT${billingCycle === 'yearly' ? '3,990' : '399'}
+                    </span>
+                    <span className="text-muted-foreground">/ {billingCycle === 'yearly' ? '年' : '月'}</span>
+                  </div>
+                  {billingCycle === 'yearly' && (
+                    <div className="mt-2 flex flex-col items-center gap-1">
+                      <Badge variant="secondary" className="text-sm">
+                        年繳 NT$3,990
+                      </Badge>
+                      <span className="text-xs text-green-600 dark:text-green-400 font-medium">
+                        省下 NT$798 (17%)
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        平均每月只需 NT$332
+                      </span>
+                    </div>
+                  )}
                 </div>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <ul className="space-y-3">
-                  <li className="flex items-start gap-2">
-                    <CheckCircle2 className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                    <span className="text-sm">所有 Lite 功能</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <CheckCircle2 className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                    <span className="text-sm">IP 人設規劃</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <CheckCircle2 className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                    <span className="text-sm">無限次生成</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <CheckCircle2 className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                    <span className="text-sm">優先客服支援</span>
-                  </li>
-                </ul>
-                <Button 
-                  className="w-full"
-                  onClick={() => {
-                    navigate('/pricing');
-                  }}
-                >
-                  選擇方案
-                </Button>
+
+              <CardContent className="space-y-6 flex-1 flex flex-col">
+                {/* Features */}
+                <div className="space-y-3 flex-1">
+                  {[
+                    '包含免費方案所有功能',
+                    'IP 人設規劃工具（AI 深度對話建立個人品牌）',
+                    '14 天短影音內容規劃',
+                    '今日腳本快速生成',
+                    '創作者資料庫完整功能',
+                    '腳本歷史記錄與管理',
+                    '多平台腳本優化建議',
+                    '優先客服支援',
+                    ...(billingCycle === 'yearly' ? ['年度專屬優惠', '新功能搶先體驗'] : [])
+                  ].map((feature, index) => (
+                    <div key={index} className="flex items-start gap-3">
+                      <div className="mt-0.5">
+                        <Check className="w-5 h-5 text-primary" />
+                      </div>
+                      <span className="text-foreground text-sm">{feature}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* CTA Button */}
+                <div className="mt-auto pt-4">
+                  <Button
+                    size="lg"
+                    className="w-full text-lg h-14 font-semibold"
+                    onClick={() => {
+                      if (!isLoggedIn) {
+                        handleGoogleLogin();
+                        return;
+                      }
+                      navigate('/pricing');
+                    }}
+                  >
+                    <CreditCard className="w-5 h-5 mr-2" />
+                    {isLoggedIn ? '前往付款' : '登入訂閱'}
+                  </Button>
+
+                  {/* Security Badge */}
+                  <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground pt-2">
+                    <Shield className="w-3 h-3" />
+                    <span>由綠界金流（ECPay）提供安全加密付款</span>
+                  </div>
+                </div>
               </CardContent>
             </Card>
+
+            {/* 右邊：客製化專案卡片 */}
+            <Card className="border-2 border-purple-200 dark:border-purple-800 flex flex-col h-full hover:shadow-lg transition-shadow">
+              <CardHeader className="text-center pb-6 flex-shrink-0">
+                <div className="flex justify-center mb-4">
+                  <div className="p-3 bg-purple-100 dark:bg-purple-900/20 rounded-full">
+                    <Mail className="w-8 h-8 text-purple-600 dark:text-purple-400" />
+                  </div>
+                </div>
+                <CardTitle className="text-2xl mb-2">客製化專案</CardTitle>
+                <CardDescription className="text-base">
+                  企業級客製化服務
+                </CardDescription>
+                
+                {/* Price */}
+                <div className="mt-6">
+                  <div className="flex items-baseline justify-center gap-2">
+                    <span className="text-5xl font-bold text-purple-600 dark:text-purple-400">
+                      客製化
+                    </span>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-2">
+                  依需求報價
+                  </p>
+                </div>
+              </CardHeader>
+
+              <CardContent className="space-y-6 flex-1 flex flex-col">
+                {/* Features */}
+                <div className="space-y-3 flex-1">
+                  {[
+                    '專屬 AI 模型訓練',
+                    '客製化功能開發',
+                    '企業級技術支援',
+                    '專案管理服務',
+                    'API 整合服務',
+                    '優先技術諮詢'
+                  ].map((feature, index) => (
+                    <div key={index} className="flex items-start gap-3">
+                      <div className="mt-0.5">
+                        <Check className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                      </div>
+                      <span className="text-foreground text-sm">{feature}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* CTA Button */}
+                <div className="mt-auto pt-4">
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="w-full text-lg h-14 border-purple-600 dark:border-purple-400 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20"
+                    onClick={() => navigate('/contact')}
+                  >
+                    <Mail className="w-5 h-5 mr-2" />
+                    聯繫我們
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* FOMO 和 SEO 優化的額外資訊 */}
+          <div className="mt-12 text-center space-y-4">
+            <div className="flex flex-wrap justify-center gap-4 text-sm text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-primary" />
+                <span>7 天免費試用期</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-primary" />
+                <span>隨時可取消</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-primary" />
+                <span>安全加密付款</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-primary" />
+                <span>24/7 客服支援</span>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground max-w-2xl mx-auto">
+              ReelMind 是專為 TikTok、Instagram Reels、YouTube Shorts 創作者設計的 AI 短影音腳本生成工具。
+              透過 AI 智能體技術，幫助創作者從靈感枯竭到內容量產，提升內容創作效率 70%。
+              立即訂閱，開始你的 AI 短影音創作之旅！
+            </p>
           </div>
         </div>
       </section>
@@ -465,7 +694,7 @@ export default function Home() {
               size="lg" 
               variant="outline" 
               className="text-base px-8 bg-transparent text-primary-foreground border-primary-foreground hover:bg-primary-foreground/10"
-              onClick={isLoggedIn ? () => navigate('/mode3') : handleGoogleLogin}
+              onClick={isLoggedIn ? () => navigate('/app') : handleGoogleLogin}
             >
               免費體驗
             </Button>
