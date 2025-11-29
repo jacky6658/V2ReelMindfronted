@@ -377,28 +377,37 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
 
   // 儲存結果到 UserDB - 使用 useCallback 優化
   const handleSaveResult = useCallback(async (type: 'positioning' | 'topics' | 'script') => {
-    // 調試日誌
+    // 調試日誌 - 強制輸出，確保能看到
+    console.log('[Mode3 Save] ========== 儲存按鈕被點擊 ==========');
     console.log('[Mode3 Save] 儲存請求:', {
       type,
       authLoading,
       isLoggedIn,
       hasUser: !!user,
-      userId: user?.user_id
+      userId: user?.user_id,
+      userObject: user
     });
     
     // 如果正在載入且沒有用戶資訊，等待載入完成
     if (authLoading && !user) {
+      console.warn('[Mode3 Save] 正在載入用戶資訊，等待中...');
       toast.info('正在載入用戶資訊，請稍候...');
       return;
     }
     
     // 檢查用戶是否已登入
     if (!isLoggedIn || !user?.user_id) {
-      console.warn('[Mode3 Save] 用戶未登入，導向登入頁');
+      console.error('[Mode3 Save] 用戶未登入或缺少 user_id', {
+        isLoggedIn,
+        hasUser: !!user,
+        userId: user?.user_id
+      });
       toast.error('請先登入');
       navigate('/login');
       return;
     }
+    
+    console.log('[Mode3 Save] 通過認證檢查，繼續儲存流程...');
 
     const content = results[type];
     if (!content.trim()) {
@@ -793,8 +802,17 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
                 {results.positioning && (
                   <Button
                     variant="outline"
-                    onClick={() => handleSaveResult('positioning')}
+                    onClick={() => {
+                      console.log('[Mode3] 儲存帳號定位按鈕被點擊');
+                      handleSaveResult('positioning');
+                    }}
                     disabled={(authLoading && !user) || !isLoggedIn || !user?.user_id}
+                    title={(() => {
+                      if (authLoading && !user) return '正在載入用戶資訊...';
+                      if (!isLoggedIn) return '請先登入';
+                      if (!user?.user_id) return '用戶資訊不完整';
+                      return '儲存帳號定位';
+                    })()}
                   >
                     <Save className="mr-2 h-4 w-4" />
                     儲存帳號定位
@@ -803,8 +821,17 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
                 {results.topics && (
                   <Button
                     variant="outline"
-                    onClick={() => handleSaveResult('topics')}
+                    onClick={() => {
+                      console.log('[Mode3] 儲存選題建議按鈕被點擊');
+                      handleSaveResult('topics');
+                    }}
                     disabled={(authLoading && !user) || !isLoggedIn || !user?.user_id}
+                    title={(() => {
+                      if (authLoading && !user) return '正在載入用戶資訊...';
+                      if (!isLoggedIn) return '請先登入';
+                      if (!user?.user_id) return '用戶資訊不完整';
+                      return '儲存選題建議';
+                    })()}
                   >
                     <Save className="mr-2 h-4 w-4" />
                     儲存選題建議
@@ -813,8 +840,17 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
                 {results.script && (
                   <Button
                     variant="outline"
-                    onClick={() => handleSaveResult('script')}
+                    onClick={() => {
+                      console.log('[Mode3] 儲存腳本內容按鈕被點擊');
+                      handleSaveResult('script');
+                    }}
                     disabled={(authLoading && !user) || !isLoggedIn || !user?.user_id}
+                    title={(() => {
+                      if (authLoading && !user) return '正在載入用戶資訊...';
+                      if (!isLoggedIn) return '請先登入';
+                      if (!user?.user_id) return '用戶資訊不完整';
+                      return '儲存腳本內容';
+                    })()}
                   >
                     <Save className="mr-2 h-4 w-4" />
                     儲存腳本內容
