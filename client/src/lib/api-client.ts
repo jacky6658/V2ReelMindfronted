@@ -20,12 +20,38 @@ const apiClient = axios.create({
 
 // 請求攔截器：在每個請求發送前，檢查是否存在 token 並將其添加到 Authorization header
 apiClient.interceptors.request.use(
-  (config) => {
+  async (config) => {
     // 從 Zustand store 中獲取 token
     const token = useAuthStore.getState().token;
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    
+    // 對於需要 CSRF Token 的請求（POST/PUT/DELETE/PATCH），添加 CSRF Token
+    if (['post', 'put', 'delete', 'patch'].includes(config.method?.toLowerCase() || '')) {
+      // 檢查端點是否在排除列表中（不需要 CSRF Token）
+      const excludedPaths = [
+        '/api/csrf-token',
+        '/api/auth/refresh',
+        '/api/auth/google/callback',
+        '/api/memory/long-term',
+        '/api/ip-planning/',
+        '/api/admin/',
+        '/api/mode3/',
+        '/api/chat/stream',
+        '/api/generate/',
+      ];
+      
+      const needsCsrf = !excludedPaths.some(path => config.url?.startsWith(path));
+      
+      if (needsCsrf) {
+        const csrfToken = await getCsrfToken();
+        if (csrfToken) {
+          config.headers['X-CSRF-Token'] = csrfToken;
+        }
+      }
+    }
+    
     return config;
   },
   (error) => {
@@ -96,7 +122,7 @@ export async function getCsrfToken(): Promise<string | null> {
   
   // 從 API 獲取
   try {
-    const response = await apiClient.get<{ csrf_token: string }>('/api/auth/csrf-token');
+    const response = await apiClient.get<{ csrf_token: string }>('/api/csrf-token');
     csrfTokenCache = response.data.csrf_token;
     return csrfTokenCache;
   } catch (e) {
