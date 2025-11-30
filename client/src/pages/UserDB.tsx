@@ -1530,14 +1530,20 @@ export default function UserDB() {
             <div className="flex-1 min-h-0 overflow-y-auto">
               <ScriptEditor
                 content={
-                  selectedItem && 'content' in selectedItem ? selectedItem.content : 
-                  (selectedItem && 'summary' in selectedItem ? `對話類型：${selectedItem.mode || '未知'}\n訊息數：${selectedItem.message_count || 0}\n\n摘要：\n${selectedItem.summary}`) : 
-                  ''
+                  selectedItem && 'content' in selectedItem 
+                    ? selectedItem.content 
+                    : (selectedItem && 'summary' in selectedItem 
+                        ? `對話類型：${selectedItem.mode || '未知'}\n訊息數：${selectedItem.message_count || 0}\n\n摘要：\n${selectedItem.summary}` 
+                        : '')
                 }
                 title={
-                  selectedItem && 'title' in selectedItem ? selectedItem.title : 
-                  (selectedItem && 'topic' in selectedItem ? selectedItem.topic : 
-                  (selectedItem && 'mode' in selectedItem ? `${selectedItem.mode} - 對話記錄` : '詳情'))
+                  selectedItem && 'title' in selectedItem 
+                    ? selectedItem.title 
+                    : (selectedItem && 'topic' in selectedItem 
+                        ? selectedItem.topic 
+                        : (selectedItem && 'mode' in selectedItem 
+                            ? `${selectedItem.mode} - 對話記錄` 
+                            : '詳情'))
                 }
                 onSave={handleSaveContent}
                 onExport={handleExport}
