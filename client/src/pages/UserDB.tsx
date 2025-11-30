@@ -871,26 +871,26 @@ export default function UserDB() {
                     <>
                       {/* 桌面版：表格布局 */}
                       <div className="hidden md:block overflow-x-auto">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>標題</TableHead>
-                              <TableHead>平台</TableHead>
-                              <TableHead>建立時間</TableHead>
-                              <TableHead className="text-right">操作</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>標題</TableHead>
+                          <TableHead>平台</TableHead>
+                          <TableHead>建立時間</TableHead>
+                          <TableHead className="text-right">操作</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
                             {filteredAndSortedData.map((script: Script) => (
-                              <TableRow key={script.id}>
-                                <TableCell className="font-medium">{script.title}</TableCell>
-                                <TableCell>
-                                  <Badge variant="outline">{script.platform}</Badge>
-                                </TableCell>
-                                <TableCell className="text-muted-foreground text-sm">
-                                  {formatDate(script.created_at)}
-                                </TableCell>
-                                <TableCell className="text-right">
+                          <TableRow key={script.id}>
+                            <TableCell className="font-medium">{script.title}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline">{script.platform}</Badge>
+                            </TableCell>
+                            <TableCell className="text-muted-foreground text-sm">
+                              {formatDate(script.created_at)}
+                            </TableCell>
+                            <TableCell className="text-right">
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                       <Button variant="ghost" size="icon">
@@ -951,24 +951,24 @@ export default function UserDB() {
                                   </p>
                                 </div>
                                 <div className="flex gap-2 pt-2 border-t">
-                                  <Button
-                                    variant="ghost"
+                                <Button
+                                  variant="ghost"
                                     size="sm"
                                     className="flex-1"
-                                    onClick={() => handleView(script)}
-                                  >
+                                  onClick={() => handleView(script)}
+                                >
                                     <Eye className="w-4 h-4 mr-1" />
                                     查看
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
+                                </Button>
+                                <Button
+                                  variant="ghost"
                                     size="sm"
                                     className="flex-1"
-                                    onClick={() => handleCopy(script.content)}
-                                  >
+                                  onClick={() => handleCopy(script.content)}
+                                >
                                     <Copy className="w-4 h-4 mr-1" />
                                     複製
-                                  </Button>
+                                </Button>
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                       <Button variant="ghost" size="sm">
@@ -985,7 +985,7 @@ export default function UserDB() {
                                         匯出
                                       </DropdownMenuItem>
                                       <DropdownMenuItem 
-                                        onClick={() => handleDelete(script.id, 'script')}
+                                  onClick={() => handleDelete(script.id, 'script')}
                                         className="text-destructive"
                                       >
                                         <Trash2 className="w-4 h-4 mr-2" />
@@ -993,7 +993,7 @@ export default function UserDB() {
                                       </DropdownMenuItem>
                                     </DropdownMenuContent>
                                   </DropdownMenu>
-                                </div>
+                              </div>
                               </div>
                             </CardContent>
                           </Card>
@@ -1044,37 +1044,37 @@ export default function UserDB() {
                     <>
                       {/* 桌面版：表格布局 */}
                       <div className="hidden md:block overflow-x-auto">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>類型</TableHead>
-                              <TableHead>訊息數</TableHead>
-                              <TableHead>摘要</TableHead>
-                              <TableHead>時間</TableHead>
-                              <TableHead className="text-right">操作</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>類型</TableHead>
+                          <TableHead>訊息數</TableHead>
+                          <TableHead>摘要</TableHead>
+                          <TableHead>時間</TableHead>
+                          <TableHead className="text-right">操作</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
                             {filteredAndSortedData.map((conv: Conversation) => (
-                              <TableRow key={conv.id}>
-                                <TableCell className="font-medium">
-                                  <Badge variant="outline">{conv.mode}</Badge>
-                                </TableCell>
-                                <TableCell>
-                                  <Badge variant="secondary">{conv.message_count}</Badge>
-                                </TableCell>
-                                <TableCell className="max-w-xs truncate text-muted-foreground text-sm">
-                                  {conv.summary || '無摘要'}
-                                </TableCell>
-                                <TableCell className="text-muted-foreground text-sm">
-                                  {formatDate(conv.created_at)}
-                                </TableCell>
-                                <TableCell className="text-right">
+                          <TableRow key={conv.id}>
+                            <TableCell className="font-medium">
+                              <Badge variant="outline">{conv.mode}</Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="secondary">{conv.message_count}</Badge>
+                            </TableCell>
+                            <TableCell className="max-w-xs truncate text-muted-foreground text-sm">
+                              {conv.summary || '無摘要'}
+                            </TableCell>
+                            <TableCell className="text-muted-foreground text-sm">
+                              {formatDate(conv.created_at)}
+                            </TableCell>
+                            <TableCell className="text-right">
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                       <Button variant="ghost" size="icon">
                                         <MoreVertical className="w-4 h-4" />
-                                      </Button>
+                                </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
                                       <DropdownMenuLabel>操作</DropdownMenuLabel>
@@ -1085,7 +1085,7 @@ export default function UserDB() {
                                       </DropdownMenuItem>
                                       <DropdownMenuSeparator />
                                       <DropdownMenuItem 
-                                        onClick={() => handleDelete(conv.id, 'conversation')}
+                                  onClick={() => handleDelete(conv.id, 'conversation')}
                                         className="text-destructive"
                                         disabled
                                       >
@@ -1094,11 +1094,11 @@ export default function UserDB() {
                                       </DropdownMenuItem>
                                     </DropdownMenuContent>
                                   </DropdownMenu>
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
                       </div>
                       {/* 移動版：卡片布局 */}
                       <div className="md:hidden space-y-4">
@@ -1182,30 +1182,30 @@ export default function UserDB() {
                     <>
                       {/* 桌面版：表格布局 */}
                       <div className="hidden md:block overflow-x-auto">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>平台</TableHead>
-                              <TableHead>主題</TableHead>
-                              <TableHead>內容預覽</TableHead>
-                              <TableHead>建立時間</TableHead>
-                              <TableHead className="text-right">操作</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>平台</TableHead>
+                          <TableHead>主題</TableHead>
+                          <TableHead>內容預覽</TableHead>
+                          <TableHead>建立時間</TableHead>
+                          <TableHead className="text-right">操作</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
                             {filteredAndSortedData.map((gen: Generation, index: number) => (
-                              <TableRow key={gen.id || `gen-${index}`}>
-                                <TableCell>
-                                  <Badge variant="outline">{gen.platform || '未知'}</Badge>
-                                </TableCell>
-                                <TableCell className="font-medium">{gen.topic || '無主題'}</TableCell>
-                                <TableCell className="max-w-xs truncate text-muted-foreground text-sm">
-                                  {gen.content || '無內容'}
-                                </TableCell>
-                                <TableCell className="text-muted-foreground text-sm">
-                                  {formatDate(gen.created_at)}
-                                </TableCell>
-                                <TableCell className="text-right">
+                          <TableRow key={gen.id || `gen-${index}`}>
+                            <TableCell>
+                              <Badge variant="outline">{gen.platform || '未知'}</Badge>
+                            </TableCell>
+                            <TableCell className="font-medium">{gen.topic || '無主題'}</TableCell>
+                            <TableCell className="max-w-xs truncate text-muted-foreground text-sm">
+                              {gen.content || '無內容'}
+                            </TableCell>
+                            <TableCell className="text-muted-foreground text-sm">
+                              {formatDate(gen.created_at)}
+                            </TableCell>
+                            <TableCell className="text-right">
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                       <Button variant="ghost" size="icon">
@@ -1266,24 +1266,24 @@ export default function UserDB() {
                                   {formatDate(gen.created_at)}
                                 </p>
                                 <div className="flex gap-2 pt-2 border-t">
-                                  <Button
-                                    variant="ghost"
+                                <Button
+                                  variant="ghost"
                                     size="sm"
                                     className="flex-1"
-                                    onClick={() => handleView(gen)}
-                                  >
+                                  onClick={() => handleView(gen)}
+                                >
                                     <Eye className="w-4 h-4 mr-1" />
                                     查看
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
+                                </Button>
+                                <Button
+                                  variant="ghost"
                                     size="sm"
                                     className="flex-1"
-                                    onClick={() => handleCopy(gen.content)}
-                                  >
+                                  onClick={() => handleCopy(gen.content)}
+                                >
                                     <Copy className="w-4 h-4 mr-1" />
                                     複製
-                                  </Button>
+                                </Button>
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                       <Button variant="ghost" size="sm">
@@ -1300,7 +1300,7 @@ export default function UserDB() {
                                         匯出
                                       </DropdownMenuItem>
                                       <DropdownMenuItem 
-                                        onClick={() => handleDelete(gen.id || `gen-${index}`, 'generation')}
+                                  onClick={() => handleDelete(gen.id || `gen-${index}`, 'generation')}
                                         className="text-destructive"
                                       >
                                         <Trash2 className="w-4 h-4 mr-2" />
@@ -1308,7 +1308,7 @@ export default function UserDB() {
                                       </DropdownMenuItem>
                                     </DropdownMenuContent>
                                   </DropdownMenu>
-                                </div>
+                              </div>
                               </div>
                             </CardContent>
                           </Card>
@@ -1357,32 +1357,32 @@ export default function UserDB() {
                     <>
                       {/* 桌面版：表格布局 */}
                       <div className="hidden md:block overflow-x-auto">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>類型</TableHead>
-                              <TableHead>標題</TableHead>
-                              <TableHead>建立時間</TableHead>
-                              <TableHead className="text-right">操作</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>類型</TableHead>
+                          <TableHead>標題</TableHead>
+                          <TableHead>建立時間</TableHead>
+                          <TableHead className="text-right">操作</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
                             {filteredAndSortedData.map((result: IPPlanningResult) => {
-                              const typeLabels: Record<string, string> = {
-                                'profile': '帳號定位',
-                                'plan': '選題規劃',
-                                'scripts': '腳本'
-                              };
-                              return (
-                                <TableRow key={result.id}>
-                                  <TableCell>
-                                    <Badge variant="outline">{typeLabels[result.result_type] || result.result_type}</Badge>
-                                  </TableCell>
-                                  <TableCell className="font-medium">{result.title || '未命名'}</TableCell>
-                                  <TableCell className="text-muted-foreground text-sm">
-                                    {formatDate(result.created_at)}
-                                  </TableCell>
-                                  <TableCell className="text-right">
+                          const typeLabels: Record<string, string> = {
+                            'profile': '帳號定位',
+                            'plan': '選題規劃',
+                            'scripts': '腳本'
+                          };
+                          return (
+                            <TableRow key={result.id}>
+                              <TableCell>
+                                <Badge variant="outline">{typeLabels[result.result_type] || result.result_type}</Badge>
+                              </TableCell>
+                              <TableCell className="font-medium">{result.title || '未命名'}</TableCell>
+                              <TableCell className="text-muted-foreground text-sm">
+                                {formatDate(result.created_at)}
+                              </TableCell>
+                              <TableCell className="text-right">
                                     <DropdownMenu>
                                       <DropdownMenuTrigger asChild>
                                         <Button variant="ghost" size="icon">
@@ -1450,24 +1450,24 @@ export default function UserDB() {
                                     {formatDate(result.created_at)}
                                   </p>
                                   <div className="flex gap-2 pt-2 border-t">
-                                    <Button
-                                      variant="ghost"
+                                  <Button
+                                    variant="ghost"
                                       size="sm"
                                       className="flex-1"
-                                      onClick={() => handleView(result)}
-                                    >
+                                    onClick={() => handleView(result)}
+                                  >
                                       <Eye className="w-4 h-4 mr-1" />
                                       查看
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
                                       size="sm"
                                       className="flex-1"
-                                      onClick={() => handleCopy(result.content)}
-                                    >
+                                    onClick={() => handleCopy(result.content)}
+                                  >
                                       <Copy className="w-4 h-4 mr-1" />
                                       複製
-                                    </Button>
+                                  </Button>
                                     <DropdownMenu>
                                       <DropdownMenuTrigger asChild>
                                         <Button variant="ghost" size="sm">
@@ -1484,7 +1484,7 @@ export default function UserDB() {
                                           匯出
                                         </DropdownMenuItem>
                                         <DropdownMenuItem 
-                                          onClick={() => handleDelete(result.id, 'ip-planning')}
+                                    onClick={() => handleDelete(result.id, 'ip-planning')}
                                           className="text-destructive"
                                         >
                                           <Trash2 className="w-4 h-4 mr-2" />
@@ -1492,7 +1492,7 @@ export default function UserDB() {
                                         </DropdownMenuItem>
                                       </DropdownMenuContent>
                                     </DropdownMenu>
-                                  </div>
+                                </div>
                                 </div>
                               </CardContent>
                             </Card>
@@ -1510,7 +1510,7 @@ export default function UserDB() {
 
       {/* 詳情 Dialog */}
       <Dialog open={showDetail} onOpenChange={setShowDetail}>
-        <DialogContent className="max-w-7xl max-h-[95vh] overflow-hidden flex flex-col w-[95vw] md:w-full">
+        <DialogContent className="max-w-[95vw] md:max-w-[90vw] max-h-[95vh] overflow-hidden flex flex-col w-[95vw] md:w-[90vw]">
           <DialogHeader className="shrink-0">
             <DialogTitle>
               {selectedItem && 'title' in selectedItem ? selectedItem.title : 
@@ -1523,8 +1523,9 @@ export default function UserDB() {
           </DialogHeader>
 
           <div className="flex-1 overflow-hidden flex flex-col min-h-0 space-y-4">
-            <div className="flex-1 min-h-0 overflow-y-auto">
-              <ScriptEditor
+            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-auto">
+              <div className="min-w-full">
+            <ScriptEditor
                 content={
                   selectedItem && 'content' in selectedItem 
                     ? selectedItem.content 
@@ -1541,12 +1542,13 @@ export default function UserDB() {
                             ? `${selectedItem.mode} - 對話記錄` 
                             : '詳情'))
                 }
-                onSave={handleSaveContent}
-                onExport={handleExport}
-                onShare={handleShare}
+              onSave={handleSaveContent}
+              onExport={handleExport}
+              onShare={handleShare}
                 readOnly={selectedItem ? 'summary' in selectedItem : false} // 對話記錄為唯讀
-                showToolbar={true}
-              />
+              showToolbar={true}
+            />
+              </div>
             </div>
             
             <div className="flex justify-end gap-2 shrink-0 pt-4 border-t">
