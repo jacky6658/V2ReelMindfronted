@@ -2,8 +2,33 @@
 
 root * ./dist/public
 
+# 設置正確的 MIME 類型
+header {
+    # 確保 JavaScript 文件返回正確的 MIME 類型
+    Content-Type application/javascript text/js
+    Content-Type application/javascript text/javascript
+    # 確保 CSS 文件返回正確的 MIME 類型
+    Content-Type text/css text/css
+}
+
 # 優先處理 /assets/ 目錄下的所有文件（最重要）
 handle /assets/* {
+    # 明確設置 MIME 類型
+    @js {
+        path *.js
+    }
+    header @js Content-Type application/javascript
+    
+    @css {
+        path *.css
+    }
+    header @css Content-Type text/css
+    
+    @json {
+        path *.json
+    }
+    header @json Content-Type application/json
+    
     file_server
 }
 
@@ -23,6 +48,23 @@ handle {
         file *.json
         file *.map
     }
+    
+    # 設置 MIME 類型
+    @js {
+        path *.js
+    }
+    header @js Content-Type application/javascript
+    
+    @css {
+        path *.css
+    }
+    header @css Content-Type text/css
+    
+    @json {
+        path *.json
+    }
+    header @json Content-Type application/json
+    
     handle @static_files {
         file_server
     }
