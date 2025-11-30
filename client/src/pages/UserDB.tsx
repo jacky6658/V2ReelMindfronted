@@ -462,7 +462,7 @@ export default function UserDB() {
     } else if ('summary' in selectedItem && selectedItem.summary) {
       // Conversation
       title = selectedItem.mode || '對話記錄';
-      text = selectedItem.summary.substring(0, 100) || '';
+      text = (selectedItem.summary && typeof selectedItem.summary === 'string') ? selectedItem.summary.substring(0, 100) : '';
       itemId = selectedItem.id;
     } else {
       title = '內容';
@@ -615,8 +615,9 @@ export default function UserDB() {
     <div className="min-h-screen flex flex-col bg-background">
       {/* 導航欄 */}
       <nav className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center justify-between">
-          <div className="flex items-center gap-4">
+        <div className="container flex h-16 items-center justify-between relative">
+          {/* 左侧：返回主控台 */}
+          <div className="flex-1 flex items-center">
             <Button
               variant="ghost"
               size="sm"
@@ -626,9 +627,27 @@ export default function UserDB() {
               <ArrowLeft className="w-4 h-4" />
               <span className="hidden sm:inline">返回主控台</span>
             </Button>
-            <Badge variant="outline" className="hidden md:inline-flex">
-              我的資料
-            </Badge>
+          </div>
+          
+          {/* 中间：ReelMind（手机版置中） */}
+          <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center">
+              <Sparkles className="w-5 h-5 text-white" />
+            </div>
+            <span className="font-bold text-xl">ReelMind</span>
+          </div>
+          
+          {/* 右侧：返回首页 */}
+          <div className="flex-1 flex items-center justify-end">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/')}
+              className="gap-2"
+            >
+              <Home className="w-4 h-4" />
+              <span className="hidden sm:inline">返回首頁</span>
+            </Button>
           </div>
 
           <div className="flex items-center gap-2">
@@ -927,7 +946,7 @@ export default function UserDB() {
                                 </p>
                                 <div className="bg-muted/50 rounded-lg p-2">
                                   <p className="text-xs text-muted-foreground line-clamp-2">
-                                    {script.content.substring(0, 100)}...
+                                    {script.content ? script.content.substring(0, 100) + '...' : '無內容'}
                                   </p>
                                 </div>
                                 <div className="flex gap-2 pt-2 border-t">
@@ -1423,7 +1442,7 @@ export default function UserDB() {
                                   </div>
                                   <div className="bg-muted/50 rounded-lg p-2">
                                     <p className="text-xs text-muted-foreground line-clamp-2">
-                                      {result.content.substring(0, 100)}...
+                                      {result.content ? result.content.substring(0, 100) + '...' : '無內容'}
                                     </p>
                                   </div>
                                   <p className="text-xs text-muted-foreground">

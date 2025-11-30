@@ -528,7 +528,7 @@ export default function Mode1() {
     
     const newResult: SavedResult = {
       id: Date.now().toString(),
-      title: `${categoryTitles[category]} - ${new Date().toLocaleString('zh-TW')}`,
+      title: `${categoryTitles[category]} - ${new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })}`,
       content: content,
       category: category,
       timestamp: new Date(),
@@ -772,8 +772,9 @@ export default function Mode1() {
     <div className="min-h-screen flex flex-col bg-background">
       {/* 導航欄 */}
       <nav className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center justify-between">
-          <div className="flex items-center gap-4">
+        <div className="container flex h-16 items-center justify-between relative">
+          {/* 左侧：返回主控台 */}
+          <div className="flex-1 flex items-center">
             <Button
               variant="ghost"
               size="sm"
@@ -783,9 +784,27 @@ export default function Mode1() {
               <ArrowLeft className="w-4 h-4" />
               <span className="hidden sm:inline">返回主控台</span>
             </Button>
-            <span className="text-sm text-muted-foreground hidden md:inline">
-              IP 人設規劃
-            </span>
+          </div>
+          
+          {/* 中间：ReelMind（手机版置中） */}
+          <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center">
+              <Sparkles className="w-5 h-5 text-white" />
+            </div>
+            <span className="font-bold text-xl">ReelMind</span>
+          </div>
+          
+          {/* 右侧：返回首页 */}
+          <div className="flex-1 flex items-center justify-end">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/')}
+              className="gap-2"
+            >
+              <Home className="w-4 h-4" />
+              <span className="hidden sm:inline">返回首頁</span>
+            </Button>
           </div>
 
           <div className="flex items-center gap-2">
@@ -1169,7 +1188,7 @@ export default function Mode1() {
                               <div className="flex-1">
                                 <h4 className="font-semibold text-sm mb-1">{result.title}</h4>
                                 <p className="text-xs text-muted-foreground">
-                                  {result.timestamp.toLocaleString('zh-TW')}
+                                  {result.timestamp.toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })}
                                 </p>
                               </div>
                               <Button
@@ -1257,7 +1276,7 @@ export default function Mode1() {
           <DialogHeader className="shrink-0">
             <DialogTitle>{expandedResult?.title}</DialogTitle>
             <DialogDescription>
-              {expandedResult?.timestamp.toLocaleString('zh-TW')}
+              {expandedResult?.timestamp.toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })}
             </DialogDescription>
           </DialogHeader>
 

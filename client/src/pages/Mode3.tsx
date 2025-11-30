@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { ArrowLeft, Sparkles, CheckCircle2, Loader2, Copy, Lock, Save, Key } from 'lucide-react';
+import { ArrowLeft, Sparkles, CheckCircle2, Loader2, Copy, Lock, Save, Key, Home } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { apiStream, apiPost, apiGet } from '@/lib/api-client';
 import ThinkingAnimation from '@/components/ThinkingAnimation';
@@ -136,7 +136,19 @@ export default function Mode3() {
     script: ''
   });
   
+  // 追蹤每個步驟的生成完成狀態
+  const [generationStatus, setGenerationStatus] = useState({
+    positioning: false,
+    topics: false,
+    script: false
+  });
+  
   const [activeResultTab, setActiveResultTab] = useState('positioning');
+  
+  // 檢查是否所有步驟都已完成
+  const allStepsCompleted = useMemo(() => {
+    return generationStatus.positioning && generationStatus.topics && generationStatus.script;
+  }, [generationStatus]);
 
   // 使用 useMemo 優化當前結果內容
   const currentResult = useMemo(() => {
@@ -224,11 +236,16 @@ export default function Mode3() {
 
   // 生成內容
   const handleGenerate = async () => {
-    // 清空之前的結果
+    // 清空之前的結果和狀態
     setResults({
       positioning: '',
       topics: '',
       script: ''
+    });
+    setGenerationStatus({
+      positioning: false,
+      topics: false,
+      script: false
     });
     setActiveResultTab('positioning');
     setPermissionError('');
@@ -239,11 +256,31 @@ export default function Mode3() {
     
     try {
       // 生成帳號定位
-      await generatePositioning();
+      try {
+        await generatePositioning();
+        setGenerationStatus(prev => ({ ...prev, positioning: true }));
+      } catch (error) {
+        console.error('生成帳號定位失敗:', error);
+        throw error; // 重新拋出錯誤，讓外層 catch 處理
+      }
+      
       // 生成選題
-      await generateTopics();
+      try {
+        await generateTopics();
+        setGenerationStatus(prev => ({ ...prev, topics: true }));
+      } catch (error) {
+        console.error('生成選題失敗:', error);
+        throw error; // 重新拋出錯誤，讓外層 catch 處理
+      }
+      
       // 生成腳本
-      await generateScript();
+      try {
+        await generateScript();
+        setGenerationStatus(prev => ({ ...prev, script: true }));
+      } catch (error) {
+        console.error('生成腳本失敗:', error);
+        throw error; // 重新拋出錯誤，讓外層 catch 處理
+      }
       
       toast.success('生成完成！');
     } catch (error) {
@@ -254,6 +291,12 @@ export default function Mode3() {
           // 如果是權限錯誤，停止後續生成，返回確認頁面
           setCurrentStep(2);
           setLoading(false);
+          // 重置生成狀態
+          setGenerationStatus({
+            positioning: false,
+            topics: false,
+            script: false
+          });
           return; 
       }
     } finally {
@@ -502,8 +545,9 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
       };
       
       console.log('[Mode3 Save] 發送儲存請求:', savePayload);
-      
-      await apiPost('/api/ip-planning/save', savePayload);
+
+      // 增加超時時間到 30 秒（保存操作可能需要較長時間）
+      await apiPost('/api/ip-planning/save', savePayload, { timeout: 30000 });
 
       toast.dismiss(loadingToast);
       
@@ -553,8 +597,9 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
     <div className="min-h-screen bg-background">
       {/* 導航欄 */}
       <nav className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center justify-between">
-          <div className="flex items-center gap-4">
+        <div className="container flex h-16 items-center justify-between relative">
+          {/* 左侧：返回主控台 */}
+          <div className="flex-1 flex items-center">
             <Button
               variant="ghost"
               size="sm"
@@ -562,9 +607,29 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
               className="gap-2"
             >
               <ArrowLeft className="h-4 w-4" />
-              返回主控台
+              <span className="hidden sm:inline">返回主控台</span>
             </Button>
-            <h1 className="text-xl font-bold">一鍵生成</h1>
+          </div>
+          
+          {/* 中间：ReelMind（手机版置中） */}
+          <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center">
+              <Sparkles className="w-5 h-5 text-white" />
+            </div>
+            <span className="font-bold text-xl">ReelMind</span>
+          </div>
+          
+          {/* 右侧：返回首页 */}
+          <div className="flex-1 flex items-center justify-end">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/')}
+              className="gap-2"
+            >
+              <Home className="w-4 h-4" />
+              <span className="hidden sm:inline">返回首頁</span>
+            </Button>
           </div>
         </div>
       </nav>
@@ -877,8 +942,18 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
                       console.log('[Mode3] 儲存帳號定位按鈕被點擊');
                       handleSaveResult('positioning');
                     }}
-                    disabled={authLoading || !isLoggedIn || !user?.user_id}
+                    disabled={
+                      loading || 
+                      !generationStatus.positioning || 
+                      !allStepsCompleted ||
+                      authLoading || 
+                      !isLoggedIn || 
+                      !user?.user_id
+                    }
                     title={(() => {
+                      if (loading) return '正在生成中，請稍候...';
+                      if (!generationStatus.positioning) return '帳號定位尚未生成完成';
+                      if (!allStepsCompleted) return '請等待所有步驟生成完成';
                       if (authLoading && !user) return '正在載入用戶資訊...';
                       if (!isLoggedIn) return '請先登入';
                       if (!user?.user_id) return '用戶資訊不完整';
@@ -896,8 +971,18 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
                       console.log('[Mode3] 儲存選題建議按鈕被點擊');
                       handleSaveResult('topics');
                     }}
-                    disabled={authLoading || !isLoggedIn || !user?.user_id}
+                    disabled={
+                      loading || 
+                      !generationStatus.topics || 
+                      !allStepsCompleted ||
+                      authLoading || 
+                      !isLoggedIn || 
+                      !user?.user_id
+                    }
                     title={(() => {
+                      if (loading) return '正在生成中，請稍候...';
+                      if (!generationStatus.topics) return '選題建議尚未生成完成';
+                      if (!allStepsCompleted) return '請等待所有步驟生成完成';
                       if (authLoading && !user) return '正在載入用戶資訊...';
                       if (!isLoggedIn) return '請先登入';
                       if (!user?.user_id) return '用戶資訊不完整';
@@ -915,8 +1000,18 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
                       console.log('[Mode3] 儲存腳本內容按鈕被點擊');
                       handleSaveResult('script');
                     }}
-                    disabled={authLoading || !isLoggedIn || !user?.user_id}
+                    disabled={
+                      loading || 
+                      !generationStatus.script || 
+                      !allStepsCompleted ||
+                      authLoading || 
+                      !isLoggedIn || 
+                      !user?.user_id
+                    }
                     title={(() => {
+                      if (loading) return '正在生成中，請稍候...';
+                      if (!generationStatus.script) return '腳本內容尚未生成完成';
+                      if (!allStepsCompleted) return '請等待所有步驟生成完成';
                       if (authLoading && !user) return '正在載入用戶資訊...';
                       if (!isLoggedIn) return '請先登入';
                       if (!user?.user_id) return '用戶資訊不完整';

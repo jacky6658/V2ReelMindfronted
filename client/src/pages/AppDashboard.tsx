@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { apiGet } from '@/lib/api-client';
 import { toast } from 'sonner';
 import { Sparkles, Target, Zap, Database, ArrowRight, CheckCircle2, TrendingUp, MessageSquare, Home, BookOpen, Users, ExternalLink, Settings, ShoppingBag, BarChart3, HelpCircle, User, Key, Download, FileText, LogOut, Loader2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { Area, AreaChart, Bar, BarChart, Line, LineChart, XAxis, YAxis, CartesianGrid } from 'recharts';
 
@@ -399,7 +400,21 @@ const AppDashboard: React.FC = () => {
                             <p className="text-xs text-muted-foreground">查看詳細分析</p>
                           </div>
                         </div>
-                        <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all duration-300 flex-shrink-0" />
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setShowStatisticsHelpDialog(true);
+                            }}
+                            title="使用說明"
+                          >
+                            <HelpCircle className="w-4 h-4" />
+                          </Button>
+                          <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all duration-300 flex-shrink-0" />
+                        </div>
                       </div>
 
                       {/* 統計數據 */}
@@ -762,6 +777,50 @@ const AppDashboard: React.FC = () => {
                 </div>
               </CardContent>
             </Card>
+          </div>
+        </DialogContent>
+      </Dialog>
+      
+      {/* 使用統計使用說明對話框 */}
+      <Dialog open={showStatisticsHelpDialog} onOpenChange={setShowStatisticsHelpDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>使用統計使用說明</DialogTitle>
+            <DialogDescription>了解如何使用統計功能，掌握您的創作產出狀況</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 text-sm">
+            <div>
+              <h4 className="font-semibold mb-2">什麼是使用統計？</h4>
+              <p className="text-muted-foreground">
+                使用統計功能可以幫助您追蹤和分析您的創作產出，包括腳本生成、對話記錄、生成記錄等數據，讓您更好地了解自己的創作習慣和產出效率。
+              </p>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-2">統計數據包含什麼？</h4>
+              <ul className="list-disc list-inside space-y-2 text-muted-foreground">
+                <li><strong>今日/本週/本月總計</strong>：快速了解您的創作頻率和產出量</li>
+                <li><strong>趨勢圖表</strong>：透過視覺化圖表，清楚看到使用趨勢</li>
+                <li><strong>腳本與生成記錄統計</strong>：了解您更偏好使用哪種功能</li>
+                <li><strong>AI 智能分析</strong>：系統會使用 AI 分析您的統計數據，提供個人化建議</li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-2">如何使用？</h4>
+              <ol className="list-decimal list-inside space-y-2 text-muted-foreground">
+                <li>點擊「使用統計」卡片進入詳細統計頁面</li>
+                <li>查看不同時間段的統計數據（今日、本週、本月）</li>
+                <li>透過趨勢圖表了解您的創作習慣變化</li>
+                <li>使用 AI 智能分析功能獲取個人化建議</li>
+              </ol>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-2">注意事項</h4>
+              <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                <li>統計數據會自動更新，無需手動刷新</li>
+                <li>所有數據僅供您個人查看，不會與第三方分享</li>
+                <li>可以隨時查看歷史統計數據，了解長期趨勢</li>
+              </ul>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

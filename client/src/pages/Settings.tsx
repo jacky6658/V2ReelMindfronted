@@ -15,8 +15,10 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { apiGet, apiPost, apiDelete } from '@/lib/api-client';
 import { toast } from 'sonner';
-import { ArrowLeft, Key, Eye, EyeOff, Trash2, CheckCircle2, XCircle, Loader2, Download, ExternalLink, FileText, Users, Gift, Copy, Check } from 'lucide-react';
+import { ArrowLeft, Key, Eye, EyeOff, Trash2, CheckCircle2, XCircle, Loader2, Download, ExternalLink, FileText } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { guideArticles } from '@/data/guide-articles';
 
 interface LLMKey {
   provider: string;
@@ -52,12 +54,8 @@ const Settings: React.FC = () => {
   const [modelName, setModelName] = useState<string>('__default__');
   const [showApiKey, setShowApiKey] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [showLLMKeyGuideDialog, setShowLLMKeyGuideDialog] = useState(false);
   
-  // 推薦邀請碼相關狀態
-  const [referralCode, setReferralCode] = useState<string>('');
-  const [referralStats, setReferralStats] = useState<{ totalReferrals: number; rewards: number } | null>(null);
-  const [copied, setCopied] = useState(false);
-  const [loadingReferral, setLoadingReferral] = useState(false);
 
   // 載入已保存的 Keys
   const loadKeys = async () => {
@@ -100,45 +98,7 @@ const Settings: React.FC = () => {
   useEffect(() => {
     loadKeys();
     loadAvailableModels();
-    loadReferralCode();
   }, [user?.user_id]);
-
-  // 載入推薦邀請碼
-  const loadReferralCode = async () => {
-    if (!user?.user_id) return;
-    
-    try {
-      setLoadingReferral(true);
-      // 生成或獲取用戶的推薦碼（使用 user_id 的前 8 位 + 隨機字串）
-      const code = user.user_id.substring(0, 8).toUpperCase() + Math.random().toString(36).substring(2, 6).toUpperCase();
-      setReferralCode(code);
-      
-      // 獲取推薦統計（如果後端有 API）
-      try {
-        const stats = await apiGet<{ total_referrals: number; rewards: number }>(`/api/user/referral/stats/${user.user_id}`);
-        setReferralStats({
-          totalReferrals: stats.total_referrals || 0,
-          rewards: stats.rewards || 0
-        });
-      } catch (error) {
-        // 如果 API 不存在，使用預設值
-        setReferralStats({ totalReferrals: 0, rewards: 0 });
-      }
-    } catch (error) {
-      console.error('載入推薦碼失敗:', error);
-    } finally {
-      setLoadingReferral(false);
-    }
-  };
-
-  // 複製推薦連結
-  const handleCopyReferralLink = () => {
-    const referralLink = `${window.location.origin}/#/?ref=${referralCode}`;
-    navigator.clipboard.writeText(referralLink);
-    setCopied(true);
-    toast.success('推薦連結已複製到剪貼簿');
-    setTimeout(() => setCopied(false), 2000);
-  };
 
   // 當 provider 改變時，更新 modelName
   useEffect(() => {
@@ -355,13 +315,26 @@ const Settings: React.FC = () => {
         {/* LLM API Key 管理 */}
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Key className="w-5 h-5" />
-              LLM API Key 管理
-            </CardTitle>
-            <CardDescription>
-              綁定與管理您的 LLM API Key，用於 AI 生成功能
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Key className="w-5 h-5" />
+                  LLM API Key 管理
+                </CardTitle>
+                <CardDescription>
+                  綁定與管理您的 LLM API Key，用於 AI 生成功能
+                </CardDescription>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowLLMKeyGuideDialog(true)}
+                className="flex items-center gap-2"
+              >
+                <FileText className="w-4 h-4" />
+                如何取得
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* 已保存的 Keys */}
@@ -385,7 +358,7 @@ const Settings: React.FC = () => {
                       </p>
                       {key.updated_at && (
                         <p className="text-xs text-muted-foreground mt-1">
-                          更新時間：{new Date(key.updated_at).toLocaleString('zh-TW')}
+                          更新時間：{new Date(key.updated_at).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })}
                         </p>
                       )}
                     </div>
@@ -544,106 +517,6 @@ const Settings: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* 推薦邀請碼 */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Gift className="w-5 h-5" />
-              推薦邀請碼
-            </CardTitle>
-            <CardDescription>
-              分享您的邀請碼，邀請好友加入即可獲得獎勵
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {loadingReferral ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-              </div>
-            ) : (
-              <>
-                {/* 推薦碼顯示 */}
-                <div>
-                  <Label>您的推薦碼</Label>
-                  <div className="flex gap-2 mt-2">
-                    <Input
-                      value={referralCode}
-                      readOnly
-                      className="font-mono text-lg font-bold"
-                    />
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => {
-                        navigator.clipboard.writeText(referralCode);
-                        setCopied(true);
-                        toast.success('推薦碼已複製');
-                        setTimeout(() => setCopied(false), 2000);
-                      }}
-                    >
-                      {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                    </Button>
-                  </div>
-                </div>
-
-                {/* 推薦連結 */}
-                <div>
-                  <Label>推薦連結</Label>
-                  <div className="flex gap-2 mt-2">
-                    <Input
-                      value={referralCode ? `${window.location.origin}/#/?ref=${referralCode}` : ''}
-                      readOnly
-                      className="text-sm"
-                    />
-                    <Button
-                      variant="outline"
-                      onClick={handleCopyReferralLink}
-                    >
-                      {copied ? (
-                        <>
-                          <Check className="w-4 h-4 mr-2" />
-                          已複製
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="w-4 h-4 mr-2" />
-                          複製連結
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </div>
-
-                {/* 推薦統計 */}
-                {referralStats && (
-                  <div className="grid grid-cols-2 gap-4 pt-4 border-t">
-                    <div className="text-center">
-                      <p className="text-2xl font-bold text-primary">{referralStats.totalReferrals}</p>
-                      <p className="text-sm text-muted-foreground">成功邀請</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-2xl font-bold text-primary">{referralStats.rewards}</p>
-                      <p className="text-sm text-muted-foreground">累積獎勵</p>
-                    </div>
-                  </div>
-                )}
-
-                {/* 獎勵說明 */}
-                <div className="pt-4 border-t">
-                  <div className="bg-muted/50 rounded-lg p-4 space-y-2 text-sm">
-                    <p className="font-semibold">🎁 推薦獎勵機制</p>
-                    <ul className="space-y-1 text-muted-foreground list-disc list-inside">
-                      <li>每成功邀請一位好友註冊，您可獲得 7 天免費試用延長</li>
-                      <li>好友完成首次訂閱，您可獲得額外 30 天使用期限</li>
-                      <li>累積邀請 5 位好友，可獲得 1 個月免費使用</li>
-                    </ul>
-                  </div>
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
-
         {/* 數據管理 */}
         <Card>
           <CardHeader>
@@ -667,6 +540,85 @@ const Settings: React.FC = () => {
           </CardContent>
         </Card>
       </div>
+      {/* LLM Key 取得指南對話框 */}
+      <Dialog open={showLLMKeyGuideDialog} onOpenChange={setShowLLMKeyGuideDialog}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>如何取得 LLM API Key</DialogTitle>
+            <DialogDescription>詳細教學：如何取得與設定 LLM API Key</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6 text-sm">
+            {guideArticles['how-to-get-llm-api-key']?.sections.map((section, index) => (
+              <div key={index}>
+                {section.heading && (
+                  <h3 className={`font-semibold mb-3 ${section.level === 1 ? 'text-lg' : 'text-base'}`}>
+                    {section.heading}
+                  </h3>
+                )}
+                <div className="space-y-2 text-muted-foreground">
+                  {section.content.map((paragraph, pIndex) => {
+                    // 處理 YouTube 影片嵌入
+                    if (paragraph.startsWith('VIDEO:')) {
+                      const videoUrl = paragraph.replace('VIDEO:', '');
+                      return (
+                        <div key={pIndex} className="my-4">
+                          <iframe
+                            width="100%"
+                            height="400"
+                            src={videoUrl}
+                            title="YouTube video player"
+                            frameBorder="0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                            className="rounded-lg"
+                          />
+                        </div>
+                      );
+                    }
+                    
+                    // 處理列表項目
+                    if (paragraph.startsWith('**') && paragraph.includes('**')) {
+                      const parts = paragraph.split('**');
+                      return (
+                        <div key={pIndex} className="flex gap-2 items-start">
+                          <span className="flex-1">
+                            {parts.map((part, i) => 
+                              i % 2 === 0 ? part : <strong key={i} className="font-semibold text-foreground">{part}</strong>
+                            )}
+                          </span>
+                        </div>
+                      );
+                    }
+                    
+                    // 處理粗體文字
+                    if (paragraph.includes('**')) {
+                      const parts = paragraph.split('**');
+                      return (
+                        <p key={pIndex} className="leading-relaxed">
+                          {parts.map((part, i) => 
+                            i % 2 === 0 ? part : <strong key={i} className="font-semibold text-foreground">{part}</strong>
+                          )}
+                        </p>
+                      );
+                    }
+                    
+                    // 一般段落
+                    if (paragraph.trim()) {
+                      return (
+                        <p key={pIndex} className="leading-relaxed">
+                          {paragraph}
+                        </p>
+                      );
+                    }
+                    
+                    return <br key={pIndex} />;
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

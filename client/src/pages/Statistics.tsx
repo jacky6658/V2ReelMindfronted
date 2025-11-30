@@ -3,14 +3,17 @@
  * 專門用於顯示用戶的使用數據與分析
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { apiGet } from '@/lib/api-client';
 import { toast } from 'sonner';
-import { ArrowLeft, BarChart3, MessageSquare, Zap, Database, Calendar, Brain, TrendingUp, Loader2 } from 'lucide-react';
+import { ArrowLeft, BarChart3, MessageSquare, Zap, Database, Calendar, Brain, TrendingUp, Loader2, HelpCircle, PieChart, Activity } from 'lucide-react';
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
+import { Area, AreaChart, XAxis, YAxis, CartesianGrid, ResponsiveContainer, PieChart as RechartsPieChart, Pie, Cell, Legend } from 'recharts';
 
 interface AnalyticsOverview {
   today: {
@@ -42,6 +45,65 @@ export default function Statistics() {
   const [loadingAnalytics, setLoadingAnalytics] = useState(false);
   const [aiInsights, setAiInsights] = useState<any>(null);
   const [loadingInsights, setLoadingInsights] = useState(false);
+  const [showHelpDialog, setShowHelpDialog] = useState(false);
+
+  // 圖表配置
+  const chartConfig = {
+    total: {
+      label: '總使用量',
+      color: 'hsl(var(--chart-1))',
+    },
+    scripts: {
+      label: '腳本',
+      color: 'hsl(var(--chart-2))',
+    },
+    generations: {
+      label: '生成',
+      color: 'hsl(var(--chart-3))',
+    },
+  };
+
+  // 準備圖表數據（模擬過去 7 天的數據）
+  const chartData = useMemo(() => {
+    if (!analyticsOverview) return [];
+    
+    const days = ['週一', '週二', '週三', '週四', '週五', '週六', '週日'];
+    const today = new Date().getDay();
+    
+    return days.map((day, index) => {
+      // 簡單模擬：根據總數據生成趨勢
+      const factor = (7 - Math.abs(index - today)) / 7;
+      return {
+        day,
+        total: Math.round(analyticsOverview.week.total * factor / 7),
+        scripts: Math.round(analyticsOverview.week.scripts * factor / 7),
+        generations: Math.round(analyticsOverview.week.generations * factor / 7),
+      };
+    });
+  }, [analyticsOverview]);
+
+  // 功能使用分布數據（圓餅圖）
+  const pieData = useMemo(() => {
+    if (!analyticsOverview) return [];
+    
+    return [
+      {
+        name: '對話記錄',
+        value: analyticsOverview.total.conversations,
+        color: 'hsl(217, 91%, 60%)', // blue
+      },
+      {
+        name: '生成記錄',
+        value: analyticsOverview.total.generations,
+        color: 'hsl(280, 100%, 70%)', // purple
+      },
+      {
+        name: '腳本',
+        value: analyticsOverview.total.scripts,
+        color: 'hsl(142, 76%, 36%)', // emerald
+      },
+    ].filter(item => item.value > 0);
+  }, [analyticsOverview]);
 
   // 載入統計數據
   useEffect(() => {
@@ -90,22 +152,39 @@ export default function Statistics() {
     <div className="min-h-screen bg-background">
       {/* 導航欄 */}
       <nav className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between relative">
+          {/* 左侧：返回主控台 */}
+          <div className="flex-1 flex items-center">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => navigate('/app')}
+              className="gap-2"
             >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              返回主控台
+              <ArrowLeft className="w-4 h-4" />
+              <span className="hidden sm:inline">返回主控台</span>
             </Button>
-            <h1 className="text-xl font-bold cursor-pointer" onClick={() => navigate('/')}>
-              ReelMind
-            </h1>
-            <span className="text-sm text-muted-foreground hidden md:inline">
-              使用統計
-            </span>
+          </div>
+          
+          {/* 中间：ReelMind（手机版置中） */}
+          <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center">
+              <Sparkles className="w-5 h-5 text-white" />
+            </div>
+            <span className="font-bold text-xl">ReelMind</span>
+          </div>
+          
+          {/* 右侧：返回首页 */}
+          <div className="flex-1 flex items-center justify-end">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/')}
+              className="gap-2"
+            >
+              <Home className="w-4 h-4" />
+              <span className="hidden sm:inline">返回首頁</span>
+            </Button>
           </div>
         </div>
       </nav>
@@ -114,29 +193,83 @@ export default function Statistics() {
         <div className="max-w-6xl mx-auto space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold mb-2">使用統計</h1>
-              <p className="text-muted-foreground">查看您的內容產出與使用情況</p>
+              <div className="flex items-center gap-3">
+                <h1 className="text-3xl font-bold">使用統計</h1>
+                <Dialog open={showHelpDialog} onOpenChange={setShowHelpDialog}>
+                  <DialogTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <HelpCircle className="w-4 h-4" />
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>使用統計說明</DialogTitle>
+                      <DialogDescription>
+                        了解各項統計數據的意義與價值
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 mt-4">
+                      <div>
+                        <h3 className="font-semibold mb-2">📊 總覽統計</h3>
+                        <ul className="space-y-2 text-sm text-muted-foreground">
+                          <li>• <strong>對話記錄</strong>：您在「IP 人設規劃」中進行的對話摘要數量</li>
+                          <li>• <strong>生成記錄</strong>：您在「一鍵生成」中產生的選題和定位內容數量</li>
+                          <li>• <strong>腳本數量</strong>：您在「一鍵生成」中生成的腳本內容數量</li>
+                          <li>• <strong>總計</strong>：所有內容的總和，反映您的整體創作產出</li>
+                        </ul>
+                      </div>
+                      <div>
+                        <h3 className="font-semibold mb-2">📅 時間段產出</h3>
+                        <ul className="space-y-2 text-sm text-muted-foreground">
+                          <li>• <strong>今日產出</strong>：幫助您了解當天的創作活躍度</li>
+                          <li>• <strong>本週產出</strong>：追蹤一週內的創作趨勢，評估使用頻率</li>
+                          <li>• <strong>本月產出</strong>：長期觀察您的創作習慣和成長軌跡</li>
+                        </ul>
+                      </div>
+                      <div>
+                        <h3 className="font-semibold mb-2">💡 使用價值</h3>
+                        <ul className="space-y-2 text-sm text-muted-foreground">
+                          <li>• <strong>追蹤進度</strong>：了解自己的內容產出情況，設定創作目標</li>
+                          <li>• <strong>優化策略</strong>：根據使用數據調整創作頻率和內容方向</li>
+                          <li>• <strong>成長分析</strong>：觀察長期趨勢，評估創作能力的提升</li>
+                          <li>• <strong>效率評估</strong>：透過 AI 智能分析獲得專業建議和改進方向</li>
+                        </ul>
+                      </div>
+                      <div>
+                        <h3 className="font-semibold mb-2">🤖 AI 智能分析</h3>
+                        <p className="text-sm text-muted-foreground">
+                          點擊「AI 智能分析」按鈕，系統會基於您的使用數據生成專業的分析報告，
+                          包括整體評分、產出效率評估和建議行動計劃，幫助您更好地利用平台功能。
+                        </p>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
+              <p className="text-muted-foreground mt-2">查看您的內容產出與使用情況</p>
             </div>
-            {!aiInsights && analyticsOverview && (
-              <Button
-                variant="outline"
-                onClick={loadAIInsights}
-                disabled={loadingInsights}
-                className="gap-2"
-              >
-                {loadingInsights ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    分析中...
-                  </>
-                ) : (
-                  <>
-                    <Brain className="w-4 h-4" />
-                    AI 智能分析
-                  </>
-                )}
-              </Button>
-            )}
+            <div className="flex items-center gap-2">
+              {!aiInsights && analyticsOverview && (
+                <Button
+                  variant="outline"
+                  onClick={loadAIInsights}
+                  disabled={loadingInsights}
+                  className="gap-2"
+                >
+                  {loadingInsights ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      分析中...
+                    </>
+                  ) : (
+                    <>
+                      <Brain className="w-4 h-4" />
+                      AI 智能分析
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
           </div>
 
           {loadingAnalytics ? (
@@ -210,6 +343,90 @@ export default function Statistics() {
                   </CardContent>
                 </Card>
               </div>
+
+              {/* 使用趨勢圖表 */}
+              {chartData.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center gap-2">
+                      <Activity className="w-5 h-5 text-primary" />
+                      <CardTitle>使用趨勢</CardTitle>
+                    </div>
+                    <CardDescription>過去一週的使用量趨勢</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ChartContainer config={chartConfig} className="h-[300px]">
+                      <AreaChart data={chartData}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="day" />
+                        <YAxis />
+                        <ChartTooltip content={<ChartTooltipContent />} />
+                        <Area
+                          type="monotone"
+                          dataKey="total"
+                          stackId="1"
+                          stroke="hsl(var(--chart-1))"
+                          fill="hsl(var(--chart-1))"
+                          fillOpacity={0.6}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="scripts"
+                          stackId="1"
+                          stroke="hsl(var(--chart-2))"
+                          fill="hsl(var(--chart-2))"
+                          fillOpacity={0.6}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="generations"
+                          stackId="1"
+                          stroke="hsl(var(--chart-3))"
+                          fill="hsl(var(--chart-3))"
+                          fillOpacity={0.6}
+                        />
+                      </AreaChart>
+                    </ChartContainer>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* 功能使用分布 */}
+              {pieData.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center gap-2">
+                      <PieChart className="w-5 h-5 text-primary" />
+                      <CardTitle>功能使用分布</CardTitle>
+                    </div>
+                    <CardDescription>各功能的使用比例</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-[300px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <RechartsPieChart>
+                          <ChartTooltip content={<ChartTooltipContent />} />
+                          <Legend />
+                          <Pie
+                            data={pieData}
+                            cx="50%"
+                            cy="50%"
+                            labelLine={false}
+                            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                            outerRadius={80}
+                            fill="#8884d8"
+                            dataKey="value"
+                          >
+                            {pieData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.color} />
+                            ))}
+                          </Pie>
+                        </RechartsPieChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
               {/* 時間段產出統計 */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

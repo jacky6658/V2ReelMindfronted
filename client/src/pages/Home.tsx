@@ -42,14 +42,41 @@ export default function Home() {
     <div className="min-h-screen flex flex-col">
       {/* 導航欄 */}
       <nav className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center">
-                <Sparkles className="w-5 h-5 text-white" />
-              </div>
-              <span className="font-bold text-xl">ReelMind</span>
+        <div className="container flex h-16 items-center justify-between relative">
+          {/* 左侧：返回主控台（如果有登录） */}
+          <div className="flex-1 flex items-center">
+            {user && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/app')}
+                className="gap-2"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span className="hidden sm:inline">返回主控台</span>
+              </Button>
+            )}
+          </div>
+          
+          {/* 中间：ReelMind（手机版置中） */}
+          <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center">
+              <Sparkles className="w-5 h-5 text-white" />
             </div>
+            <span className="font-bold text-xl">ReelMind</span>
+          </div>
+          
+          {/* 右侧：返回首页或其他操作 */}
+          <div className="flex-1 flex items-center justify-end">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/')}
+              className="gap-2"
+            >
+              <Home className="w-4 h-4" />
+              <span className="hidden sm:inline">返回首頁</span>
+            </Button>
           </div>
           
           <div className="hidden md:flex items-center gap-6">

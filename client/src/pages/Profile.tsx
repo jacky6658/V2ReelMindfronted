@@ -15,8 +15,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { apiGet, apiPost } from '@/lib/api-client';
 import { toast } from 'sonner';
-import { ArrowLeft, Loader2, Save, CreditCard, Clock, Activity, User, Settings, ExternalLink, Calendar, Copy, Check, Sparkles, Gift } from 'lucide-react';
+import { ArrowLeft, Loader2, Save, CreditCard, Clock, Activity, User, Settings, ExternalLink, Calendar, Copy, Check, Sparkles, Gift, HelpCircle, Home } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 interface UserProfile {
   user_id: string;
@@ -84,6 +85,10 @@ const Profile: React.FC = () => {
   const [copiedReferralCode, setCopiedReferralCode] = useState(false);
   const [copiedReferralLink, setCopiedReferralLink] = useState(false);
   const [loadingReferral, setLoadingReferral] = useState(false);
+  
+  // 使用說明對話框狀態
+  const [showCreatorHelpDialog, setShowCreatorHelpDialog] = useState(false);
+  const [showPreferencesHelpDialog, setShowPreferencesHelpDialog] = useState(false);
 
   // 載入個人資料
   const loadProfile = async () => {
@@ -157,15 +162,16 @@ const Profile: React.FC = () => {
       const code = user.user_id.substring(0, 8).toUpperCase() + Math.random().toString(36).substring(2, 6).toUpperCase();
       setReferralCode(code);
       
-      // 獲取推薦統計（如果後端有 API）
+      // 獲取推薦統計
       try {
         const stats = await apiGet<{ total_referrals: number; rewards: number }>(`/api/user/referral/stats/${user.user_id}`);
         setReferralStats({
           totalReferrals: stats.total_referrals || 0,
           rewards: stats.rewards || 0
         });
-      } catch (error) {
-        // 如果 API 不存在，使用預設值
+      } catch (error: any) {
+        // 如果 API 返回錯誤，使用預設值（避免顯示錯誤）
+        console.error('載入推薦統計失敗:', error);
         setReferralStats({ totalReferrals: 0, rewards: 0 });
       }
     } catch (error) {
@@ -300,7 +306,7 @@ const Profile: React.FC = () => {
     }
   };
 
-  // 格式化日期
+  // 格式化日期（使用台灣時區）
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'N/A';
     try {
@@ -310,7 +316,8 @@ const Profile: React.FC = () => {
         month: '2-digit',
         day: '2-digit',
         hour: '2-digit',
-        minute: '2-digit'
+        minute: '2-digit',
+        timeZone: 'Asia/Taipei'
       });
     } catch {
       return dateString;
@@ -337,22 +344,39 @@ const Profile: React.FC = () => {
     <div className="min-h-screen bg-background">
       {/* 導航欄 */}
       <nav className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between relative">
+          {/* 左侧：返回主控台 */}
+          <div className="flex-1 flex items-center">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => navigate('/app')}
+              className="gap-2"
             >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              返回主控台
+              <ArrowLeft className="w-4 h-4" />
+              <span className="hidden sm:inline">返回主控台</span>
             </Button>
-            <h1 className="text-xl font-bold cursor-pointer" onClick={() => navigate('/')}>
-              ReelMind
-            </h1>
-            <span className="text-sm text-muted-foreground hidden md:inline">
-              個人資料
-            </span>
+          </div>
+          
+          {/* 中间：ReelMind（手机版置中） */}
+          <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center">
+              <Sparkles className="w-5 h-5 text-white" />
+            </div>
+            <span className="font-bold text-xl">ReelMind</span>
+          </div>
+          
+          {/* 右侧：返回首页 */}
+          <div className="flex-1 flex items-center justify-end">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/')}
+              className="gap-2"
+            >
+              <Home className="w-4 h-4" />
+              <span className="hidden sm:inline">返回首頁</span>
+            </Button>
           </div>
         </div>
       </nav>
@@ -440,8 +464,20 @@ const Profile: React.FC = () => {
               <TabsContent value="creator" className="space-y-6">
                 <Card>
                   <CardHeader>
-                    <CardTitle>創作者帳號資訊</CardTitle>
-                    <CardDescription>填寫您的創作平台資訊，幫助 AI 更好地為您生成內容</CardDescription>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle>創作者帳號資訊</CardTitle>
+                        <CardDescription>填寫您的創作平台資訊，幫助 AI 更好地為您生成內容</CardDescription>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setShowCreatorHelpDialog(true)}
+                        title="使用說明"
+                      >
+                        <HelpCircle className="w-5 h-5" />
+                      </Button>
+                    </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -606,8 +642,20 @@ const Profile: React.FC = () => {
               <TabsContent value="preferences" className="space-y-6">
                 <Card>
                   <CardHeader>
-                    <CardTitle>AI 個性化設定</CardTitle>
-                    <CardDescription>設定您的偏好，讓 AI 生成時自動套用這些設定</CardDescription>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle>AI 個性化設定</CardTitle>
+                        <CardDescription>設定您的偏好，讓 AI 生成時自動套用這些設定</CardDescription>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setShowPreferencesHelpDialog(true)}
+                        title="使用說明"
+                      >
+                        <HelpCircle className="w-5 h-5" />
+                      </Button>
+                    </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -906,9 +954,15 @@ const Profile: React.FC = () => {
                           <div className="bg-muted/50 rounded-lg p-4 space-y-2 text-sm">
                             <p className="font-semibold">🎁 推薦獎勵機制</p>
                             <ul className="space-y-1 text-muted-foreground list-disc list-inside">
-                              <li>每成功邀請一位好友註冊，您可獲得 7 天免費試用延長</li>
-                              <li>好友完成首次訂閱，您可獲得額外 30 天使用期限</li>
-                              <li>累積邀請 5 位好友，可獲得 1 個月免費使用</li>
+                              <li>每成功邀請一位好友註冊，您可獲得 7 天免費試用延長（無限制）</li>
+                              <li className="font-medium text-foreground">
+                                <strong>二選一獎勵（擇一發放，先達到條件者優先）：</strong>
+                              </li>
+                              <li className="ml-4">• 好友完成首次訂閱 → 您可獲得額外 30 天使用期限（每個被推薦用戶只能觸發一次）</li>
+                              <li className="ml-4">• 累積邀請 5 位付費用戶（必須完成付費訂閱，月付或年付均可）→ 可獲得 1 個月免費使用（每個推薦人只能獲得一次）</li>
+                              <li className="text-xs mt-2 text-muted-foreground/80">
+                                ※ 注意：兩個獎勵為二選一，先達到條件者優先發放，已發放過的獎勵不會重複發放
+                              </li>
                             </ul>
                           </div>
                         </div>
@@ -967,6 +1021,87 @@ const Profile: React.FC = () => {
           )}
         </div>
       </div>
+      
+      {/* 創作者帳號資訊使用說明對話框 */}
+      <Dialog open={showCreatorHelpDialog} onOpenChange={setShowCreatorHelpDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>創作者帳號資訊使用說明</DialogTitle>
+            <DialogDescription>了解如何填寫創作者帳號資訊，讓 AI 更好地為您生成內容</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 text-sm">
+            <div>
+              <h4 className="font-semibold mb-2">為什麼要填寫創作者帳號資訊？</h4>
+              <p className="text-muted-foreground">
+                填寫您的創作平台資訊可以幫助 AI 更好地理解您的帳號定位、目標受眾和內容風格，從而生成更符合您需求的內容。
+              </p>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-2">如何填寫？</h4>
+              <ol className="list-decimal list-inside space-y-2 text-muted-foreground">
+                <li><strong>選擇創作平台</strong>：選擇您主要使用的平台（Instagram、TikTok、YouTube Short 等）</li>
+                <li><strong>輸入帳號名稱</strong>：輸入您的平台帳號名稱，系統會自動生成連結</li>
+                <li><strong>確認或修改連結</strong>：檢查自動生成的連結是否正確，可以手動修改</li>
+                <li><strong>填寫粉絲數</strong>：輸入您目前的粉絲數，幫助 AI 了解您的帳號規模</li>
+                <li><strong>選擇創作類型</strong>：選擇您主要創作的內容類型（搞笑、教育、美妝等）</li>
+                <li><strong>AI 生成人設定位</strong>：此欄位會從 IP 人設規劃模組自動同步，無需手動填寫</li>
+              </ol>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-2">注意事項</h4>
+              <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                <li>填寫的資訊會用於 AI 生成內容時的參考，不會公開顯示</li>
+                <li>可以隨時更新您的資訊，讓 AI 生成更準確的內容</li>
+                <li>AI 生成人設定位會自動從 IP 人設規劃模組同步，無需手動維護</li>
+              </ul>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+      
+      {/* 偏好設定使用說明對話框 */}
+      <Dialog open={showPreferencesHelpDialog} onOpenChange={setShowPreferencesHelpDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>AI 個性化設定使用說明</DialogTitle>
+            <DialogDescription>了解如何設定您的偏好，讓 AI 生成時自動套用這些設定</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 text-sm">
+            <div>
+              <h4 className="font-semibold mb-2">什麼是 AI 個性化設定？</h4>
+              <p className="text-muted-foreground">
+                AI 個性化設定可以讓您預先設定常用的生成參數，當您使用 IP 人設規劃或一鍵生成功能時，AI 會自動套用這些設定，節省您每次都要重新設定的時間。
+              </p>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-2">可設定的項目</h4>
+              <ul className="list-disc list-inside space-y-2 text-muted-foreground">
+                <li><strong>預設腳本語氣</strong>：選擇您偏好的腳本語氣（專業、幽默、口語、權威、感性）</li>
+                <li><strong>預設腳本語言</strong>：選擇您偏好的語言（台灣中文、香港中文、馬來中文、英文）</li>
+                <li><strong>預設影片長度</strong>：選擇您常用的影片長度（6-10秒、10-15秒、20-30秒）</li>
+                <li><strong>偏好主題類別</strong>：選擇您常創作的主題類別（可多選），AI 會優先考慮這些主題</li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-2">如何使用？</h4>
+              <ol className="list-decimal list-inside space-y-2 text-muted-foreground">
+                <li>根據您的創作習慣，設定各項偏好</li>
+                <li>點擊「儲存偏好設定」保存您的設定</li>
+                <li>之後使用 IP 人設規劃或一鍵生成時，AI 會自動套用這些設定</li>
+                <li>您仍然可以在每次生成時手動調整這些設定</li>
+              </ol>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-2">注意事項</h4>
+              <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                <li>設定的偏好是預設值，不會強制套用，您可以在每次生成時調整</li>
+                <li>可以隨時更新您的偏好設定</li>
+                <li>偏好主題類別可以多選，幫助 AI 更好地理解您的創作方向</li>
+              </ul>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
