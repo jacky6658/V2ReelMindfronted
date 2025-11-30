@@ -39,11 +39,17 @@ interface AuthState {
   getRefreshToken: () => string | null;
   setRefreshToken: (refreshToken: string) => void;
   clearAuth: () => void;
+  // 活動時間管理
+  updateLastActivity: () => void;
+  getLastActivity: () => number | null;
+  checkIdleTimeout: () => boolean;
 }
 
 const TOKEN_KEY = APP_CONFIG.ACCESS_TOKEN_KEY;
 const TOKEN_UPDATED = APP_CONFIG.ACCESS_TOKEN_UPDATED_AT;
 const REFRESH_KEY = APP_CONFIG.REFRESH_TOKEN_KEY;
+const LAST_ACTIVITY_KEY = 'reelmind_last_activity';
+const IDLE_TIMEOUT = 24 * 60 * 60 * 1000; // 24 小時（毫秒）
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   isLoggedIn: false,
@@ -77,6 +83,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(TOKEN_UPDATED);
     localStorage.removeItem(REFRESH_KEY);
+    localStorage.removeItem(LAST_ACTIVITY_KEY);
     set({ 
       isLoggedIn: false, 
       user: null, 
@@ -97,6 +104,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       subscription: subLevel,
       loading: false 
     });
+    // 設置登入時更新活動時間
+    get().updateLastActivity();
   },
 
   logout: async () => {
@@ -119,7 +128,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     try {
       // ❗不要更改任何後端 API 路徑
-      const userData = await apiGet<User>('/api/auth/me');
+      // 添加超时控制，避免阻塞页面加载
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Request timeout')), 5000);
+      });
+      
+      const userData = await Promise.race([
+        apiGet<User>('/api/auth/me'),
+        timeoutPromise
+      ]);
+      
       const subLevel: Subscription = userData.is_subscribed ? "pro" : "free";
       set({ 
         isLoggedIn: true, 
@@ -128,11 +146,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         subscription: subLevel,
         loading: false 
       });
+      // 成功獲取用戶資訊後更新活動時間
+      get().updateLastActivity();
     } catch (error: any) {
-      // 如果是 401 錯誤，表示未登入，不顯示錯誤訊息
-      if (error?.response?.status !== 401) {
+      // 如果是 401 錯誤或超时，表示未登入或网络问题，不顯示錯誤訊息
+      if (error?.response?.status !== 401 && !error?.message?.includes('timeout')) {
         console.error('載入用戶資訊失敗:', error);
       }
+      // 确保 loading 状态被设置为 false
       get().clearAuth();
     }
   },
@@ -158,5 +179,27 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       console.error('刷新 token 失敗:', error);
       get().clearAuth();
     }
+  },
+
+  // 活動時間管理
+  updateLastActivity: () => {
+    const now = Date.now();
+    localStorage.setItem(LAST_ACTIVITY_KEY, now.toString());
+  },
+
+  getLastActivity: () => {
+    const lastActivity = localStorage.getItem(LAST_ACTIVITY_KEY);
+    return lastActivity ? parseInt(lastActivity, 10) : null;
+  },
+
+  checkIdleTimeout: () => {
+    const lastActivity = get().getLastActivity();
+    if (!lastActivity) {
+      // 如果沒有活動記錄，假設已超時（安全起見）
+      return true;
+    }
+    const now = Date.now();
+    const timeSinceLastActivity = now - lastActivity;
+    return timeSinceLastActivity >= IDLE_TIMEOUT;
   },
 }));
