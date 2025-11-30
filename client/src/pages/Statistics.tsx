@@ -69,11 +69,18 @@ export default function Statistics() {
     
     try {
       setLoadingInsights(true);
-      const data = await apiGet('/api/user/analytics/ai-insights');
+      // AI 洞察需要調用 LLM，可能需要較長時間，設置 60 秒 timeout
+      const data = await apiGet('/api/user/analytics/ai-insights', {
+        timeout: 60000 // 60 秒
+      });
       setAiInsights(data);
     } catch (error: any) {
       console.error('載入 AI 洞察失敗:', error);
-      toast.error(error?.response?.data?.error || '載入 AI 分析失敗');
+      if (error?.code === 'ECONNABORTED' || error?.message?.includes('timeout')) {
+        toast.error('AI 分析超時，請稍後再試或聯繫客服');
+      } else {
+        toast.error(error?.response?.data?.error || '載入 AI 分析失敗');
+      }
     } finally {
       setLoadingInsights(false);
     }
