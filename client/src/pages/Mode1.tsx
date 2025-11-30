@@ -778,14 +778,11 @@ export default function Mode1() {
               variant="ghost"
               size="sm"
               onClick={() => navigate('/app')}
-              className="hidden md:flex"
+              className="gap-2"
             >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              返回主控台
+              <ArrowLeft className="w-4 h-4" />
+              <span className="hidden sm:inline">返回主控台</span>
             </Button>
-            <h1 className="text-xl font-bold cursor-pointer" onClick={() => navigate('/')}>
-              ReelMind
-            </h1>
             <span className="text-sm text-muted-foreground hidden md:inline">
               IP 人設規劃
             </span>

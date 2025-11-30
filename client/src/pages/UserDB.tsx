@@ -47,7 +47,8 @@ import {
   ArrowDown,
   Edit,
   Share2,
-  FileDown
+  FileDown,
+  HelpCircle
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { apiGet, apiDelete, apiPost } from '@/lib/api-client';
@@ -110,6 +111,7 @@ export default function UserDB() {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedItem, setSelectedItem] = useState<SelectedItem>(null);
   const [showDetail, setShowDetail] = useState(false);
+  const [showDataAccessInfo, setShowDataAccessInfo] = useState(false);
   
   // 搜索和筛选状态
   const [searchQuery, setSearchQuery] = useState('');
@@ -619,14 +621,11 @@ export default function UserDB() {
               variant="ghost"
               size="sm"
               onClick={() => navigate('/app')}
-              className="hidden md:flex gap-2"
+              className="gap-2"
             >
               <ArrowLeft className="w-4 h-4" />
-              返回主控台
+              <span className="hidden sm:inline">返回主控台</span>
             </Button>
-            <h1 className="text-xl font-bold cursor-pointer" onClick={() => navigate('/')}>
-              ReelMind
-            </h1>
             <Badge variant="outline" className="hidden md:inline-flex">
               我的資料
             </Badge>
@@ -636,17 +635,17 @@ export default function UserDB() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={loadData}
-              disabled={isLoading}
+              onClick={() => setShowDataAccessInfo(true)}
             >
-              <RefreshCw className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
+              <HelpCircle className="w-5 h-5" />
             </Button>
             <Button
               variant="ghost"
               size="icon"
-              onClick={handleLogout}
+              onClick={loadData}
+              disabled={isLoading}
             >
-              <LogOut className="w-5 h-5" />
+              <RefreshCw className={`w-5 h-5 ${isLoading ? 'animate-spin' : ''}`} />
             </Button>
           </div>
         </div>
@@ -702,29 +701,6 @@ export default function UserDB() {
           </Card>
         </div>
 
-        {/* 功能存取說明 */}
-        <Card className="mb-6 border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20">
-          <CardContent className="p-4">
-            <div className="flex items-start gap-3">
-              <div className="mt-0.5">
-                <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-sm mb-2 text-blue-900 dark:text-blue-100">資料存取說明</h3>
-                <div className="text-xs text-blue-800 dark:text-blue-200 space-y-1">
-                  <p>• <strong>我的腳本</strong>：存取您在一鍵生成生成的腳本內容</p>
-                  <p>• <strong>對話記錄</strong>：存取您在 IP人設規劃的對話摘要（不包含完整對話內容）</p>
-                  <p>• <strong>生成記錄</strong>：存取您在一鍵生成生成的選題和定位內容</p>
-                  <p>• <strong>IP 規劃</strong>：存取您在 IP人設規劃生成的帳號定位和腳本內容</p>
-                  <p>• <strong>14 天規劃</strong>：存取您在 IP人設規劃生成的 14 天短影音規劃內容</p>
-                  <p className="mt-2 text-blue-700 dark:text-blue-300">所有資料僅儲存在您的帳號中，我們不會與第三方分享您的內容。</p>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
 
         <Card>
           <CardHeader>
@@ -795,28 +771,28 @@ export default function UserDB() {
               setSearchQuery('');
               setPlatformFilter('all');
             }}>
-              <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 gap-2">
-                <TabsTrigger value="scripts" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
+              <TabsList className="flex md:grid w-full md:grid-cols-5 gap-1 md:gap-2 overflow-x-auto pb-1 md:pb-0">
+                <TabsTrigger value="scripts" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm whitespace-nowrap flex-shrink-0 min-w-fit">
                   <FileText className="w-3 h-3 md:w-4 md:h-4" />
                   <span className="hidden sm:inline">我的腳本</span>
                   <span className="sm:hidden">腳本</span>
                 </TabsTrigger>
-                <TabsTrigger value="conversations" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
+                <TabsTrigger value="conversations" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm whitespace-nowrap flex-shrink-0 min-w-fit">
                   <MessageSquare className="w-3 h-3 md:w-4 md:h-4" />
                   <span className="hidden sm:inline">對話記錄</span>
                   <span className="sm:hidden">對話</span>
                 </TabsTrigger>
-                <TabsTrigger value="generations" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
+                <TabsTrigger value="generations" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm whitespace-nowrap flex-shrink-0 min-w-fit">
                   <Sparkles className="w-3 h-3 md:w-4 md:h-4" />
                   <span className="hidden sm:inline">生成記錄</span>
                   <span className="sm:hidden">生成</span>
                 </TabsTrigger>
-                <TabsTrigger value="ip-planning" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
+                <TabsTrigger value="ip-planning" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm whitespace-nowrap flex-shrink-0 min-w-fit">
                   <Sparkles className="w-3 h-3 md:w-4 md:h-4" />
                   <span className="hidden sm:inline">IP 人設規劃</span>
                   <span className="sm:hidden">IP規劃</span>
                 </TabsTrigger>
-                <TabsTrigger value="planning" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
+                <TabsTrigger value="planning" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm whitespace-nowrap flex-shrink-0 min-w-fit">
                   <Sparkles className="w-3 h-3 md:w-4 md:h-4" />
                   <span className="hidden sm:inline">14 天規劃</span>
                   <span className="sm:hidden">規劃</span>
@@ -1557,6 +1533,32 @@ export default function UserDB() {
               <Button onClick={() => setShowDetail(false)}>
                 關閉
               </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 資料存取說明 Dialog */}
+      <Dialog open={showDataAccessInfo} onOpenChange={setShowDataAccessInfo}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>資料存取說明</DialogTitle>
+            <DialogDescription>
+              了解各功能會存取哪些資料
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <p className="text-sm font-medium">• <strong>我的腳本</strong>：存取您在一鍵生成生成的腳本內容</p>
+              <p className="text-sm font-medium">• <strong>對話記錄</strong>：存取您在 IP人設規劃的對話摘要（不包含完整對話內容）</p>
+              <p className="text-sm font-medium">• <strong>生成記錄</strong>：存取您在一鍵生成生成的選題和定位內容</p>
+              <p className="text-sm font-medium">• <strong>IP 規劃</strong>：存取您在 IP人設規劃生成的帳號定位和腳本內容</p>
+              <p className="text-sm font-medium">• <strong>14 天規劃</strong>：存取您在 IP人設規劃生成的 14 天短影音規劃內容</p>
+            </div>
+            <div className="pt-4 border-t">
+              <p className="text-sm text-muted-foreground">
+                所有資料僅儲存在您的帳號中，我們不會與第三方分享您的內容。
+              </p>
             </div>
           </div>
         </DialogContent>

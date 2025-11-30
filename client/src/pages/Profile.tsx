@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { apiGet, apiPost } from '@/lib/api-client';
 import { toast } from 'sonner';
-import { ArrowLeft, Loader2, Save, CreditCard, Clock, Activity, User, Settings, ExternalLink, Calendar, Copy, Check, Sparkles } from 'lucide-react';
+import { ArrowLeft, Loader2, Save, CreditCard, Clock, Activity, User, Settings, ExternalLink, Calendar, Copy, Check, Sparkles, Gift } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface UserProfile {
@@ -77,6 +77,13 @@ const Profile: React.FC = () => {
   const [loadingActivity, setLoadingActivity] = useState(false);
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [urlValid, setUrlValid] = useState<boolean | null>(null);
+  
+  // 推薦邀請碼相關狀態
+  const [referralCode, setReferralCode] = useState<string>('');
+  const [referralStats, setReferralStats] = useState<{ totalReferrals: number; rewards: number } | null>(null);
+  const [copiedReferralCode, setCopiedReferralCode] = useState(false);
+  const [copiedReferralLink, setCopiedReferralLink] = useState(false);
+  const [loadingReferral, setLoadingReferral] = useState(false);
 
   // 載入個人資料
   const loadProfile = async () => {
@@ -136,8 +143,54 @@ const Profile: React.FC = () => {
       loadProfile();
       loadBillingSummary();
       loadRecentActivity();
+      loadReferralCode();
     }
   }, [user?.user_id]);
+  
+  // 載入推薦邀請碼
+  const loadReferralCode = async () => {
+    if (!user?.user_id) return;
+    
+    try {
+      setLoadingReferral(true);
+      // 生成或獲取用戶的推薦碼（使用 user_id 的前 8 位 + 隨機字串）
+      const code = user.user_id.substring(0, 8).toUpperCase() + Math.random().toString(36).substring(2, 6).toUpperCase();
+      setReferralCode(code);
+      
+      // 獲取推薦統計（如果後端有 API）
+      try {
+        const stats = await apiGet<{ total_referrals: number; rewards: number }>(`/api/user/referral/stats/${user.user_id}`);
+        setReferralStats({
+          totalReferrals: stats.total_referrals || 0,
+          rewards: stats.rewards || 0
+        });
+      } catch (error) {
+        // 如果 API 不存在，使用預設值
+        setReferralStats({ totalReferrals: 0, rewards: 0 });
+      }
+    } catch (error) {
+      console.error('載入推薦碼失敗:', error);
+    } finally {
+      setLoadingReferral(false);
+    }
+  };
+  
+  // 複製推薦碼
+  const handleCopyReferralCode = () => {
+    navigator.clipboard.writeText(referralCode);
+    setCopiedReferralCode(true);
+    toast.success('推薦碼已複製到剪貼簿');
+    setTimeout(() => setCopiedReferralCode(false), 2000);
+  };
+  
+  // 複製推薦連結
+  const handleCopyReferralLink = () => {
+    const referralLink = `${window.location.origin}/#/?ref=${referralCode}`;
+    navigator.clipboard.writeText(referralLink);
+    setCopiedReferralLink(true);
+    toast.success('推薦連結已複製到剪貼簿');
+    setTimeout(() => setCopiedReferralLink(false), 2000);
+  };
 
   // 根據平台生成連結格式
   const getPlatformUrlFormat = (platform: string, username: string): string => {
@@ -319,11 +372,12 @@ const Profile: React.FC = () => {
             </Card>
           ) : (
             <Tabs defaultValue="basic" className="space-y-6">
-              <TabsList className="flex flex-wrap w-full gap-1 md:grid md:grid-cols-5">
+              <TabsList className="flex flex-wrap w-full gap-1 md:grid md:grid-cols-6">
                 <TabsTrigger value="basic" className="flex-1 md:flex-none text-xs md:text-sm min-w-0">基本資訊</TabsTrigger>
                 <TabsTrigger value="creator" className="flex-1 md:flex-none text-xs md:text-sm min-w-0">創作者資訊</TabsTrigger>
                 <TabsTrigger value="preferences" className="flex-1 md:flex-none text-xs md:text-sm min-w-0">偏好設定</TabsTrigger>
                 <TabsTrigger value="billing" className="flex-1 md:flex-none text-xs md:text-sm min-w-0">帳務資訊</TabsTrigger>
+                <TabsTrigger value="referral" className="flex-1 md:flex-none text-xs md:text-sm min-w-0">推薦邀請</TabsTrigger>
                 <TabsTrigger value="activity" className="flex-1 md:flex-none text-xs md:text-sm min-w-0 w-full md:w-auto">使用紀錄</TabsTrigger>
               </TabsList>
 
@@ -762,6 +816,103 @@ const Profile: React.FC = () => {
                           前往訂閱
                         </Button>
                       </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* 推薦邀請 */}
+              <TabsContent value="referral" className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Gift className="w-5 h-5" />
+                      推薦邀請碼
+                    </CardTitle>
+                    <CardDescription>
+                      分享您的邀請碼，邀請好友加入即可獲得獎勵
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {loadingReferral ? (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                      </div>
+                    ) : (
+                      <>
+                        {/* 推薦碼顯示 */}
+                        <div>
+                          <Label>您的推薦碼</Label>
+                          <div className="flex gap-2 mt-2">
+                            <Input
+                              value={referralCode}
+                              readOnly
+                              className="font-mono text-lg font-bold"
+                            />
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={handleCopyReferralCode}
+                            >
+                              {copiedReferralCode ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                            </Button>
+                          </div>
+                        </div>
+
+                        {/* 推薦連結 */}
+                        <div>
+                          <Label>推薦連結</Label>
+                          <div className="flex gap-2 mt-2">
+                            <Input
+                              value={referralCode ? `${window.location.origin}/#/?ref=${referralCode}` : ''}
+                              readOnly
+                              className="text-sm"
+                            />
+                            <Button
+                              variant="outline"
+                              onClick={handleCopyReferralLink}
+                            >
+                              {copiedReferralLink ? (
+                                <>
+                                  <Check className="w-4 h-4 mr-2" />
+                                  已複製
+                                </>
+                              ) : (
+                                <>
+                                  <Copy className="w-4 h-4 mr-2" />
+                                  複製連結
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+
+                        {/* 推薦統計 */}
+                        {referralStats && (
+                          <div className="grid grid-cols-2 gap-4 pt-4 border-t">
+                            <div className="text-center">
+                              <p className="text-2xl font-bold text-primary">{referralStats.totalReferrals}</p>
+                              <p className="text-sm text-muted-foreground">成功邀請</p>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-2xl font-bold text-primary">{referralStats.rewards}</p>
+                              <p className="text-sm text-muted-foreground">累積獎勵</p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 獎勵說明 */}
+                        <div className="pt-4 border-t">
+                          <div className="bg-muted/50 rounded-lg p-4 space-y-2 text-sm">
+                            <p className="font-semibold">🎁 推薦獎勵機制</p>
+                            <ul className="space-y-1 text-muted-foreground list-disc list-inside">
+                              <li>每成功邀請一位好友註冊，您可獲得 7 天免費試用延長</li>
+                              <li>好友完成首次訂閱，您可獲得額外 30 天使用期限</li>
+                              <li>累積邀請 5 位好友，可獲得 1 個月免費使用</li>
+                            </ul>
+                          </div>
+                        </div>
+                      </>
                     )}
                   </CardContent>
                 </Card>
