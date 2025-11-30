@@ -4,7 +4,7 @@
  */
 
 import React, { lazy, Suspense } from 'react';
-import { createHashRouter, Navigate } from 'react-router-dom';
+import { createHashRouter, Navigate, useRouteError, isRouteErrorResponse } from 'react-router-dom';
 import PrivateRoute from './components/PrivateRoute';
 
 // Lazy load components for better performance
@@ -18,6 +18,7 @@ const AppDashboard = lazy(() => import('./pages/AppDashboard'));
 const Login = lazy(() => import('./pages/Login'));
 const OAuthCallback = lazy(() => import('./pages/OAuthCallback'));
 const Profile = lazy(() => import('./pages/Profile'));
+const Settings = lazy(() => import('./pages/Settings'));
 const Mode1 = lazy(() => import('./pages/Mode1'));
 const Mode3 = lazy(() => import('./pages/Mode3'));
 const UserDB = lazy(() => import('./pages/UserDB'));
@@ -41,6 +42,58 @@ const LoadingFallback = () => (
   </div>
 );
 
+// Error fallback component for route errors
+function RouteErrorBoundary() {
+  const error = useRouteError();
+  const isMimeError = error instanceof Error && (
+    error.message.includes('MIME type') ||
+    error.message.includes('module script') ||
+    error.message.includes('javascript-or-wasm') ||
+    error.message.includes('Failed to fetch dynamically imported module')
+  );
+
+  // 如果是 MIME 類型錯誤，重定向到 404
+  React.useEffect(() => {
+    if (isMimeError) {
+      window.location.href = '/#/404';
+    }
+  }, [isMimeError]);
+
+  // 如果是 MIME 類型錯誤，顯示簡短訊息（因為會重定向）
+  if (isMimeError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-muted-foreground">資源載入錯誤，正在跳轉...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // 其他錯誤顯示錯誤訊息
+  if (isRouteErrorResponse(error)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">{error.status}</h1>
+          <p className="text-muted-foreground">{error.statusText}</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-center">
+        <h1 className="text-2xl font-bold mb-4">發生錯誤</h1>
+        <p className="text-muted-foreground">
+          {error instanceof Error ? error.message : '未知錯誤'}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 // 創建路由配置
 export const router = createHashRouter([
   {
@@ -50,6 +103,7 @@ export const router = createHashRouter([
         <Home />
       </Suspense>
     ),
+    errorElement: <RouteErrorBoundary />,
   },
   {
     path: '/intro',
@@ -152,6 +206,16 @@ export const router = createHashRouter([
     ),
   },
   {
+    path: '/settings',
+    element: (
+      <Suspense fallback={<LoadingFallback />}>
+        <PrivateRoute requiresAuth={true}>
+          <Settings />
+        </PrivateRoute>
+      </Suspense>
+    ),
+  },
+  {
     path: '/mode1',
     element: (
       <Suspense fallback={<LoadingFallback />}>
@@ -230,12 +294,21 @@ export const router = createHashRouter([
     ),
   },
   {
+    path: '/404',
+    element: (
+      <Suspense fallback={<LoadingFallback />}>
+        <NotFound />
+      </Suspense>
+    ),
+  },
+  {
     path: '*',
     element: (
       <Suspense fallback={<LoadingFallback />}>
         <NotFound />
       </Suspense>
     ),
+    errorElement: <RouteErrorBoundary />,
   },
 ]);
 

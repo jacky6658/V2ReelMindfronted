@@ -22,6 +22,51 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // 只在組件掛載時執行一次
 
+  // 全局錯誤處理：捕獲動態導入失敗和 MIME 類型錯誤
+  useEffect(() => {
+    const handleError = (event: ErrorEvent) => {
+      const error = event.error || event.message;
+      const errorMessage = typeof error === 'string' ? error : error?.message || '';
+      
+      // 檢查是否為 MIME 類型錯誤
+      if (
+        errorMessage.includes('MIME type') ||
+        errorMessage.includes('module script') ||
+        errorMessage.includes('javascript-or-wasm') ||
+        errorMessage.includes('Failed to fetch dynamically imported module')
+      ) {
+        console.error('MIME type error detected, redirecting to 404...', error);
+        event.preventDefault(); // 阻止默認錯誤處理
+        window.location.href = '/#/404';
+      }
+    };
+
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      const reason = event.reason;
+      const errorMessage = reason?.message || String(reason || '');
+      
+      // 檢查是否為 MIME 類型錯誤
+      if (
+        errorMessage.includes('MIME type') ||
+        errorMessage.includes('module script') ||
+        errorMessage.includes('javascript-or-wasm') ||
+        errorMessage.includes('Failed to fetch dynamically imported module')
+      ) {
+        console.error('MIME type error in promise rejection, redirecting to 404...', reason);
+        event.preventDefault(); // 阻止默認錯誤處理
+        window.location.href = '/#/404';
+      }
+    };
+
+    window.addEventListener('error', handleError);
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+
+    return () => {
+      window.removeEventListener('error', handleError);
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+    };
+  }, []);
+
   return (
     <ErrorBoundary>
       <ColorThemeProvider>
