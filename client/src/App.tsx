@@ -6,7 +6,8 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import { ColorThemeProvider } from "./contexts/ColorThemeContext";
 import { router } from "./router";
 import { useAuthStore } from "./stores/authStore";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+import { toast } from "sonner";
 
 // NOTE: About Theme
 // - First choose a default theme according to your design style (dark or light bg), than change color palette in index.css
@@ -15,12 +16,106 @@ import { useEffect } from "react";
 
 function App() {
   const fetchCurrentUser = useAuthStore((state) => state.fetchCurrentUser);
+  const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
+  const updateLastActivity = useAuthStore((state) => state.updateLastActivity);
+  const checkIdleTimeout = useAuthStore((state) => state.checkIdleTimeout);
+  const logout = useAuthStore((state) => state.logout);
+  const checkIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     // 在應用程式啟動時，嘗試從 localStorage 獲取 token 並驗證登入狀態
-    fetchCurrentUser();
+    // 使用 setTimeout 确保不会阻塞初始渲染
+    const timer = setTimeout(() => {
+      fetchCurrentUser().catch(() => {
+        // 如果失败，确保 loading 状态被清除
+        useAuthStore.setState({ loading: false });
+      });
+    }, 0);
+    
+    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // 只在組件掛載時執行一次
+
+  // 24小時閒置自動登出機制
+  useEffect(() => {
+    if (!isLoggedIn) {
+      // 如果未登入，清除檢查間隔
+      if (checkIntervalRef.current) {
+        clearInterval(checkIntervalRef.current);
+        checkIntervalRef.current = null;
+      }
+      return;
+    }
+
+    // 檢查啟動時的閒置狀態
+    if (checkIdleTimeout()) {
+      toast.info('您已閒置超過 24 小時，系統將自動登出', { duration: 3000 });
+      setTimeout(() => {
+        logout();
+      }, 1000);
+      return;
+    }
+
+    // 設置定期檢查（每 5 分鐘檢查一次）
+    checkIntervalRef.current = setInterval(() => {
+      if (checkIdleTimeout()) {
+        toast.info('您已閒置超過 24 小時，系統將自動登出', { duration: 3000 });
+        setTimeout(() => {
+          logout();
+        }, 1000);
+      }
+    }, 5 * 60 * 1000); // 每 5 分鐘檢查一次
+
+    return () => {
+      if (checkIntervalRef.current) {
+        clearInterval(checkIntervalRef.current);
+        checkIntervalRef.current = null;
+      }
+    };
+  }, [isLoggedIn, checkIdleTimeout, logout]);
+
+  // 監聽用戶活動（滑鼠移動、鍵盤輸入、點擊、滾動等）
+  useEffect(() => {
+    if (!isLoggedIn) return;
+
+    // 節流函數：避免過於頻繁更新
+    let throttleTimer: NodeJS.Timeout | null = null;
+    const throttleDelay = 60000; // 每 1 分鐘最多更新一次
+
+    const handleUserActivity = () => {
+      if (throttleTimer) return;
+      
+      throttleTimer = setTimeout(() => {
+        updateLastActivity();
+        throttleTimer = null;
+      }, throttleDelay);
+    };
+
+    // 監聽各種用戶活動事件
+    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
+    
+    events.forEach(event => {
+      window.addEventListener(event, handleUserActivity, { passive: true });
+    });
+
+    // 頁面可見性變化時也更新活動時間
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        updateLastActivity();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      events.forEach(event => {
+        window.removeEventListener(event, handleUserActivity);
+      });
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (throttleTimer) {
+        clearTimeout(throttleTimer);
+      }
+    };
+  }, [isLoggedIn, updateLastActivity]);
 
   // 全局錯誤處理：捕獲動態導入失敗和 MIME 類型錯誤
   useEffect(() => {
