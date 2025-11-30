@@ -43,8 +43,16 @@ export default function Home() {
       {/* 導航欄 */}
       <nav className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center justify-between relative">
-          {/* 左侧：返回主控台（如果有登录） */}
-          <div className="flex-1 flex items-center">
+          {/* 桌面版：左侧 ReelMind Logo */}
+          <div className="hidden md:flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center">
+              <Sparkles className="w-5 h-5 text-white" />
+            </div>
+            <span className="font-bold text-xl">ReelMind</span>
+          </div>
+
+          {/* 手机版：左侧返回主控台（如果有登录） */}
+          <div className="md:hidden flex-1 flex items-center">
             {user && (
               <Button
                 variant="ghost"
@@ -58,16 +66,16 @@ export default function Home() {
             )}
           </div>
           
-          {/* 中间：ReelMind（手机版置中） */}
-          <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center gap-2">
+          {/* 手机版：中间 ReelMind（置中） */}
+          <div className="md:hidden absolute left-1/2 transform -translate-x-1/2 flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center">
               <Sparkles className="w-5 h-5 text-white" />
             </div>
             <span className="font-bold text-xl">ReelMind</span>
           </div>
           
-          {/* 右侧：返回首页或其他操作 */}
-          <div className="flex-1 flex items-center justify-end">
+          {/* 手机版：右侧返回首页 */}
+          <div className="md:hidden flex-1 flex items-center justify-end">
             <Button
               variant="ghost"
               size="sm"
@@ -79,6 +87,7 @@ export default function Home() {
             </Button>
           </div>
           
+          {/* 桌面版：中间导航链接 */}
           <div className="hidden md:flex items-center gap-6">
             <span 
               className="text-sm font-medium hover:text-primary transition-colors cursor-pointer" 
@@ -98,13 +107,13 @@ export default function Home() {
             </span>
           </div>
 
-          <div className="flex items-center gap-3">
-            {/* 桌面版：主題切換和登入按鈕 */}
+          {/* 桌面版：右侧按钮（主题切换和登录/主控台） */}
+          <div className="hidden md:flex items-center gap-3">
             <Button
               variant="ghost"
               size="icon"
               onClick={toggleTheme}
-              className="rounded-full hidden md:flex"
+              className="rounded-full"
               aria-label={theme === 'dark' ? '切換到淺色模式' : '切換到深色模式'}
             >
               {theme === 'dark' ? (
@@ -114,22 +123,23 @@ export default function Home() {
               )}
             </Button>
             {isLoggedIn ? (
-              <Button variant="default" className="hidden md:inline-flex" onClick={() => navigate('/app')}>
+              <Button variant="default" onClick={() => navigate('/app')}>
                 主控台
               </Button>
             ) : (
-              <Button variant="default" className="hidden md:inline-flex" onClick={handleGoogleLogin}>
+              <Button variant="default" onClick={handleGoogleLogin}>
                 登入
               </Button>
             )}
+          </div>
 
-            {/* 移動版：選單按鈕 */}
+          {/* 移動版：選單按鈕 */}
+          <div className="md:hidden flex items-center gap-3">
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="md:hidden"
                   aria-label="開啟選單"
                 >
                   <Menu className="h-5 w-5" />

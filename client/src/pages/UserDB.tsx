@@ -48,7 +48,8 @@ import {
   Edit,
   Share2,
   FileDown,
-  HelpCircle
+  HelpCircle,
+  Home
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { apiGet, apiDelete, apiPost } from '@/lib/api-client';
