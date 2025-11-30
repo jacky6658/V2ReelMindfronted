@@ -97,6 +97,8 @@ interface IPPlanningResult {
 type SortField = 'time' | 'title' | 'platform' | 'type';
 type SortOrder = 'asc' | 'desc';
 
+type SelectedItem = Script | Conversation | Generation | IPPlanningResult | null;
+
 export default function UserDB() {
   const navigate = useNavigate();
   const { logout, user } = useAuthStore();
@@ -106,7 +108,7 @@ export default function UserDB() {
   const [generations, setGenerations] = useState<Generation[]>([]);
   const [ipPlanningResults, setIpPlanningResults] = useState<IPPlanningResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [selectedItem, setSelectedItem] = useState<SelectedItem>(null);
   const [showDetail, setShowDetail] = useState(false);
   
   // 搜索和筛选状态
@@ -303,21 +305,20 @@ export default function UserDB() {
       // 根據類型選擇不同的 API endpoint
       // 注意：後端可能沒有更新 API，這裡先嘗試，如果失敗則提示
       let endpoint = '';
-      let method = 'POST';
       
       // 判斷類型（從 selectedItem 的結構判斷）
-      if (selectedItem.platform) {
+      if ('platform' in selectedItem && selectedItem.platform) {
         // Script 類型
         endpoint = `/api/user/scripts/${selectedItem.id}`;
-      } else if (selectedItem.message_count !== undefined) {
+      } else if ('message_count' in selectedItem && selectedItem.message_count !== undefined) {
         // Conversation 類型
         endpoint = `/api/user/conversations/${selectedItem.id}`;
-      } else if (selectedItem.type) {
-        // Generation 類型
-        endpoint = `/api/user/generations/${selectedItem.id}`;
-      } else if (selectedItem.result_type) {
+      } else if ('result_type' in selectedItem && selectedItem.result_type) {
         // IP Planning 類型
         endpoint = `/api/ip-planning/results/${selectedItem.id}`;
+      } else if ('topic' in selectedItem) {
+        // Generation 類型
+        endpoint = `/api/user/generations/${selectedItem.id || ''}`;
       } else {
         // 預設為 script
         endpoint = `/api/user/scripts/${selectedItem.id}`;
@@ -328,14 +329,18 @@ export default function UserDB() {
         toast.success('已儲存');
         
         // 更新本地狀態
-        setSelectedItem({ ...selectedItem, content });
+        if ('content' in selectedItem) {
+          setSelectedItem({ ...selectedItem, content } as SelectedItem);
+        }
         loadData();
       } catch (apiError: any) {
         // 如果 API 不存在，提示用戶
         if (apiError?.response?.status === 404 || apiError?.response?.status === 405) {
           toast.info('此功能需要後端 API 支援，目前僅支援本地編輯');
           // 仍然更新本地狀態（僅前端）
-          setSelectedItem({ ...selectedItem, content });
+          if ('content' in selectedItem) {
+            setSelectedItem({ ...selectedItem, content } as SelectedItem);
+          }
         } else {
           throw apiError;
         }
@@ -353,21 +358,21 @@ export default function UserDB() {
     let content = '';
     let title = '';
     
-    if (selectedItem.title) {
+    if ('title' in selectedItem && selectedItem.title) {
       // Script, IPPlanningResult
       title = selectedItem.title;
-      content = selectedItem.content || '';
-    } else if (selectedItem.topic) {
+      content = ('content' in selectedItem && selectedItem.content) ? selectedItem.content : '';
+    } else if ('topic' in selectedItem && selectedItem.topic) {
       // Generation
       title = selectedItem.topic;
-      content = selectedItem.content || '';
-    } else if (selectedItem.summary) {
+      content = ('content' in selectedItem && selectedItem.content) ? selectedItem.content : '';
+    } else if ('summary' in selectedItem && selectedItem.summary) {
       // Conversation - 對話記錄目前只有摘要，無法匯出完整內容
       title = selectedItem.mode || '對話記錄';
       content = `對話類型：${selectedItem.mode || '未知'}\n訊息數：${selectedItem.message_count || 0}\n摘要：\n${selectedItem.summary || '無摘要'}`;
     } else {
       title = '內容';
-      content = selectedItem.content || '';
+      content = ('content' in selectedItem && selectedItem.content) ? selectedItem.content : '';
     }
     
     if (format === 'txt') {
@@ -440,22 +445,27 @@ export default function UserDB() {
     // 根據不同類型獲取標題和內容
     let title = '';
     let text = '';
+    let itemId = '';
     
-    if (selectedItem.title) {
+    if ('title' in selectedItem && selectedItem.title) {
       // Script, IPPlanningResult
       title = selectedItem.title;
-      text = selectedItem.content?.substring(0, 100) || '';
-    } else if (selectedItem.topic) {
+      text = ('content' in selectedItem && selectedItem.content) ? selectedItem.content.substring(0, 100) : '';
+      itemId = selectedItem.id.toString();
+    } else if ('topic' in selectedItem && selectedItem.topic) {
       // Generation
       title = selectedItem.topic;
-      text = selectedItem.content?.substring(0, 100) || '';
-    } else if (selectedItem.summary) {
+      text = ('content' in selectedItem && selectedItem.content) ? selectedItem.content.substring(0, 100) : '';
+      itemId = selectedItem.id?.toString() || '';
+    } else if ('summary' in selectedItem && selectedItem.summary) {
       // Conversation
       title = selectedItem.mode || '對話記錄';
       text = selectedItem.summary.substring(0, 100) || '';
+      itemId = selectedItem.id;
     } else {
       title = '內容';
-      text = selectedItem.content?.substring(0, 100) || '';
+      text = ('content' in selectedItem && selectedItem.content) ? selectedItem.content.substring(0, 100) : '';
+      itemId = ('id' in selectedItem) ? selectedItem.id.toString() : '';
     }
     
     const shareData = {
@@ -471,14 +481,14 @@ export default function UserDB() {
       } catch (error: any) {
         if (error.name !== 'AbortError') {
           // 如果不支援分享，則複製連結
-          const shareUrl = `${window.location.origin}${window.location.pathname}#/share/${selectedItem.id}`;
+          const shareUrl = `${window.location.origin}${window.location.pathname}#/share/${itemId}`;
           navigator.clipboard.writeText(shareUrl);
           toast.success('連結已複製到剪貼簿');
         }
       }
     } else {
       // 降級方案：複製連結
-      const shareUrl = `${window.location.origin}${window.location.pathname}#/share/${selectedItem.id}`;
+      const shareUrl = `${window.location.origin}${window.location.pathname}#/share/${itemId}`;
       navigator.clipboard.writeText(shareUrl);
       toast.success('連結已複製到剪貼簿');
     }
@@ -1506,9 +1516,13 @@ export default function UserDB() {
       <Dialog open={showDetail} onOpenChange={setShowDetail}>
         <DialogContent className="max-w-7xl max-h-[95vh] overflow-hidden flex flex-col w-[95vw] md:w-full">
           <DialogHeader className="shrink-0">
-            <DialogTitle>{selectedItem?.title || '詳情'}</DialogTitle>
+            <DialogTitle>
+              {selectedItem && 'title' in selectedItem ? selectedItem.title : 
+               (selectedItem && 'topic' in selectedItem ? selectedItem.topic : 
+                (selectedItem && 'mode' in selectedItem ? `${selectedItem.mode} - 對話記錄` : '詳情'))}
+            </DialogTitle>
             <DialogDescription>
-              {selectedItem?.created_at && `建立時間：${formatDate(selectedItem.created_at)}`}
+              {selectedItem && 'created_at' in selectedItem && selectedItem.created_at ? `建立時間：${formatDate(selectedItem.created_at)}` : ''}
             </DialogDescription>
           </DialogHeader>
 
@@ -1516,19 +1530,19 @@ export default function UserDB() {
             <div className="flex-1 min-h-0 overflow-y-auto">
               <ScriptEditor
                 content={
-                  selectedItem?.content || 
-                  (selectedItem?.summary ? `對話類型：${selectedItem.mode || '未知'}\n訊息數：${selectedItem.message_count || 0}\n\n摘要：\n${selectedItem.summary}`) || 
+                  selectedItem && 'content' in selectedItem ? selectedItem.content : 
+                  (selectedItem && 'summary' in selectedItem ? `對話類型：${selectedItem.mode || '未知'}\n訊息數：${selectedItem.message_count || 0}\n\n摘要：\n${selectedItem.summary}`) : 
                   ''
                 }
                 title={
-                  selectedItem?.title || 
-                  selectedItem?.topic || 
-                  (selectedItem?.mode ? `${selectedItem.mode} - 對話記錄` : '詳情')
+                  selectedItem && 'title' in selectedItem ? selectedItem.title : 
+                  (selectedItem && 'topic' in selectedItem ? selectedItem.topic : 
+                  (selectedItem && 'mode' in selectedItem ? `${selectedItem.mode} - 對話記錄` : '詳情'))
                 }
                 onSave={handleSaveContent}
                 onExport={handleExport}
                 onShare={handleShare}
-                readOnly={selectedItem?.summary !== undefined} // 對話記錄為唯讀
+                readOnly={selectedItem ? 'summary' in selectedItem : false} // 對話記錄為唯讀
                 showToolbar={true}
               />
             </div>
