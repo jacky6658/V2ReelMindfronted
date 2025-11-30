@@ -59,6 +59,24 @@ const AppDashboard: React.FC = () => {
 
   const settingsItems = [
     {
+      id: 'profile',
+      title: '個人資料',
+      description: '管理個人資訊與帳號',
+      icon: User,
+      link: '/profile',
+      gradient: 'from-teal-500 to-green-500',
+      bgGradient: 'from-teal-500/10 to-green-500/10'
+    },
+    {
+      id: 'settings',
+      title: '設定',
+      description: 'LLM API Key 管理、數據匯出與設定',
+      icon: Settings,
+      link: '/settings',
+      gradient: 'from-slate-500 to-gray-600',
+      bgGradient: 'from-slate-500/10 to-gray-600/10'
+    },
+    {
       id: 'orders',
       title: '我的訂單',
       description: '查看訂單記錄與付款狀態',
@@ -66,16 +84,6 @@ const AppDashboard: React.FC = () => {
       link: '/orders',
       gradient: 'from-orange-500 to-red-500',
       bgGradient: 'from-orange-500/10 to-red-500/10'
-    },
-    {
-      id: 'settings',
-      title: '設定',
-      description: 'LLM API Key 管理、數據匯出與設定',
-      icon: Settings,
-      link: '#',
-      gradient: 'from-slate-500 to-gray-600',
-      bgGradient: 'from-slate-500/10 to-gray-600/10',
-      isDialog: true // 標記為對話框類型
     },
     {
       id: 'statistics',
@@ -94,15 +102,6 @@ const AppDashboard: React.FC = () => {
       link: '/forum',
       gradient: 'from-cyan-500 to-blue-500',
       bgGradient: 'from-cyan-500/10 to-blue-500/10'
-    },
-    {
-      id: 'profile',
-      title: '個人資料',
-      description: '管理個人資訊與帳號',
-      icon: User,
-      link: '/profile',
-      gradient: 'from-teal-500 to-green-500',
-      bgGradient: 'from-teal-500/10 to-green-500/10'
     }
   ];
 
@@ -306,11 +305,7 @@ const AppDashboard: React.FC = () => {
                   key={item.id}
                   className="group relative overflow-hidden border-2 hover:border-primary/50 transition-all duration-300 hover:shadow-lg cursor-pointer"
                   onClick={() => {
-                    if ((item as any).isDialog) {
-                      setShowSettingsDialog(true);
-                    } else {
-                      navigate(item.link);
-                    }
+                    navigate(item.link);
                   }}
                 >
                   <div className={`absolute inset-0 bg-gradient-to-br ${item.bgGradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
@@ -440,7 +435,7 @@ const AppDashboard: React.FC = () => {
               className="cursor-pointer hover:border-primary/50 transition-all"
               onClick={() => {
                 setShowSettingsDialog(false);
-                navigate('/profile');
+                navigate('/settings');
               }}
             >
               <CardContent className="pt-6">

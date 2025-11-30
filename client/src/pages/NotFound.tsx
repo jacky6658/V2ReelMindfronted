@@ -24,13 +24,15 @@ export default function NotFound() {
           <h1 className="text-4xl font-bold text-foreground mb-2">404</h1>
 
           <h2 className="text-xl font-semibold text-foreground mb-4">
-            Page Not Found
+            頁面未找到或資源載入失敗
           </h2>
 
           <p className="text-muted-foreground mb-8 leading-relaxed">
-            Sorry, the page you are looking for doesn't exist.
+            抱歉，您要訪問的頁面不存在或資源載入失敗。
             <br />
-            It may have been moved or deleted.
+            可能是頁面已被移動、刪除，或資源載入出現問題。
+            <br />
+            請嘗試重新載入頁面或返回首頁。
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3 justify-center">

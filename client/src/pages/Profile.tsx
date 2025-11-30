@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { apiGet, apiPost } from '@/lib/api-client';
 import { toast } from 'sonner';
-import { ArrowLeft, Loader2, Save, CreditCard, Clock, Activity, User, Settings, ExternalLink, Calendar } from 'lucide-react';
+import { ArrowLeft, Loader2, Save, CreditCard, Clock, Activity, User, Settings, ExternalLink, Calendar, Copy, Check, Sparkles } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface UserProfile {
@@ -75,6 +75,8 @@ const Profile: React.FC = () => {
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
   const [loadingBilling, setLoadingBilling] = useState(false);
   const [loadingActivity, setLoadingActivity] = useState(false);
+  const [copiedUrl, setCopiedUrl] = useState(false);
+  const [urlValid, setUrlValid] = useState<boolean | null>(null);
 
   // 載入個人資料
   const loadProfile = async () => {
@@ -137,14 +139,105 @@ const Profile: React.FC = () => {
     }
   }, [user?.user_id]);
 
+  // 根據平台生成連結格式
+  const getPlatformUrlFormat = (platform: string, username: string): string => {
+    if (!username) return '';
+    const cleanUsername = username.replace(/^@/, '').trim();
+    
+    const urlFormats: Record<string, string> = {
+      instagram: `https://www.instagram.com/${cleanUsername}/`,
+      tiktok: `https://www.tiktok.com/@${cleanUsername}`,
+      youtube_short: `https://www.youtube.com/@${cleanUsername}`,
+      facebook_reels: `https://www.facebook.com/${cleanUsername}`,
+    };
+    
+    return urlFormats[platform] || '';
+  };
+
+  // 根據平台獲取佔位符提示
+  const getPlatformPlaceholder = (platform: string): string => {
+    const placeholders: Record<string, string> = {
+      instagram: '@username 或 username',
+      tiktok: '@username 或 username',
+      youtube_short: '@username 或 username',
+      facebook_reels: 'username 或 page-name',
+      other: '@username',
+    };
+    return placeholders[platform] || '@username';
+  };
+
+  // 根據平台獲取連結範例
+  const getPlatformUrlExample = (platform: string): string => {
+    const examples: Record<string, string> = {
+      instagram: 'https://www.instagram.com/username/',
+      tiktok: 'https://www.tiktok.com/@username',
+      youtube_short: 'https://www.youtube.com/@username',
+      facebook_reels: 'https://www.facebook.com/username',
+      other: 'https://...',
+    };
+    return examples[platform] || 'https://...';
+  };
+
+  // 驗證連結格式
+  const validateUrl = (url: string): boolean => {
+    if (!url) return true; // 空值視為有效（可選欄位）
+    try {
+      const urlObj = new URL(url);
+      return urlObj.protocol === 'http:' || urlObj.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  };
+
+  // 自動生成連結
+  const handleUsernameChange = (username: string) => {
+    const newProfile = { ...profile!, creator_username: username };
+    
+    // 如果已選擇平台且有用戶名，自動生成連結
+    if (profile?.creator_platform && username && !profile.creator_profile_url) {
+      // 只有在沒有手動輸入連結時才自動生成
+      const autoUrl = getPlatformUrlFormat(profile.creator_platform, username);
+      if (autoUrl) {
+        newProfile.creator_profile_url = autoUrl;
+      }
+    }
+    
+    setProfile(newProfile);
+  };
+
+  // 複製連結
+  const handleCopyUrl = async () => {
+    if (!profile?.creator_profile_url) {
+      toast.error('沒有可複製的連結');
+      return;
+    }
+    
+    try {
+      await navigator.clipboard.writeText(profile.creator_profile_url);
+      setCopiedUrl(true);
+      toast.success('連結已複製到剪貼簿');
+      setTimeout(() => setCopiedUrl(false), 2000);
+    } catch (error) {
+      toast.error('複製失敗');
+    }
+  };
+
   // 儲存個人資料
   const handleSave = async () => {
     if (!user?.user_id || !profile) return;
+    
+    // 驗證連結格式
+    if (profile.creator_profile_url && !validateUrl(profile.creator_profile_url)) {
+      toast.error('請輸入有效的連結格式（需以 http:// 或 https:// 開頭）');
+      setUrlValid(false);
+      return;
+    }
     
     try {
       setSaving(true);
       await apiPost('/api/profile', profile);
       toast.success('個人資料已儲存');
+      setUrlValid(true);
       loadProfile();
     } catch (error: any) {
       console.error('儲存失敗:', error);
@@ -302,7 +395,14 @@ const Profile: React.FC = () => {
                         <Label htmlFor="creator_platform">創作平台</Label>
                         <Select
                           value={profile?.creator_platform || ''}
-                          onValueChange={(value) => setProfile({ ...profile!, creator_platform: value })}
+                          onValueChange={(value) => {
+                            const newProfile = { ...profile!, creator_platform: value };
+                            // 如果已有用戶名，自動生成連結
+                            if (value && profile?.creator_username && !profile.creator_profile_url) {
+                              newProfile.creator_profile_url = getPlatformUrlFormat(value, profile.creator_username);
+                            }
+                            setProfile(newProfile);
+                          }}
                         >
                           <SelectTrigger id="creator_platform">
                             <SelectValue placeholder="選擇平台" />
@@ -315,27 +415,65 @@ const Profile: React.FC = () => {
                             <SelectItem value="other">其他</SelectItem>
                           </SelectContent>
                         </Select>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          選擇平台後，輸入帳號名稱可自動生成連結
+                        </p>
                       </div>
 
                       <div>
                         <Label htmlFor="creator_username">平台帳號名稱</Label>
                         <Input
                           id="creator_username"
-                          placeholder="@username"
+                          placeholder={profile?.creator_platform ? getPlatformPlaceholder(profile.creator_platform) : '@username'}
                           value={profile?.creator_username || ''}
-                          onChange={(e) => setProfile({ ...profile!, creator_username: e.target.value })}
+                          onChange={(e) => handleUsernameChange(e.target.value)}
                         />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          輸入帳號名稱後，系統會自動生成連結（可手動修改）
+                        </p>
                       </div>
 
-                      <div>
+                      <div className="md:col-span-2">
                         <Label htmlFor="creator_profile_url">平台帳號連結</Label>
-                        <Input
-                          id="creator_profile_url"
-                          type="url"
-                          placeholder="https://..."
-                          value={profile?.creator_profile_url || ''}
-                          onChange={(e) => setProfile({ ...profile!, creator_profile_url: e.target.value })}
-                        />
+                        <div className="flex gap-2">
+                          <div className="flex-1 relative">
+                            <Input
+                              id="creator_profile_url"
+                              type="url"
+                              placeholder={profile?.creator_platform ? getPlatformUrlExample(profile.creator_platform) : 'https://...'}
+                              value={profile?.creator_profile_url || ''}
+                              onChange={(e) => {
+                                const url = e.target.value;
+                                setProfile({ ...profile!, creator_profile_url: url });
+                                setUrlValid(validateUrl(url));
+                              }}
+                              className={urlValid === false ? 'border-destructive' : ''}
+                            />
+                            {urlValid === false && (
+                              <p className="text-xs text-destructive mt-1">
+                                請輸入有效的連結格式（需以 http:// 或 https:// 開頭）
+                              </p>
+                            )}
+                          </div>
+                          {profile?.creator_profile_url && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              onClick={handleCopyUrl}
+                              title="複製連結"
+                            >
+                              {copiedUrl ? (
+                                <Check className="w-4 h-4 text-green-600" />
+                              ) : (
+                                <Copy className="w-4 h-4" />
+                              )}
+                            </Button>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          系統會根據平台和帳號名稱自動生成，您也可以手動輸入或修改
+                        </p>
                       </div>
 
                       <div>
@@ -343,10 +481,19 @@ const Profile: React.FC = () => {
                         <Input
                           id="creator_follower_count"
                           type="number"
-                          placeholder="0"
+                          placeholder="例如：1000"
+                          min="0"
                           value={profile?.creator_follower_count || ''}
-                          onChange={(e) => setProfile({ ...profile!, creator_follower_count: parseInt(e.target.value) || 0 })}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setProfile({ ...profile!, creator_follower_count: value ? parseInt(value) || 0 : undefined });
+                          }}
                         />
+                        {profile?.creator_follower_count && profile.creator_follower_count > 0 && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            已設定：{profile.creator_follower_count.toLocaleString()} 位粉絲
+                          </p>
+                        )}
                       </div>
 
                       <div>

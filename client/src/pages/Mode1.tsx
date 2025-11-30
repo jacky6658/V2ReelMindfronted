@@ -318,6 +318,12 @@ export default function Mode1() {
       loadHistory();
       // 同時載入生成結果（從資料庫和 localStorage）
       loadSavedResults();
+    } else if (user?.user_id) {
+      // 即使沒有權限，也先載入 localStorage 緩存，讓 Dialog 打開時能立即顯示
+      const localResults = loadFromLocalStorage();
+      if (localResults.length > 0) {
+        setSavedResults(localResults);
+      }
     }
   }, [activeTab, hasPermission, user?.user_id]);
 
@@ -401,11 +407,20 @@ export default function Mode1() {
   };
 
   // 載入生成結果（從資料庫和 localStorage）
-  const loadSavedResults = async () => {
+  // 優化：先顯示 localStorage 緩存，然後異步更新資料庫數據
+  const loadSavedResults = async (showCacheFirst: boolean = false) => {
     try {
       if (!user?.user_id) return;
       
-      // 1. 從資料庫載入
+      // 1. 先從 localStorage 載入（立即顯示，無需等待）
+      const localResults = loadFromLocalStorage();
+      
+      if (showCacheFirst && localResults.length > 0) {
+        // 如果要求先顯示緩存，立即設置 localStorage 的結果
+        setSavedResults(localResults);
+      }
+      
+      // 2. 從資料庫載入（異步，不阻塞 UI）
       let dbResults: SavedResult[] = [];
       try {
         const data = await apiGet<{ results: HistoryItem[] }>('/api/ip-planning/my');
@@ -435,12 +450,8 @@ export default function Mode1() {
         console.error('從資料庫載入失敗:', error);
       }
       
-      // 2. 從 localStorage 載入
-      const localResults = loadFromLocalStorage();
-      
       // 3. 合併結果（避免重複）
       const dbIds = new Set(dbResults.map(r => r.id));
-      const localIds = new Set(localResults.map(r => r.id));
       
       // 過濾掉已經在資料庫中的本地結果（避免重複）
       const localOnly = localResults.filter(r => !dbIds.has(r.id));
@@ -448,13 +459,23 @@ export default function Mode1() {
       // 合併：資料庫結果 + localStorage 結果
       const allResults = [...dbResults, ...localOnly];
       
+      // 按時間排序（最新的在前）
+      allResults.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+      
+      // 更新狀態（包含資料庫和本地結果）
       setSavedResults(allResults);
       
-      // 更新 localStorage（清理已儲存到資料庫的項目）
+      // 4. 更新 localStorage（移除已經在資料庫中的項目）
       saveToLocalStorage(allResults);
     } catch (error) {
       console.error('載入生成結果失敗:', error);
-      // 不顯示錯誤訊息，避免打擾用戶
+      // 即使出錯，也至少顯示 localStorage 的數據
+      if (showCacheFirst) {
+        const localResults = loadFromLocalStorage();
+        if (localResults.length > 0) {
+          setSavedResults(localResults);
+        }
+      }
     }
   };
 
@@ -1064,12 +1085,12 @@ export default function Mode1() {
       {/* 生成結果管理 Dialog */}
       <Dialog open={showResults} onOpenChange={(open) => {
         setShowResults(open);
-        // 當打開 Dialog 時，載入生成結果
+        // 當打開 Dialog 時，立即顯示緩存數據，然後異步更新
         if (open && user?.user_id) {
-          loadSavedResults();
+          loadSavedResults(true); // true 表示先顯示緩存
         }
       }}>
-        <DialogContent className="max-w-5xl max-h-[85vh] overflow-hidden flex flex-col">
+        <DialogContent className="max-w-7xl max-h-[95vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>生成結果管理</DialogTitle>
             <DialogDescription>
@@ -1218,7 +1239,7 @@ export default function Mode1() {
 
       {/* 展開結果 Dialog */}
       <Dialog open={!!expandedResult} onOpenChange={() => setExpandedResult(null)}>
-        <DialogContent className="max-w-5xl max-h-[85vh] overflow-hidden flex flex-col">
+        <DialogContent className="max-w-7xl max-h-[95vh] overflow-hidden flex flex-col">
           <DialogHeader className="shrink-0">
             <DialogTitle>{expandedResult?.title}</DialogTitle>
             <DialogDescription>

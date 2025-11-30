@@ -109,6 +109,24 @@ export default function GuideArticle() {
                   )}
                   <div className="space-y-3">
                     {section.content.map((paragraph, pIndex) => {
+                      // 處理 YouTube 影片嵌入
+                      if (paragraph.startsWith('VIDEO:')) {
+                        const videoUrl = paragraph.replace('VIDEO:', '').trim();
+                        return (
+                          <div key={pIndex} className="my-6 rounded-lg overflow-hidden shadow-lg">
+                            <div className="relative aspect-video">
+                              <iframe
+                                src={videoUrl}
+                                title="YouTube video player"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen
+                                className="w-full h-full"
+                              ></iframe>
+                            </div>
+                          </div>
+                        );
+                      }
+                      
                       // 處理表格
                       if (paragraph.startsWith('|')) {
                         return (
