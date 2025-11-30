@@ -1091,24 +1091,24 @@ export default function Mode1() {
         }
       }}>
         <DialogContent className="max-w-7xl max-h-[95vh] overflow-hidden flex flex-col">
-          <DialogHeader>
+          <DialogHeader className="shrink-0">
             <DialogTitle>生成結果管理</DialogTitle>
             <DialogDescription>
               查看、編輯和管理所有生成的內容
             </DialogDescription>
           </DialogHeader>
 
-          <Tabs value={resultTab} onValueChange={(v) => setResultTab(v as any)} className="flex-1 flex flex-col overflow-hidden">
-            <TabsList className="grid w-full grid-cols-4">
+          <Tabs value={resultTab} onValueChange={(v) => setResultTab(v as any)} className="flex-1 flex flex-col overflow-hidden min-h-0">
+            <TabsList className="grid w-full grid-cols-4 shrink-0">
               <TabsTrigger value="positioning">帳號定位</TabsTrigger>
               <TabsTrigger value="planning">14天規劃</TabsTrigger>
               <TabsTrigger value="topics">選題方向</TabsTrigger>
               <TabsTrigger value="script">短影音腳本</TabsTrigger>
             </TabsList>
 
-            <TabsContent value={resultTab} className="flex-1 overflow-hidden mt-4 min-h-0">
-              <ScrollArea className="flex-1 min-h-0">
-                <div className="space-y-4 pr-4">
+            <TabsContent value={resultTab} className="flex-1 overflow-hidden mt-4 min-h-0 flex flex-col">
+              <ScrollArea className="flex-1 min-h-0 overflow-y-auto">
+                <div className="space-y-4 pr-4 pb-4">
                   {filteredResults.length === 0 && (
                     <div className="text-center text-muted-foreground py-12">
                       <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
@@ -1239,7 +1239,7 @@ export default function Mode1() {
 
       {/* 展開結果 Dialog */}
       <Dialog open={!!expandedResult} onOpenChange={() => setExpandedResult(null)}>
-        <DialogContent className="max-w-7xl max-h-[95vh] overflow-hidden flex flex-col">
+        <DialogContent className="max-w-[90vw] md:max-w-[1400px] max-h-[95vh] overflow-hidden flex flex-col">
           <DialogHeader className="shrink-0">
             <DialogTitle>{expandedResult?.title}</DialogTitle>
             <DialogDescription>
@@ -1247,13 +1247,13 @@ export default function Mode1() {
             </DialogDescription>
           </DialogHeader>
 
-          <ScrollArea className="flex-1 min-h-0">
+          <ScrollArea className="flex-1 min-h-0 overflow-y-auto">
             <div className="pr-4 pb-4 space-y-4">
               {expandedResult && <FormatText content={expandedResult.content} />}
             </div>
           </ScrollArea>
 
-          <div className="flex gap-2 pt-4 border-t">
+          <div className="flex gap-2 pt-4 border-t shrink-0">
             <Button
               variant="outline"
               onClick={() => expandedResult && handleCopyResult(expandedResult.content)}

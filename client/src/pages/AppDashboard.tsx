@@ -3,7 +3,7 @@
  * 這是登入後用戶會看到的核心功能頁面
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { Link, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,17 +11,90 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { apiGet } from '@/lib/api-client';
 import { toast } from 'sonner';
-import { Sparkles, Target, Zap, Database, ArrowRight, CheckCircle2, TrendingUp, MessageSquare, Home, BookOpen, Users, ExternalLink, Settings, ShoppingBag, BarChart3, HelpCircle, User, Key, Download, FileText, LogOut } from 'lucide-react';
+import { Sparkles, Target, Zap, Database, ArrowRight, CheckCircle2, TrendingUp, MessageSquare, Home, BookOpen, Users, ExternalLink, Settings, ShoppingBag, BarChart3, HelpCircle, User, Key, Download, FileText, LogOut, Loader2 } from 'lucide-react';
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
+import { Area, AreaChart, Bar, BarChart, Line, LineChart, XAxis, YAxis, CartesianGrid } from 'recharts';
+
+interface AnalyticsOverview {
+  today: {
+    scripts: number;
+    generations: number;
+    total: number;
+  };
+  week: {
+    scripts: number;
+    generations: number;
+    total: number;
+  };
+  month: {
+    scripts: number;
+    generations: number;
+    total: number;
+  };
+  total: {
+    scripts: number;
+    generations: number;
+    conversations: number;
+  };
+}
 
 const AppDashboard: React.FC = () => {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
+  const [analyticsOverview, setAnalyticsOverview] = useState<AnalyticsOverview | null>(null);
+  const [loadingAnalytics, setLoadingAnalytics] = useState(false);
 
   // 登出處理
   const handleLogout = async () => {
     await logout();
     navigate('/');
+  };
+
+  // 載入統計數據
+  useEffect(() => {
+    const loadAnalytics = async () => {
+      if (!user?.user_id) return;
+      
+      try {
+        setLoadingAnalytics(true);
+        const data = await apiGet<AnalyticsOverview>('/api/user/analytics/overview');
+        setAnalyticsOverview(data);
+      } catch (error) {
+        console.error('載入統計數據失敗:', error);
+        // 不顯示錯誤提示，因為這是可選功能
+      } finally {
+        setLoadingAnalytics(false);
+      }
+    };
+
+    loadAnalytics();
+  }, [user?.user_id]);
+
+  // 準備圖表數據
+  const chartData = useMemo(() => {
+    if (!analyticsOverview) return [];
+    
+    return [
+      { period: '今日', scripts: analyticsOverview.today.scripts, generations: analyticsOverview.today.generations, total: analyticsOverview.today.total },
+      { period: '本週', scripts: analyticsOverview.week.scripts, generations: analyticsOverview.week.generations, total: analyticsOverview.week.total },
+      { period: '本月', scripts: analyticsOverview.month.scripts, generations: analyticsOverview.month.generations, total: analyticsOverview.month.total },
+    ];
+  }, [analyticsOverview]);
+
+  const chartConfig = {
+    scripts: {
+      label: '腳本',
+      color: 'hsl(var(--chart-1))',
+    },
+    generations: {
+      label: '生成',
+      color: 'hsl(var(--chart-2))',
+    },
+    total: {
+      label: '總計',
+      color: 'hsl(var(--chart-3))',
+    },
   };
 
   const features = [
@@ -92,14 +165,15 @@ const AppDashboard: React.FC = () => {
       icon: BarChart3,
       link: '/statistics',
       gradient: 'from-indigo-500 to-purple-600',
-      bgGradient: 'from-indigo-500/10 to-purple-600/10'
+      bgGradient: 'from-indigo-500/10 to-purple-600/10',
+      isStatistics: true // 標記為統計卡片，需要特殊處理
     },
     {
       id: 'help',
       title: '幫助中心',
-      description: '常見問題與支援',
+      description: '常見問題、快速入門與技術支援',
       icon: HelpCircle,
-      link: '/forum',
+      link: '/help',
       gradient: 'from-cyan-500 to-blue-500',
       bgGradient: 'from-cyan-500/10 to-blue-500/10'
     }
@@ -300,6 +374,131 @@ const AppDashboard: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
             {settingsItems.map((item) => {
               const Icon = item.icon;
+              const isStatistics = (item as any).isStatistics;
+              
+              // 如果是統計卡片，顯示增強版本
+              if (isStatistics) {
+                return (
+                  <Card
+                    key={item.id}
+                    className="group relative overflow-hidden border-2 hover:border-primary/50 transition-all duration-300 hover:shadow-lg cursor-pointer"
+                    onClick={() => {
+                      navigate(item.link);
+                    }}
+                  >
+                    <div className={`absolute inset-0 bg-gradient-to-br ${item.bgGradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
+                    <CardContent className="pt-6 pb-6">
+                      {/* 標題和圖標 */}
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${item.gradient} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300 flex-shrink-0`}>
+                            <Icon className="w-6 h-6 text-white" />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-base">{item.title}</h3>
+                            <p className="text-xs text-muted-foreground">查看詳細分析</p>
+                          </div>
+                        </div>
+                        <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all duration-300 flex-shrink-0" />
+                      </div>
+
+                      {/* 統計數據 */}
+                      {loadingAnalytics ? (
+                        <div className="flex items-center justify-center py-8">
+                          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                        </div>
+                      ) : analyticsOverview ? (
+                        <>
+                          {/* 關鍵指標 */}
+                          <div className="grid grid-cols-3 gap-2 mb-4">
+                            <div className="text-center p-2 rounded-lg bg-background/50 border border-indigo-500/20">
+                              <p className="text-xs text-muted-foreground mb-1">今日</p>
+                              <p className="text-lg font-bold text-indigo-600 dark:text-indigo-400">
+                                {analyticsOverview.today.total}
+                              </p>
+                            </div>
+                            <div className="text-center p-2 rounded-lg bg-background/50 border border-purple-500/20">
+                              <p className="text-xs text-muted-foreground mb-1">本週</p>
+                              <p className="text-lg font-bold text-purple-600 dark:text-purple-400">
+                                {analyticsOverview.week.total}
+                              </p>
+                            </div>
+                            <div className="text-center p-2 rounded-lg bg-background/50 border border-pink-500/20">
+                              <p className="text-xs text-muted-foreground mb-1">本月</p>
+                              <p className="text-lg font-bold text-pink-600 dark:text-pink-400">
+                                {analyticsOverview.month.total}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* 小型趨勢圖表 */}
+                          {chartData.length > 0 && (
+                            <div className="h-[120px] -mx-2">
+                              <ChartContainer config={chartConfig} className="h-full">
+                                <AreaChart data={chartData}>
+                                  <defs>
+                                    <linearGradient id="fillTotal" x1="0" y1="0" x2="0" y2="1">
+                                      <stop offset="5%" stopColor="hsl(var(--chart-3))" stopOpacity={0.3}/>
+                                      <stop offset="95%" stopColor="hsl(var(--chart-3))" stopOpacity={0}/>
+                                    </linearGradient>
+                                  </defs>
+                                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                                  <XAxis 
+                                    dataKey="period" 
+                                    tickLine={false}
+                                    axisLine={false}
+                                    tickMargin={8}
+                                    className="text-xs"
+                                  />
+                                  <YAxis 
+                                    tickLine={false}
+                                    axisLine={false}
+                                    tickMargin={8}
+                                    className="text-xs"
+                                    width={30}
+                                  />
+                                  <ChartTooltip content={<ChartTooltipContent />} />
+                                  <Area
+                                    type="monotone"
+                                    dataKey="total"
+                                    stroke="hsl(var(--chart-3))"
+                                    fill="url(#fillTotal)"
+                                    strokeWidth={2}
+                                  />
+                                </AreaChart>
+                              </ChartContainer>
+                            </div>
+                          )}
+
+                          {/* 總計信息 */}
+                          <div className="mt-4 pt-4 border-t flex items-center justify-between">
+                            <div className="flex items-center gap-4 text-xs">
+                              <div className="flex items-center gap-1">
+                                <div className="w-2 h-2 rounded-full bg-blue-500" />
+                                <span className="text-muted-foreground">腳本 {analyticsOverview.total.scripts}</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <div className="w-2 h-2 rounded-full bg-purple-500" />
+                                <span className="text-muted-foreground">生成 {analyticsOverview.total.generations}</span>
+                              </div>
+                            </div>
+                            <div className="text-xs font-semibold text-primary">
+                              總計 {analyticsOverview.total.scripts + analyticsOverview.total.generations + analyticsOverview.total.conversations}
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="text-center py-6">
+                          <p className="text-sm text-muted-foreground">暫無數據</p>
+                          <p className="text-xs text-muted-foreground mt-1">開始使用功能後會顯示統計</p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              }
+              
+              // 其他卡片保持原樣
               return (
                 <Card
                   key={item.id}

@@ -3,12 +3,22 @@
  * 包含：我的腳本、對話記錄、生成記錄
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
   Table,
   TableBody,
@@ -28,7 +38,16 @@ import {
   LogOut,
   Copy,
   Eye,
-  ArrowLeft
+  ArrowLeft,
+  Search,
+  Filter,
+  MoreVertical,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  Edit,
+  Share2,
+  FileDown
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { apiGet, apiDelete, apiPost } from '@/lib/api-client';
@@ -75,6 +94,9 @@ interface IPPlanningResult {
   created_at: string;
 }
 
+type SortField = 'time' | 'title' | 'platform' | 'type';
+type SortOrder = 'asc' | 'desc';
+
 export default function UserDB() {
   const navigate = useNavigate();
   const { logout, user } = useAuthStore();
@@ -86,6 +108,12 @@ export default function UserDB() {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [showDetail, setShowDetail] = useState(false);
+  
+  // 搜索和筛选状态
+  const [searchQuery, setSearchQuery] = useState('');
+  const [platformFilter, setPlatformFilter] = useState<string>('all');
+  const [sortField, setSortField] = useState<SortField>('time');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
 
   // 檢查登入狀態（已移除以便本地預覽）
   // useEffect(() => {
@@ -437,6 +465,91 @@ export default function UserDB() {
     });
   };
 
+  // 获取所有平台列表（用于筛选）
+  const allPlatforms = useMemo(() => {
+    const platforms = new Set<string>();
+    scripts.forEach(s => s.platform && platforms.add(s.platform));
+    generations.forEach(g => g.platform && platforms.add(g.platform));
+    return Array.from(platforms).sort();
+  }, [scripts, generations]);
+
+  // 统计数据
+  const stats = useMemo(() => ({
+    scripts: scripts.length,
+    conversations: conversations.length,
+    generations: generations.length,
+    ipPlanning: ipPlanningResults.length,
+    total: scripts.length + conversations.length + generations.length + ipPlanningResults.length
+  }), [scripts, conversations, generations, ipPlanningResults]);
+
+  // 过滤和排序后的数据
+  const filteredAndSortedData = useMemo(() => {
+    let data: any[] = [];
+    
+    switch (activeTab) {
+      case 'scripts':
+        data = [...scripts];
+        break;
+      case 'conversations':
+        data = [...conversations];
+        break;
+      case 'generations':
+        data = [...generations];
+        break;
+      case 'ip-planning':
+        data = [...ipPlanningResults];
+        break;
+    }
+
+    // 搜索过滤
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      data = data.filter(item => {
+        const title = (item.title || item.topic || item.mode || '').toLowerCase();
+        const content = (item.content || item.summary || '').toLowerCase();
+        return title.includes(query) || content.includes(query);
+      });
+    }
+
+    // 平台筛选（仅对 scripts 和 generations）
+    if (platformFilter !== 'all' && (activeTab === 'scripts' || activeTab === 'generations')) {
+      data = data.filter(item => item.platform === platformFilter);
+    }
+
+    // 排序
+    data.sort((a, b) => {
+      let aValue: any;
+      let bValue: any;
+
+      switch (sortField) {
+        case 'time':
+          aValue = new Date(a.created_at).getTime();
+          bValue = new Date(b.created_at).getTime();
+          break;
+        case 'title':
+          aValue = (a.title || a.topic || a.mode || '').toLowerCase();
+          bValue = (b.title || b.topic || b.mode || '').toLowerCase();
+          break;
+        case 'platform':
+          aValue = (a.platform || '').toLowerCase();
+          bValue = (b.platform || '').toLowerCase();
+          break;
+        case 'type':
+          aValue = (a.result_type || a.mode || '').toLowerCase();
+          bValue = (b.result_type || b.mode || '').toLowerCase();
+          break;
+        default:
+          return 0;
+      }
+
+      if (aValue < bValue) return sortOrder === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+    return data;
+  }, [activeTab, scripts, conversations, generations, ipPlanningResults, searchQuery, platformFilter, sortField, sortOrder]);
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       {/* 導航欄 */}
@@ -482,6 +595,54 @@ export default function UserDB() {
 
       {/* 主要內容區 */}
       <div className="flex-1 container py-6">
+        {/* 統計卡片 */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <Card className="hover:shadow-md transition-shadow">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">我的腳本</p>
+                  <p className="text-2xl font-bold">{stats.scripts}</p>
+                </div>
+                <FileText className="w-8 h-8 text-blue-500 opacity-70" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="hover:shadow-md transition-shadow">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">對話記錄</p>
+                  <p className="text-2xl font-bold">{stats.conversations}</p>
+                </div>
+                <MessageSquare className="w-8 h-8 text-green-500 opacity-70" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="hover:shadow-md transition-shadow">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">生成記錄</p>
+                  <p className="text-2xl font-bold">{stats.generations}</p>
+                </div>
+                <Sparkles className="w-8 h-8 text-purple-500 opacity-70" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="hover:shadow-md transition-shadow">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">IP 規劃</p>
+                  <p className="text-2xl font-bold">{stats.ipPlanning}</p>
+                </div>
+                <Sparkles className="w-8 h-8 text-orange-500 opacity-70" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
         <Card>
           <CardHeader>
             <CardTitle>我的資料</CardTitle>
@@ -491,7 +652,66 @@ export default function UserDB() {
           </CardHeader>
 
           <CardContent>
-            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+            {/* 搜索和筛选工具栏 */}
+            <div className="flex flex-col md:flex-row gap-4 mb-6">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="搜索標題或內容..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              {(activeTab === 'scripts' || activeTab === 'generations') && allPlatforms.length > 0 && (
+                <Select value={platformFilter} onValueChange={setPlatformFilter}>
+                  <SelectTrigger className="w-full md:w-[180px]">
+                    <Filter className="w-4 h-4 mr-2" />
+                    <SelectValue placeholder="選擇平台" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">所有平台</SelectItem>
+                    {allPlatforms.map(platform => (
+                      <SelectItem key={platform} value={platform}>{platform}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              <Select value={`${sortField}-${sortOrder}`} onValueChange={(value) => {
+                const [field, order] = value.split('-') as [SortField, SortOrder];
+                setSortField(field);
+                setSortOrder(order);
+              }}>
+                <SelectTrigger className="w-full md:w-[180px]">
+                  <ArrowUpDown className="w-4 h-4 mr-2" />
+                  <SelectValue placeholder="排序方式" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="time-desc">時間：最新</SelectItem>
+                  <SelectItem value="time-asc">時間：最舊</SelectItem>
+                  <SelectItem value="title-asc">標題：A-Z</SelectItem>
+                  <SelectItem value="title-desc">標題：Z-A</SelectItem>
+                  {(activeTab === 'scripts' || activeTab === 'generations') && (
+                    <>
+                      <SelectItem value="platform-asc">平台：A-Z</SelectItem>
+                      <SelectItem value="platform-desc">平台：Z-A</SelectItem>
+                    </>
+                  )}
+                  {activeTab === 'ip-planning' && (
+                    <>
+                      <SelectItem value="type-asc">類型：A-Z</SelectItem>
+                      <SelectItem value="type-desc">類型：Z-A</SelectItem>
+                    </>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <Tabs value={activeTab} onValueChange={(v) => {
+              setActiveTab(v as any);
+              setSearchQuery('');
+              setPlatformFilter('all');
+            }}>
               <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 gap-2">
                 <TabsTrigger value="scripts" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
                   <FileText className="w-3 h-3 md:w-4 md:h-4" />
@@ -517,16 +737,51 @@ export default function UserDB() {
 
               {/* 我的腳本 */}
               <TabsContent value="scripts" className="mt-6">
-                <ScrollArea className="h-[calc(100vh-350px)] md:h-[calc(100vh-400px)]">
+                <ScrollArea className="h-[calc(100vh-500px)] md:h-[calc(100vh-550px)]">
                   {isLoading ? (
                     <div className="text-center py-12">
                       <RefreshCw className="w-8 h-8 mx-auto mb-4 animate-spin text-muted-foreground" />
                       <p className="text-muted-foreground">載入中...</p>
                     </div>
-                  ) : scripts.length === 0 ? (
+                  ) : filteredAndSortedData.length === 0 ? (
                     <div className="text-center py-12">
                       <FileText className="w-12 h-12 mx-auto mb-4 text-muted-foreground dark:text-muted-foreground/70 opacity-50" />
-                      <p className="text-muted-foreground dark:text-muted-foreground/80">暫無腳本記錄</p>
+                      <p className="text-muted-foreground dark:text-muted-foreground/80 mb-2">
+                        {searchQuery || platformFilter !== 'all' ? '沒有找到符合條件的腳本' : '暫無腳本記錄'}
+                      </p>
+                      {searchQuery || platformFilter !== 'all' ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="mt-4"
+                          onClick={() => {
+                            setSearchQuery('');
+                            setPlatformFilter('all');
+                          }}
+                        >
+                          清除篩選
+                        </Button>
+                      ) : (
+                        <div className="space-y-2">
+                          <p className="text-sm text-muted-foreground">前往 Mode3 或 Mode1 生成腳本內容</p>
+                          <div className="flex gap-2 justify-center">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => navigate('/mode3')}
+                            >
+                              前往 Mode3
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => navigate('/mode1')}
+                            >
+                              前往 Mode1
+                            </Button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <>
@@ -542,7 +797,7 @@ export default function UserDB() {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {scripts.map((script) => (
+                            {filteredAndSortedData.map((script: Script) => (
                               <TableRow key={script.id}>
                                 <TableCell className="font-medium">{script.title}</TableCell>
                                 <TableCell>
@@ -552,29 +807,41 @@ export default function UserDB() {
                                   {formatDate(script.created_at)}
                                 </TableCell>
                                 <TableCell className="text-right">
-                                  <div className="flex justify-end gap-2">
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      onClick={() => handleView(script)}
-                                    >
-                                      <Eye className="w-4 h-4" />
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      onClick={() => handleCopy(script.content)}
-                                    >
-                                      <Copy className="w-4 h-4" />
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      onClick={() => handleDelete(script.id, 'script')}
-                                    >
-                                      <Trash2 className="w-4 h-4" />
-                                    </Button>
-                                  </div>
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button variant="ghost" size="icon">
+                                        <MoreVertical className="w-4 h-4" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      <DropdownMenuLabel>操作</DropdownMenuLabel>
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem onClick={() => handleView(script)}>
+                                        <Eye className="w-4 h-4 mr-2" />
+                                        查看詳情
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => handleCopy(script.content)}>
+                                        <Copy className="w-4 h-4 mr-2" />
+                                        複製內容
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => {
+                                        setSelectedItem(script);
+                                        setShowDetail(true);
+                                        handleExport('txt');
+                                      }}>
+                                        <FileDown className="w-4 h-4 mr-2" />
+                                        匯出為 TXT
+                                      </DropdownMenuItem>
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem 
+                                        onClick={() => handleDelete(script.id, 'script')}
+                                        className="text-destructive"
+                                      >
+                                        <Trash2 className="w-4 h-4 mr-2" />
+                                        刪除
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
                                 </TableCell>
                               </TableRow>
                             ))}
@@ -583,8 +850,8 @@ export default function UserDB() {
                       </div>
                       {/* 移動版：卡片布局 */}
                       <div className="md:hidden space-y-4">
-                        {scripts.map((script) => (
-                          <Card key={script.id}>
+                        {filteredAndSortedData.map((script: Script) => (
+                          <Card key={script.id} className="hover:shadow-md transition-shadow">
                             <CardContent className="p-4">
                               <div className="space-y-3">
                                 <div className="flex items-start justify-between gap-2">
@@ -594,6 +861,11 @@ export default function UserDB() {
                                 <p className="text-xs text-muted-foreground">
                                   {formatDate(script.created_at)}
                                 </p>
+                                <div className="bg-muted/50 rounded-lg p-2">
+                                  <p className="text-xs text-muted-foreground line-clamp-2">
+                                    {script.content.substring(0, 100)}...
+                                  </p>
+                                </div>
                                 <div className="flex gap-2 pt-2 border-t">
                                   <Button
                                     variant="ghost"
@@ -613,15 +885,30 @@ export default function UserDB() {
                                     <Copy className="w-4 h-4 mr-1" />
                                     複製
                                   </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="flex-1 text-destructive"
-                                    onClick={() => handleDelete(script.id, 'script')}
-                                  >
-                                    <Trash2 className="w-4 h-4 mr-1" />
-                                    刪除
-                                  </Button>
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button variant="ghost" size="sm">
+                                        <MoreVertical className="w-4 h-4" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      <DropdownMenuItem onClick={() => {
+                                        setSelectedItem(script);
+                                        setShowDetail(true);
+                                        handleExport('txt');
+                                      }}>
+                                        <FileDown className="w-4 h-4 mr-2" />
+                                        匯出
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem 
+                                        onClick={() => handleDelete(script.id, 'script')}
+                                        className="text-destructive"
+                                      >
+                                        <Trash2 className="w-4 h-4 mr-2" />
+                                        刪除
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
                                 </div>
                               </div>
                             </CardContent>
@@ -635,16 +922,39 @@ export default function UserDB() {
 
               {/* 對話記錄 */}
               <TabsContent value="conversations" className="mt-6">
-                <ScrollArea className="h-[calc(100vh-350px)] md:h-[calc(100vh-400px)]">
+                <ScrollArea className="h-[calc(100vh-500px)] md:h-[calc(100vh-550px)]">
                   {isLoading ? (
                     <div className="text-center py-12">
                       <RefreshCw className="w-8 h-8 mx-auto mb-4 animate-spin text-muted-foreground" />
                       <p className="text-muted-foreground">載入中...</p>
                     </div>
-                  ) : conversations.length === 0 ? (
+                  ) : filteredAndSortedData.length === 0 ? (
                     <div className="text-center py-12">
                       <MessageSquare className="w-12 h-12 mx-auto mb-4 text-muted-foreground dark:text-muted-foreground/70 opacity-50" />
-                      <p className="text-muted-foreground dark:text-muted-foreground/80">暫無對話記錄</p>
+                      <p className="text-muted-foreground dark:text-muted-foreground/80 mb-2">
+                        {searchQuery ? '沒有找到符合條件的對話記錄' : '暫無對話記錄'}
+                      </p>
+                      {searchQuery ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="mt-4"
+                          onClick={() => setSearchQuery('')}
+                        >
+                          清除搜索
+                        </Button>
+                      ) : (
+                        <div className="space-y-2">
+                          <p className="text-sm text-muted-foreground">前往 Mode1 開始對話規劃</p>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => navigate('/mode1')}
+                          >
+                            前往 Mode1
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <>
@@ -661,7 +971,7 @@ export default function UserDB() {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {conversations.map((conv) => (
+                            {filteredAndSortedData.map((conv: Conversation) => (
                               <TableRow key={conv.id}>
                                 <TableCell className="font-medium">
                                   <Badge variant="outline">{conv.mode}</Badge>
@@ -676,22 +986,30 @@ export default function UserDB() {
                                   {formatDate(conv.created_at)}
                                 </TableCell>
                                 <TableCell className="text-right">
-                                  <div className="flex justify-end gap-2">
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      onClick={() => handleView(conv)}
-                                    >
-                                      <Eye className="w-4 h-4" />
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      onClick={() => handleDelete(conv.id, 'conversation')}
-                                    >
-                                      <Trash2 className="w-4 h-4" />
-                                    </Button>
-                                  </div>
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button variant="ghost" size="icon">
+                                        <MoreVertical className="w-4 h-4" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      <DropdownMenuLabel>操作</DropdownMenuLabel>
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem onClick={() => handleView(conv)}>
+                                        <Eye className="w-4 h-4 mr-2" />
+                                        查看詳情
+                                      </DropdownMenuItem>
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem 
+                                        onClick={() => handleDelete(conv.id, 'conversation')}
+                                        className="text-destructive"
+                                        disabled
+                                      >
+                                        <Trash2 className="w-4 h-4 mr-2" />
+                                        刪除（暫不支援）
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
                                 </TableCell>
                               </TableRow>
                             ))}
@@ -700,17 +1018,19 @@ export default function UserDB() {
                       </div>
                       {/* 移動版：卡片布局 */}
                       <div className="md:hidden space-y-4">
-                        {conversations.map((conv) => (
-                          <Card key={conv.id}>
+                        {filteredAndSortedData.map((conv: Conversation) => (
+                          <Card key={conv.id} className="hover:shadow-md transition-shadow">
                             <CardContent className="p-4">
                               <div className="space-y-3">
                                 <div className="flex items-start justify-between gap-2">
                                   <Badge variant="outline" className="text-xs">{conv.mode}</Badge>
                                   <Badge variant="secondary" className="text-xs">{conv.message_count} 則訊息</Badge>
                                 </div>
-                                <p className="text-sm text-muted-foreground line-clamp-2">
-                                  {conv.summary || '無摘要'}
-                                </p>
+                                <div className="bg-muted/50 rounded-lg p-2">
+                                  <p className="text-sm text-muted-foreground line-clamp-2">
+                                    {conv.summary || '無摘要'}
+                                  </p>
+                                </div>
                                 <p className="text-xs text-muted-foreground">
                                   {formatDate(conv.created_at)}
                                 </p>
@@ -723,15 +1043,6 @@ export default function UserDB() {
                                   >
                                     <Eye className="w-4 h-4 mr-1" />
                                     查看
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="flex-1 text-destructive"
-                                    onClick={() => handleDelete(conv.id, 'conversation')}
-                                  >
-                                    <Trash2 className="w-4 h-4 mr-1" />
-                                    刪除
                                   </Button>
                                 </div>
                               </div>
@@ -746,16 +1057,42 @@ export default function UserDB() {
 
               {/* 生成記錄 */}
               <TabsContent value="generations" className="mt-6">
-                <ScrollArea className="h-[calc(100vh-350px)] md:h-[calc(100vh-400px)]">
+                <ScrollArea className="h-[calc(100vh-500px)] md:h-[calc(100vh-550px)]">
                   {isLoading ? (
                     <div className="text-center py-12">
                       <RefreshCw className="w-8 h-8 mx-auto mb-4 animate-spin text-muted-foreground" />
                       <p className="text-muted-foreground">載入中...</p>
                     </div>
-                  ) : generations.length === 0 ? (
+                  ) : filteredAndSortedData.length === 0 ? (
                     <div className="text-center py-12">
                       <Sparkles className="w-12 h-12 mx-auto mb-4 text-muted-foreground dark:text-muted-foreground/70 opacity-50" />
-                      <p className="text-muted-foreground dark:text-muted-foreground/80">暫無生成記錄</p>
+                      <p className="text-muted-foreground dark:text-muted-foreground/80 mb-2">
+                        {searchQuery || platformFilter !== 'all' ? '沒有找到符合條件的生成記錄' : '暫無生成記錄'}
+                      </p>
+                      {searchQuery || platformFilter !== 'all' ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="mt-4"
+                          onClick={() => {
+                            setSearchQuery('');
+                            setPlatformFilter('all');
+                          }}
+                        >
+                          清除篩選
+                        </Button>
+                      ) : (
+                        <div className="space-y-2">
+                          <p className="text-sm text-muted-foreground">前往 Mode3 生成內容</p>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => navigate('/mode3')}
+                          >
+                            前往 Mode3
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <>
@@ -772,7 +1109,7 @@ export default function UserDB() {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {generations.map((gen, index) => (
+                            {filteredAndSortedData.map((gen: Generation, index: number) => (
                               <TableRow key={gen.id || `gen-${index}`}>
                                 <TableCell>
                                   <Badge variant="outline">{gen.platform || '未知'}</Badge>
@@ -785,29 +1122,41 @@ export default function UserDB() {
                                   {formatDate(gen.created_at)}
                                 </TableCell>
                                 <TableCell className="text-right">
-                                  <div className="flex justify-end gap-2">
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      onClick={() => handleView(gen)}
-                                    >
-                                      <Eye className="w-4 h-4" />
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      onClick={() => handleCopy(gen.content)}
-                                    >
-                                      <Copy className="w-4 h-4" />
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      onClick={() => handleDelete(gen.id || `gen-${index}`, 'generation')}
-                                    >
-                                      <Trash2 className="w-4 h-4" />
-                                    </Button>
-                                  </div>
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button variant="ghost" size="icon">
+                                        <MoreVertical className="w-4 h-4" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      <DropdownMenuLabel>操作</DropdownMenuLabel>
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem onClick={() => handleView(gen)}>
+                                        <Eye className="w-4 h-4 mr-2" />
+                                        查看詳情
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => handleCopy(gen.content)}>
+                                        <Copy className="w-4 h-4 mr-2" />
+                                        複製內容
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem onClick={() => {
+                                        setSelectedItem(gen);
+                                        setShowDetail(true);
+                                        handleExport('txt');
+                                      }}>
+                                        <FileDown className="w-4 h-4 mr-2" />
+                                        匯出為 TXT
+                                      </DropdownMenuItem>
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem 
+                                        onClick={() => handleDelete(gen.id || `gen-${index}`, 'generation')}
+                                        className="text-destructive"
+                                      >
+                                        <Trash2 className="w-4 h-4 mr-2" />
+                                        刪除
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
                                 </TableCell>
                               </TableRow>
                             ))}
@@ -816,17 +1165,19 @@ export default function UserDB() {
                       </div>
                       {/* 移動版：卡片布局 */}
                       <div className="md:hidden space-y-4">
-                        {generations.map((gen, index) => (
-                          <Card key={gen.id || `gen-${index}`}>
+                        {filteredAndSortedData.map((gen: Generation, index: number) => (
+                          <Card key={gen.id || `gen-${index}`} className="hover:shadow-md transition-shadow">
                             <CardContent className="p-4">
                               <div className="space-y-3">
                                 <div className="flex items-start justify-between gap-2">
                                   <h3 className="font-medium text-sm flex-1">{gen.topic || '無主題'}</h3>
                                   <Badge variant="outline" className="text-xs">{gen.platform || '未知'}</Badge>
                                 </div>
-                                <p className="text-sm text-muted-foreground line-clamp-3">
-                                  {gen.content || '無內容'}
-                                </p>
+                                <div className="bg-muted/50 rounded-lg p-2">
+                                  <p className="text-sm text-muted-foreground line-clamp-3">
+                                    {gen.content || '無內容'}
+                                  </p>
+                                </div>
                                 <p className="text-xs text-muted-foreground">
                                   {formatDate(gen.created_at)}
                                 </p>
@@ -849,15 +1200,30 @@ export default function UserDB() {
                                     <Copy className="w-4 h-4 mr-1" />
                                     複製
                                   </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="flex-1 text-destructive"
-                                    onClick={() => handleDelete(gen.id || `gen-${index}`, 'generation')}
-                                  >
-                                    <Trash2 className="w-4 h-4 mr-1" />
-                                    刪除
-                                  </Button>
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button variant="ghost" size="sm">
+                                        <MoreVertical className="w-4 h-4" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      <DropdownMenuItem onClick={() => {
+                                        setSelectedItem(gen);
+                                        setShowDetail(true);
+                                        handleExport('txt');
+                                      }}>
+                                        <FileDown className="w-4 h-4 mr-2" />
+                                        匯出
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem 
+                                        onClick={() => handleDelete(gen.id || `gen-${index}`, 'generation')}
+                                        className="text-destructive"
+                                      >
+                                        <Trash2 className="w-4 h-4 mr-2" />
+                                        刪除
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
                                 </div>
                               </div>
                             </CardContent>
@@ -871,17 +1237,37 @@ export default function UserDB() {
 
               {/* IP 人設規劃結果 */}
               <TabsContent value="ip-planning" className="mt-6">
-                <ScrollArea className="h-[calc(100vh-350px)] md:h-[calc(100vh-400px)]">
+                <ScrollArea className="h-[calc(100vh-500px)] md:h-[calc(100vh-550px)]">
                   {isLoading ? (
                     <div className="text-center py-12">
                       <RefreshCw className="w-8 h-8 mx-auto mb-4 animate-spin text-muted-foreground" />
                       <p className="text-muted-foreground">載入中...</p>
                     </div>
-                  ) : ipPlanningResults.length === 0 ? (
+                  ) : filteredAndSortedData.length === 0 ? (
                     <div className="text-center py-12">
                       <Sparkles className="w-12 h-12 mx-auto mb-4 text-muted-foreground dark:text-muted-foreground/70 opacity-50" />
-                      <p className="text-muted-foreground dark:text-muted-foreground/80">暫無 IP 人設規劃記錄</p>
-                      <p className="text-sm text-muted-foreground dark:text-muted-foreground/70 mt-2">前往 Mode1 頁面生成並儲存內容</p>
+                      <p className="text-muted-foreground dark:text-muted-foreground/80">
+                        {searchQuery ? '沒有找到符合條件的 IP 規劃記錄' : '暫無 IP 人設規劃記錄'}
+                      </p>
+                      {searchQuery ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="mt-4"
+                          onClick={() => setSearchQuery('')}
+                        >
+                          清除搜索
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="mt-4"
+                          onClick={() => navigate('/mode1')}
+                        >
+                          前往 Mode1 生成內容
+                        </Button>
+                      )}
                     </div>
                   ) : (
                     <>
@@ -897,7 +1283,7 @@ export default function UserDB() {
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {ipPlanningResults.map((result) => {
+                            {filteredAndSortedData.map((result: IPPlanningResult) => {
                               const typeLabels: Record<string, string> = {
                                 'profile': '帳號定位',
                                 'plan': '選題規劃',
@@ -913,29 +1299,41 @@ export default function UserDB() {
                                     {formatDate(result.created_at)}
                                   </TableCell>
                                   <TableCell className="text-right">
-                                    <div className="flex justify-end gap-2">
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() => handleView(result)}
-                                      >
-                                        <Eye className="w-4 h-4" />
-                                      </Button>
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() => handleCopy(result.content)}
-                                      >
-                                        <Copy className="w-4 h-4" />
-                                      </Button>
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() => handleDelete(result.id, 'ip-planning')}
-                                      >
-                                        <Trash2 className="w-4 h-4" />
-                                      </Button>
-                                    </div>
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="icon">
+                                          <MoreVertical className="w-4 h-4" />
+                                        </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end">
+                                        <DropdownMenuLabel>操作</DropdownMenuLabel>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem onClick={() => handleView(result)}>
+                                          <Eye className="w-4 h-4 mr-2" />
+                                          查看詳情
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => handleCopy(result.content)}>
+                                          <Copy className="w-4 h-4 mr-2" />
+                                          複製內容
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => {
+                                          setSelectedItem(result);
+                                          setShowDetail(true);
+                                          handleExport('txt');
+                                        }}>
+                                          <FileDown className="w-4 h-4 mr-2" />
+                                          匯出為 TXT
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem 
+                                          onClick={() => handleDelete(result.id, 'ip-planning')}
+                                          className="text-destructive"
+                                        >
+                                          <Trash2 className="w-4 h-4 mr-2" />
+                                          刪除
+                                        </DropdownMenuItem>
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
                                   </TableCell>
                                 </TableRow>
                               );
@@ -945,19 +1343,24 @@ export default function UserDB() {
                       </div>
                       {/* 移動版：卡片布局 */}
                       <div className="md:hidden space-y-4">
-                        {ipPlanningResults.map((result) => {
+                        {filteredAndSortedData.map((result: IPPlanningResult) => {
                           const typeLabels: Record<string, string> = {
                             'profile': '帳號定位',
                             'plan': '選題規劃',
                             'scripts': '腳本'
                           };
                           return (
-                            <Card key={result.id}>
+                            <Card key={result.id} className="hover:shadow-md transition-shadow">
                               <CardContent className="p-4">
                                 <div className="space-y-3">
                                   <div className="flex items-start justify-between gap-2">
                                     <h3 className="font-medium text-sm flex-1">{result.title || '未命名'}</h3>
                                     <Badge variant="outline" className="text-xs">{typeLabels[result.result_type] || result.result_type}</Badge>
+                                  </div>
+                                  <div className="bg-muted/50 rounded-lg p-2">
+                                    <p className="text-xs text-muted-foreground line-clamp-2">
+                                      {result.content.substring(0, 100)}...
+                                    </p>
                                   </div>
                                   <p className="text-xs text-muted-foreground">
                                     {formatDate(result.created_at)}
@@ -981,15 +1384,30 @@ export default function UserDB() {
                                       <Copy className="w-4 h-4 mr-1" />
                                       複製
                                     </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="flex-1 text-destructive"
-                                      onClick={() => handleDelete(result.id, 'ip-planning')}
-                                    >
-                                      <Trash2 className="w-4 h-4 mr-1" />
-                                      刪除
-                                    </Button>
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="sm">
+                                          <MoreVertical className="w-4 h-4" />
+                                        </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end">
+                                        <DropdownMenuItem onClick={() => {
+                                          setSelectedItem(result);
+                                          setShowDetail(true);
+                                          handleExport('txt');
+                                        }}>
+                                          <FileDown className="w-4 h-4 mr-2" />
+                                          匯出
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem 
+                                          onClick={() => handleDelete(result.id, 'ip-planning')}
+                                          className="text-destructive"
+                                        >
+                                          <Trash2 className="w-4 h-4 mr-2" />
+                                          刪除
+                                        </DropdownMenuItem>
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
                                   </div>
                                 </div>
                               </CardContent>

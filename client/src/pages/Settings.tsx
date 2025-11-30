@@ -76,7 +76,7 @@ const Settings: React.FC = () => {
       setAvailableModels(data);
       // 如果有已保存的 key，設置對應的模型
       if (keys.length > 0 && keys[0].provider === provider) {
-        setModelName(keys[0].model_name || '');
+        setModelName(keys[0].model_name || '__default__');
       }
     } catch (error) {
       console.error('載入模型列表失敗:', error);
@@ -94,7 +94,7 @@ const Settings: React.FC = () => {
     if (existingKey && existingKey.model_name) {
       setModelName(existingKey.model_name);
     } else {
-      setModelName('');
+      setModelName('__default__');
     }
   }, [provider, keys]);
 
@@ -117,7 +117,7 @@ const Settings: React.FC = () => {
       const response = await apiPost<{ valid: boolean; message?: string; error?: string }>('/api/user/llm-keys/test', {
         provider,
         api_key: apiKey,
-        model_name: modelName || undefined
+        model_name: modelName && modelName !== '__default__' ? modelName : undefined
       });
 
       if (response.valid) {
@@ -157,7 +157,7 @@ const Settings: React.FC = () => {
         user_id: user.user_id,
         provider,
         api_key: apiKey,
-        model_name: modelName || undefined
+        model_name: modelName && modelName !== '__default__' ? modelName : undefined
       });
 
       toast.success('API Key 已保存');
@@ -378,11 +378,15 @@ const Settings: React.FC = () => {
                 {availableModels && (
                   <div>
                     <Label htmlFor="model">模型（可選）</Label>
-                    <Select value={modelName} onValueChange={setModelName}>
+                    <Select 
+                      value={modelName || undefined} 
+                      onValueChange={(value) => setModelName(value || '')}
+                    >
                       <SelectTrigger id="model">
                         <SelectValue placeholder="使用系統預設" />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="__default__">使用系統預設</SelectItem>
                         {availableModels[provider].map((model) => (
                           <SelectItem key={model.value} value={model.value}>
                             {model.label}
