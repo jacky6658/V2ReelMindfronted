@@ -32,7 +32,8 @@ import {
   Copy,
   Maximize2,
   ArrowLeft,
-  Key
+  Key,
+  ChevronDown
 } from 'lucide-react';
 import { apiPost, apiGet, apiDelete, apiStream } from '@/lib/api-client';
 import { useNavigate } from 'react-router-dom';
@@ -179,7 +180,7 @@ interface SavedResult {
   id: string;
   title: string;
   content: string;
-  category: 'positioning' | 'topics' | 'script';
+  category: 'positioning' | 'topics' | 'planning' | 'script';
   timestamp: Date;
   isEditing?: boolean;
   savedToDB?: boolean; // 標記是否已儲存到資料庫
@@ -198,7 +199,7 @@ export default function Mode1() {
   const [showInstructions, setShowInstructions] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [savedResults, setSavedResults] = useState<SavedResult[]>([]);
-  const [resultTab, setResultTab] = useState<'positioning' | 'topics' | 'script'>('positioning');
+  const [resultTab, setResultTab] = useState<'positioning' | 'topics' | 'planning' | 'script'>('positioning');
   const [expandedResult, setExpandedResult] = useState<SavedResult | null>(null);
   const [showSubscriptionDialog, setShowSubscriptionDialog] = useState(false);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
@@ -207,6 +208,8 @@ export default function Mode1() {
   const [showLlmKeyDialog, setShowLlmKeyDialog] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);  // 用於監聽滾動
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false);  // 是否顯示滾動到底部按鈕
 
   // 快速按鈕
   const quickButtons = [
@@ -274,17 +277,114 @@ export default function Mode1() {
     checkPermission();
   }, [isLoggedIn, user, navigate]);
 
+  // 獲取 localStorage 鍵名
+  const getStorageKey = () => `mode1_saved_results_${user?.user_id || 'guest'}`;
+
+  // 從 localStorage 載入暫存的結果
+  const loadFromLocalStorage = (): SavedResult[] => {
+    try {
+      if (!user?.user_id) return [];
+      const storageKey = getStorageKey();
+      const stored = localStorage.getItem(storageKey);
+      if (!stored) return [];
+      const parsed = JSON.parse(stored);
+      // 將 timestamp 字串轉換回 Date 對象
+      return parsed.map((item: any) => ({
+        ...item,
+        timestamp: new Date(item.timestamp),
+        savedToDB: false // localStorage 中的都是未儲存到資料庫的
+      }));
+    } catch (error) {
+      console.error('從 localStorage 載入失敗:', error);
+      return [];
+    }
+  };
+
+  // 保存到 localStorage
+  const saveToLocalStorage = (results: SavedResult[]) => {
+    try {
+      if (!user?.user_id) return;
+      const storageKey = getStorageKey();
+      // 只保存未儲存到資料庫的結果
+      const localOnly = results.filter(r => !r.savedToDB);
+      localStorage.setItem(storageKey, JSON.stringify(localOnly));
+    } catch (error) {
+      console.error('保存到 localStorage 失敗:', error);
+    }
+  };
+
   // 載入歷史記錄（僅在有權限時載入）
   useEffect(() => {
     if (hasPermission === true) {
       loadHistory();
+      // 同時載入生成結果（從資料庫和 localStorage）
+      loadSavedResults();
     }
-  }, [activeTab, hasPermission]);
+  }, [activeTab, hasPermission, user?.user_id]);
 
   // 自動滾動到底部
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // 滾動到底部後隱藏按鈕
+    setShowScrollToBottom(false);
   }, [messages]);
+
+  // 檢查是否在底部
+  const checkIfAtBottom = () => {
+    if (!scrollAreaRef.current) return;
+    
+    const viewport = scrollAreaRef.current.querySelector('[data-slot="scroll-area-viewport"]') as HTMLElement;
+    if (!viewport) return;
+    
+    const threshold = 100; // 距離底部 100px 以內視為在底部
+    const isAtBottom = 
+      viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < threshold;
+    
+    setShowScrollToBottom(!isAtBottom);
+  };
+
+  // 滾動到底部
+  const scrollToBottom = () => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+    // 也嘗試直接滾動 viewport
+    if (scrollAreaRef.current) {
+      const viewport = scrollAreaRef.current.querySelector('[data-slot="scroll-area-viewport"]') as HTMLElement;
+      if (viewport) {
+        viewport.scrollTo({
+          top: viewport.scrollHeight,
+          behavior: 'smooth'
+        });
+      }
+    }
+    setShowScrollToBottom(false);
+  };
+
+  // 監聽滾動事件
+  useEffect(() => {
+    if (!scrollAreaRef.current) return;
+    
+    const viewport = scrollAreaRef.current.querySelector('[data-slot="scroll-area-viewport"]') as HTMLElement;
+    if (!viewport) return;
+    
+    // 初始檢查
+    checkIfAtBottom();
+    
+    // 監聽滾動事件
+    viewport.addEventListener('scroll', checkIfAtBottom);
+    
+    // 監聽內容變化（當訊息更新時）
+    const resizeObserver = new ResizeObserver(() => {
+      checkIfAtBottom();
+    });
+    resizeObserver.observe(viewport);
+    
+    return () => {
+      viewport.removeEventListener('scroll', checkIfAtBottom);
+      resizeObserver.disconnect();
+    };
+  }, [messages]); // 當訊息更新時重新檢查
 
   // 載入歷史記錄
   const loadHistory = async () => {
@@ -301,44 +401,58 @@ export default function Mode1() {
     }
   };
 
-  // 載入生成結果（從資料庫和本地狀態）
+  // 載入生成結果（從資料庫和 localStorage）
   const loadSavedResults = async () => {
     try {
       if (!user?.user_id) return;
       
-      const data = await apiGet<{ results: HistoryItem[] }>('/api/ip-planning/my');
+      // 1. 從資料庫載入
+      let dbResults: SavedResult[] = [];
+      try {
+        const data = await apiGet<{ results: HistoryItem[] }>('/api/ip-planning/my');
+        
+        // 將資料庫結果轉換為 SavedResult 格式
+        dbResults = data.results.map(item => {
+          // 映射 result_type 到 category
+          const categoryMap: Record<string, 'positioning' | 'topics' | 'planning' | 'script'> = {
+            'profile': 'positioning',
+            'plan': 'planning', // 14天規劃
+            'planning': 'planning', // 兼容新的 type 值
+            'topics': 'topics', // 選題方向
+            'scripts': 'script'
+          };
+          
+          return {
+            id: item.id,
+            title: item.title,
+            content: item.content,
+            category: categoryMap[item.type] || 'positioning',
+            timestamp: new Date(item.created_at),
+            isEditing: false,
+            savedToDB: true // 標記為已儲存到資料庫
+          };
+        });
+      } catch (error) {
+        console.error('從資料庫載入失敗:', error);
+      }
       
-      // 將資料庫結果轉換為 SavedResult 格式
-      const dbResults: SavedResult[] = data.results.map(item => {
-        // 映射 result_type 到 category
-        const categoryMap: Record<string, 'positioning' | 'topics' | 'script'> = {
-          'profile': 'positioning',
-          'plan': 'topics',
-          'scripts': 'script'
-        };
-        
-        return {
-          id: item.id,
-          title: item.title,
-          content: item.content,
-          category: categoryMap[item.type] || 'positioning',
-          timestamp: new Date(item.created_at),
-          isEditing: false,
-          savedToDB: true // 標記為已儲存到資料庫
-        };
-      });
+      // 2. 從 localStorage 載入
+      const localResults = loadFromLocalStorage();
       
-      // 合併資料庫結果和本地結果（避免重複）
-      setSavedResults(prev => {
-        const localIds = new Set(prev.map(r => r.id));
-        const dbIds = new Set(dbResults.map(r => r.id));
-        
-        // 保留本地未儲存到資料庫的結果
-        const localOnly = prev.filter(r => !r.savedToDB && !dbIds.has(r.id));
-        
-        // 合併：資料庫結果 + 本地未儲存的結果
-        return [...dbResults, ...localOnly];
-      });
+      // 3. 合併結果（避免重複）
+      const dbIds = new Set(dbResults.map(r => r.id));
+      const localIds = new Set(localResults.map(r => r.id));
+      
+      // 過濾掉已經在資料庫中的本地結果（避免重複）
+      const localOnly = localResults.filter(r => !dbIds.has(r.id));
+      
+      // 合併：資料庫結果 + localStorage 結果
+      const allResults = [...dbResults, ...localOnly];
+      
+      setSavedResults(allResults);
+      
+      // 更新 localStorage（清理已儲存到資料庫的項目）
+      saveToLocalStorage(allResults);
     } catch (error) {
       console.error('載入生成結果失敗:', error);
       // 不顯示錯誤訊息，避免打擾用戶
@@ -352,11 +466,17 @@ export default function Mode1() {
   };
 
   // 根據對話內容判斷 category
-  const detectCategory = (userMessage: string, aiResponse: string): 'positioning' | 'topics' | 'script' => {
+  const detectCategory = (userMessage: string, aiResponse: string): 'positioning' | 'topics' | 'planning' | 'script' => {
     const combinedText = (userMessage + ' ' + aiResponse).toLowerCase();
     
-    // 檢測選題方向相關關鍵字（優先級較高）
-    const topicsKeywords = ['14天', '14 天', '選題', '選題方向', '主題', '內容規劃', '規劃', '內容方向', 'topics'];
+    // 檢測 14天規劃相關關鍵字（優先級最高）
+    const planningKeywords = ['14天', '14 天', '14天規劃', '14 天規劃', '規劃', '內容規劃', 'planning'];
+    if (planningKeywords.some(keyword => combinedText.includes(keyword))) {
+      return 'planning';
+    }
+    
+    // 檢測選題方向相關關鍵字
+    const topicsKeywords = ['選題', '選題方向', '主題', '內容方向', 'topics'];
     if (topicsKeywords.some(keyword => combinedText.includes(keyword))) {
       return 'topics';
     }
@@ -378,17 +498,30 @@ export default function Mode1() {
   };
 
   // 自動儲存結果
-  const autoSaveResult = (content: string, category: 'positioning' | 'topics' | 'script') => {
+  const autoSaveResult = (content: string, category: 'positioning' | 'topics' | 'planning' | 'script') => {
+    const categoryTitles: Record<'positioning' | 'topics' | 'planning' | 'script', string> = {
+      'positioning': '帳號定位',
+      'topics': '選題方向',
+      'planning': '14天規劃',
+      'script': '短影音腳本'
+    };
+    
     const newResult: SavedResult = {
       id: Date.now().toString(),
-      title: `${category === 'positioning' ? '帳號定位' : category === 'topics' ? '選題方向' : '短影音腳本'} - ${new Date().toLocaleString('zh-TW')}`,
+      title: `${categoryTitles[category]} - ${new Date().toLocaleString('zh-TW')}`,
       content: content,
       category: category,
       timestamp: new Date(),
-      isEditing: false
+      isEditing: false,
+      savedToDB: false // 標記為未儲存到資料庫
     };
 
-    setSavedResults(prev => [newResult, ...prev]);
+    setSavedResults(prev => {
+      const updated = [newResult, ...prev];
+      // 同時保存到 localStorage
+      saveToLocalStorage(updated);
+      return updated;
+    });
     toast.success('已自動儲存到生成結果');
   };
 
@@ -567,9 +700,14 @@ export default function Mode1() {
       toast.success('已儲存到創作者資料庫');
       
       // 標記為已儲存到資料庫，但不移除（保留在生成結果中）
-      setSavedResults(prev => prev.map(r => 
-        r.id === result.id ? { ...r, savedToDB: true } : r
-      ));
+      setSavedResults(prev => {
+        const updated = prev.map(r => 
+          r.id === result.id ? { ...r, savedToDB: true } : r
+        );
+        // 更新 localStorage（已儲存到資料庫的項目會從 localStorage 移除）
+        saveToLocalStorage(updated);
+        return updated;
+      });
       
       // 發送自定義事件，通知 UserDB 頁面刷新資料
       window.dispatchEvent(new CustomEvent('userdb-data-updated', {
@@ -680,118 +818,132 @@ export default function Mode1() {
               </CardDescription>
             </CardHeader>
 
-            {/* 訊息列表 */}
-            <ScrollArea className="flex-1 min-h-0">
-              <div className="space-y-6 p-6">
-                {messages.length === 0 && (
-                  <div className="text-center text-muted-foreground py-12">
-                    <Sparkles className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p>開始對話，讓 AI 幫你規劃</p>
-                    <p className="text-sm mt-2">點擊上方快速按鈕開始</p>
-                  </div>
-                )}
+            {/* 訊息列表 - 添加 ref 和相對定位 */}
+            <div className="flex-1 min-h-0 relative" ref={scrollAreaRef}>
+              <ScrollArea className="h-full">
+                <div className="space-y-6 p-6">
+                  {messages.length === 0 && (
+                    <div className="text-center text-muted-foreground py-12">
+                      <Sparkles className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                      <p>開始對話，讓 AI 幫你規劃</p>
+                      <p className="text-sm mt-2">點擊上方快速按鈕開始</p>
+                    </div>
+                  )}
 
-                {messages.map((message, index) => (
-                  <div
-                    key={index}
-                    className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div className="flex flex-col gap-2 max-w-[85%] md:max-w-[75%]">
-                      <div
-                        className={`rounded-xl p-4 md:p-5 ${
-                          message.role === 'user'
-                            ? 'bg-primary text-primary-foreground ml-auto'
-                            : 'bg-muted'
-                        }`}
-                      >
-                        {message.role === 'assistant' ? (
-                          <FormatText content={message.content} />
-                        ) : (
-                          <div className="whitespace-pre-wrap break-words">
-                            {message.content}
+                  {messages.map((message, index) => (
+                    <div
+                      key={index}
+                      className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                    >
+                      <div className="flex flex-col gap-2 max-w-[85%] md:max-w-[75%]">
+                        <div
+                          className={`rounded-xl p-4 md:p-5 ${
+                            message.role === 'user'
+                              ? 'bg-primary text-primary-foreground ml-auto'
+                              : 'bg-muted'
+                          }`}
+                        >
+                          {message.role === 'assistant' ? (
+                            <FormatText content={message.content} />
+                          ) : (
+                            <div className="whitespace-pre-wrap break-words">
+                              {message.content}
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* AI 訊息下方的操作按鈕 */}
+                        {message.role === 'assistant' && message.content.length > 100 && (
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                // 找到對應的用戶訊息（用於判斷 category）
+                                // 往前找最近的用戶訊息
+                                let userMessage = '';
+                                for (let i = index - 1; i >= 0; i--) {
+                                  if (messages[i].role === 'user') {
+                                    userMessage = messages[i].content;
+                                    break;
+                                  }
+                                }
+                                const category = detectCategory(userMessage, message.content);
+                                autoSaveResult(message.content, category);
+                              }}
+                              className="text-xs"
+                            >
+                              <Save className="w-3 h-3 mr-1" />
+                              儲存
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                if (message.prompt) {
+                                  setInput(message.prompt);
+                                  handleSend();
+                                }
+                              }}
+                              disabled={!message.prompt || isLoading}
+                              className="text-xs"
+                            >
+                              <RefreshCw className="w-3 h-3 mr-1" />
+                              換一個
+                            </Button>
                           </div>
                         )}
                       </div>
-                      
-                      {/* AI 訊息下方的操作按鈕 */}
-                      {message.role === 'assistant' && message.content.length > 100 && (
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              // 找到對應的用戶訊息（用於判斷 category）
-                              // 往前找最近的用戶訊息
-                              let userMessage = '';
-                              for (let i = index - 1; i >= 0; i--) {
-                                if (messages[i].role === 'user') {
-                                  userMessage = messages[i].content;
-                                  break;
-                                }
-                              }
-                              const category = detectCategory(userMessage, message.content);
-                              autoSaveResult(message.content, category);
-                            }}
-                            className="text-xs"
-                          >
-                            <Save className="w-3 h-3 mr-1" />
-                            儲存
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              if (message.prompt) {
-                                setInput(message.prompt);
-                                handleSend();
-                              }
-                            }}
-                            disabled={!message.prompt || isLoading}
-                            className="text-xs"
-                          >
-                            <RefreshCw className="w-3 h-3 mr-1" />
-                            換一個
-                          </Button>
-                        </div>
-                      )}
                     </div>
-                  </div>
-                ))}
+                  ))}
 
-                {/* AI 思考中動畫 */}
-                {isLoading && (
-                  <div className="flex justify-start">
-                    <div className="max-w-[80%] bg-muted rounded-lg p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="relative w-8 h-8 flex-shrink-0">
-                          {/* 旋轉的載入動畫 */}
-                          <div className="absolute inset-0 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="text-sm font-medium text-foreground">AI 思考中</span>
-                          <div className="flex gap-1 mt-1">
-                            {[0, 1, 2].map((i) => (
-                              <div
-                                key={i}
-                                className="w-1.5 h-1.5 bg-primary/50 rounded-full animate-pulse"
-                                style={{
-                                  animationDelay: `${i * 0.2}s`,
-                                  animationDuration: '1s'
-                                }}
-                              />
-                            ))}
+                  {/* AI 思考中動畫 */}
+                  {isLoading && (
+                    <div className="flex justify-start">
+                      <div className="max-w-[80%] bg-muted rounded-lg p-4">
+                        <div className="flex items-center gap-3">
+                          <div className="relative w-8 h-8 flex-shrink-0">
+                            {/* 旋轉的載入動畫 */}
+                            <div className="absolute inset-0 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-sm font-medium text-foreground">AI 思考中</span>
+                            <div className="flex gap-1 mt-1">
+                              {[0, 1, 2].map((i) => (
+                                <div
+                                  key={i}
+                                  className="w-1.5 h-1.5 bg-primary/50 rounded-full animate-pulse"
+                                  style={{
+                                    animationDelay: `${i * 0.2}s`,
+                                    animationDuration: '1s'
+                                  }}
+                                />
+                              ))}
+                            </div>
                           </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                <div ref={messagesEndRef} />
-              </div>
-            </ScrollArea>
+                  <div ref={messagesEndRef} />
+                </div>
+              </ScrollArea>
+              
+              {/* 滾動到底部按鈕 - 浮動在右下角 */}
+              {showScrollToBottom && (
+                <Button
+                  onClick={scrollToBottom}
+                  size="icon"
+                  className="absolute bottom-4 right-4 rounded-full shadow-lg z-10 h-10 w-10 bg-primary hover:bg-primary/90 animate-in fade-in slide-in-from-bottom-2"
+                  aria-label="滾動到底部"
+                >
+                  <ChevronDown className="w-5 h-5" />
+                </Button>
+              )}
+            </div>
 
-            {/* 輸入區 */}
+            {/* 輸入區 - 確保固定在底部 */}
             <div className="border-t shrink-0 bg-background">
               {/* 快速按鈕 */}
               <div className="border-b p-3 md:p-4 bg-muted/30">
@@ -942,8 +1094,9 @@ export default function Mode1() {
           </DialogHeader>
 
           <Tabs value={resultTab} onValueChange={(v) => setResultTab(v as any)} className="flex-1 flex flex-col overflow-hidden">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="positioning">帳號定位</TabsTrigger>
+              <TabsTrigger value="planning">14天規劃</TabsTrigger>
               <TabsTrigger value="topics">選題方向</TabsTrigger>
               <TabsTrigger value="script">短影音腳本</TabsTrigger>
             </TabsList>
@@ -954,7 +1107,12 @@ export default function Mode1() {
                   {filteredResults.length === 0 && (
                     <div className="text-center text-muted-foreground py-12">
                       <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                      <p>暫無{resultTab === 'positioning' ? '帳號定位' : resultTab === 'topics' ? '選題方向' : '短影音腳本'}結果</p>
+                      <p>暫無{
+                        resultTab === 'positioning' ? '帳號定位' : 
+                        resultTab === 'planning' ? '14天規劃' : 
+                        resultTab === 'topics' ? '選題方向' : 
+                        '短影音腳本'
+                      }結果</p>
                       <p className="text-sm mt-2">在對話中說「儲存」即可自動保存結果</p>
                     </div>
                   )}
