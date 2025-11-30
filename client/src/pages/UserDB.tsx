@@ -100,7 +100,7 @@ type SortOrder = 'asc' | 'desc';
 export default function UserDB() {
   const navigate = useNavigate();
   const { logout, user } = useAuthStore();
-  const [activeTab, setActiveTab] = useState<'scripts' | 'conversations' | 'generations' | 'ip-planning'>('scripts');
+  const [activeTab, setActiveTab] = useState<'scripts' | 'conversations' | 'generations' | 'ip-planning' | 'planning'>('scripts');
   const [scripts, setScripts] = useState<Script[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [generations, setGenerations] = useState<Generation[]>([]);
@@ -349,8 +349,26 @@ export default function UserDB() {
   const handleExport = async (format: 'txt' | 'pdf' | 'word') => {
     if (!selectedItem) return;
     
-    const content = selectedItem.content || '';
-    const title = selectedItem.title || 'script';
+    // 根據不同類型獲取內容和標題
+    let content = '';
+    let title = '';
+    
+    if (selectedItem.title) {
+      // Script, IPPlanningResult
+      title = selectedItem.title;
+      content = selectedItem.content || '';
+    } else if (selectedItem.topic) {
+      // Generation
+      title = selectedItem.topic;
+      content = selectedItem.content || '';
+    } else if (selectedItem.summary) {
+      // Conversation - 對話記錄目前只有摘要，無法匯出完整內容
+      title = selectedItem.mode || '對話記錄';
+      content = `對話類型：${selectedItem.mode || '未知'}\n訊息數：${selectedItem.message_count || 0}\n摘要：\n${selectedItem.summary || '無摘要'}`;
+    } else {
+      title = '內容';
+      content = selectedItem.content || '';
+    }
     
     if (format === 'txt') {
       const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
@@ -419,9 +437,30 @@ export default function UserDB() {
   const handleShare = async () => {
     if (!selectedItem) return;
     
+    // 根據不同類型獲取標題和內容
+    let title = '';
+    let text = '';
+    
+    if (selectedItem.title) {
+      // Script, IPPlanningResult
+      title = selectedItem.title;
+      text = selectedItem.content?.substring(0, 100) || '';
+    } else if (selectedItem.topic) {
+      // Generation
+      title = selectedItem.topic;
+      text = selectedItem.content?.substring(0, 100) || '';
+    } else if (selectedItem.summary) {
+      // Conversation
+      title = selectedItem.mode || '對話記錄';
+      text = selectedItem.summary.substring(0, 100) || '';
+    } else {
+      title = '內容';
+      text = selectedItem.content?.substring(0, 100) || '';
+    }
+    
     const shareData = {
-      title: selectedItem.title || '腳本',
-      text: selectedItem.content?.substring(0, 100) + '...' || '',
+      title: title || '內容',
+      text: text ? text + '...' : '',
       url: window.location.href
     };
     
@@ -474,13 +513,18 @@ export default function UserDB() {
   }, [scripts, generations]);
 
   // 统计数据
-  const stats = useMemo(() => ({
-    scripts: scripts.length,
-    conversations: conversations.length,
-    generations: generations.length,
-    ipPlanning: ipPlanningResults.length,
-    total: scripts.length + conversations.length + generations.length + ipPlanningResults.length
-  }), [scripts, conversations, generations, ipPlanningResults]);
+  const stats = useMemo(() => {
+    const planningResults = ipPlanningResults.filter(r => r.result_type === 'plan');
+    const otherIPResults = ipPlanningResults.filter(r => r.result_type !== 'plan');
+    return {
+      scripts: scripts.length,
+      conversations: conversations.length,
+      generations: generations.length,
+      ipPlanning: otherIPResults.length,
+      planning: planningResults.length,
+      total: scripts.length + conversations.length + generations.length + ipPlanningResults.length
+    };
+  }, [scripts, conversations, generations, ipPlanningResults]);
 
   // 过滤和排序后的数据
   const filteredAndSortedData = useMemo(() => {
@@ -497,7 +541,12 @@ export default function UserDB() {
         data = [...generations];
         break;
       case 'ip-planning':
-        data = [...ipPlanningResults];
+        // 只顯示非 plan 類型的結果
+        data = [...ipPlanningResults.filter(r => r.result_type !== 'plan')];
+        break;
+      case 'planning':
+        // 只顯示 plan 類型的結果（14 天規劃）
+        data = [...ipPlanningResults.filter(r => r.result_type === 'plan')];
         break;
     }
 
@@ -643,6 +692,30 @@ export default function UserDB() {
           </Card>
         </div>
 
+        {/* 功能存取說明 */}
+        <Card className="mb-6 border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5">
+                <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-sm mb-2 text-blue-900 dark:text-blue-100">資料存取說明</h3>
+                <div className="text-xs text-blue-800 dark:text-blue-200 space-y-1">
+                  <p>• <strong>我的腳本</strong>：存取您在 Mode3 生成的腳本內容</p>
+                  <p>• <strong>對話記錄</strong>：存取您在 Mode1 的對話摘要（不包含完整對話內容）</p>
+                  <p>• <strong>生成記錄</strong>：存取您在 Mode3 生成的選題和定位內容</p>
+                  <p>• <strong>IP 規劃</strong>：存取您在 Mode1 生成的帳號定位和腳本內容</p>
+                  <p>• <strong>14 天規劃</strong>：存取您在 Mode1 生成的 14 天短影音規劃內容</p>
+                  <p className="mt-2 text-blue-700 dark:text-blue-300">所有資料僅儲存在您的帳號中，我們不會與第三方分享您的內容。</p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle>我的資料</CardTitle>
@@ -697,7 +770,7 @@ export default function UserDB() {
                       <SelectItem value="platform-desc">平台：Z-A</SelectItem>
                     </>
                   )}
-                  {activeTab === 'ip-planning' && (
+                  {(activeTab === 'ip-planning' || activeTab === 'planning') && (
                     <>
                       <SelectItem value="type-asc">類型：A-Z</SelectItem>
                       <SelectItem value="type-desc">類型：Z-A</SelectItem>
@@ -712,7 +785,7 @@ export default function UserDB() {
               setSearchQuery('');
               setPlatformFilter('all');
             }}>
-              <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 gap-2">
+              <TabsList className="grid w-full grid-cols-2 md:grid-cols-5 gap-2">
                 <TabsTrigger value="scripts" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
                   <FileText className="w-3 h-3 md:w-4 md:h-4" />
                   <span className="hidden sm:inline">我的腳本</span>
@@ -732,6 +805,11 @@ export default function UserDB() {
                   <Sparkles className="w-3 h-3 md:w-4 md:h-4" />
                   <span className="hidden sm:inline">IP 人設規劃</span>
                   <span className="sm:hidden">IP規劃</span>
+                </TabsTrigger>
+                <TabsTrigger value="planning" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
+                  <Sparkles className="w-3 h-3 md:w-4 md:h-4" />
+                  <span className="hidden sm:inline">14 天規劃</span>
+                  <span className="sm:hidden">規劃</span>
                 </TabsTrigger>
               </TabsList>
 
@@ -1426,26 +1504,36 @@ export default function UserDB() {
 
       {/* 詳情 Dialog */}
       <Dialog open={showDetail} onOpenChange={setShowDetail}>
-        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto w-[95vw] md:w-full">
-          <DialogHeader>
+        <DialogContent className="max-w-7xl max-h-[95vh] overflow-hidden flex flex-col w-[95vw] md:w-full">
+          <DialogHeader className="shrink-0">
             <DialogTitle>{selectedItem?.title || '詳情'}</DialogTitle>
             <DialogDescription>
               {selectedItem?.created_at && `建立時間：${formatDate(selectedItem.created_at)}`}
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4">
-            <ScriptEditor
-              content={selectedItem?.content || ''}
-              title={selectedItem?.title}
-              onSave={handleSaveContent}
-              onExport={handleExport}
-              onShare={handleShare}
-              readOnly={false}
-              showToolbar={true}
-            />
+          <div className="flex-1 overflow-hidden flex flex-col min-h-0 space-y-4">
+            <div className="flex-1 min-h-0 overflow-y-auto">
+              <ScriptEditor
+                content={
+                  selectedItem?.content || 
+                  (selectedItem?.summary ? `對話類型：${selectedItem.mode || '未知'}\n訊息數：${selectedItem.message_count || 0}\n\n摘要：\n${selectedItem.summary}`) || 
+                  ''
+                }
+                title={
+                  selectedItem?.title || 
+                  selectedItem?.topic || 
+                  (selectedItem?.mode ? `${selectedItem.mode} - 對話記錄` : '詳情')
+                }
+                onSave={handleSaveContent}
+                onExport={handleExport}
+                onShare={handleShare}
+                readOnly={selectedItem?.summary !== undefined} // 對話記錄為唯讀
+                showToolbar={true}
+              />
+            </div>
             
-            <div className="flex justify-end gap-2">
+            <div className="flex justify-end gap-2 shrink-0 pt-4 border-t">
               <Button onClick={() => setShowDetail(false)}>
                 關閉
               </Button>

@@ -717,7 +717,24 @@ export default function Mode1() {
         }
       });
 
-      toast.success('已儲存到創作者資料庫');
+      // 根據類型告訴用戶存在哪裡
+      let locationHint = '';
+      if (result_type === 'profile') {
+        locationHint = '可在「我的資料」→「IP 人設規劃」標籤頁查看';
+      } else if (result_type === 'plan') {
+        locationHint = '可在「我的資料」→「14 天規劃」標籤頁查看';
+      } else if (result_type === 'scripts') {
+        locationHint = '可在「我的資料」→「IP 人設規劃」標籤頁查看';
+      }
+      
+      toast.success('已儲存到創作者資料庫', {
+        description: locationHint,
+        duration: 5000,
+        action: {
+          label: '前往查看',
+          onClick: () => navigate('/userdb')
+        }
+      });
       
       // 標記為已儲存到資料庫，但不移除（保留在生成結果中）
       setSavedResults(prev => {
