@@ -45,6 +45,7 @@ const AppDashboard: React.FC = () => {
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
   const [analyticsOverview, setAnalyticsOverview] = useState<AnalyticsOverview | null>(null);
   const [loadingAnalytics, setLoadingAnalytics] = useState(false);
+  const [showStatisticsHelpDialog, setShowStatisticsHelpDialog] = useState(false);
 
   // 登出處理
   const handleLogout = async () => {

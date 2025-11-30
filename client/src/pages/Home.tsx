@@ -74,7 +74,7 @@ export default function Home() {
               onClick={() => navigate('/')}
               className="gap-2"
             >
-              <Home className="w-4 h-4" />
+              <HomeIcon className="w-4 h-4" />
               <span className="hidden sm:inline">返回首頁</span>
             </Button>
           </div>
@@ -320,7 +320,12 @@ export default function Home() {
             loop
             muted
             playsInline
+            preload="metadata"
             className="object-cover"
+            onError={(e) => {
+              console.warn('视频加载失败，使用背景色替代');
+              e.currentTarget.style.display = 'none';
+            }}
           >
             <source src="/hero-bg.mp4" type="video/mp4" />
           </video>
