@@ -714,11 +714,11 @@ export default function UserDB() {
               <div className="flex-1">
                 <h3 className="font-semibold text-sm mb-2 text-blue-900 dark:text-blue-100">資料存取說明</h3>
                 <div className="text-xs text-blue-800 dark:text-blue-200 space-y-1">
-                  <p>• <strong>我的腳本</strong>：存取您在 Mode3 生成的腳本內容</p>
-                  <p>• <strong>對話記錄</strong>：存取您在 Mode1 的對話摘要（不包含完整對話內容）</p>
-                  <p>• <strong>生成記錄</strong>：存取您在 Mode3 生成的選題和定位內容</p>
-                  <p>• <strong>IP 規劃</strong>：存取您在 Mode1 生成的帳號定位和腳本內容</p>
-                  <p>• <strong>14 天規劃</strong>：存取您在 Mode1 生成的 14 天短影音規劃內容</p>
+                  <p>• <strong>我的腳本</strong>：存取您在一鍵生成生成的腳本內容</p>
+                  <p>• <strong>對話記錄</strong>：存取您在 IP人設規劃的對話摘要（不包含完整對話內容）</p>
+                  <p>• <strong>生成記錄</strong>：存取您在一鍵生成生成的選題和定位內容</p>
+                  <p>• <strong>IP 規劃</strong>：存取您在 IP人設規劃生成的帳號定位和腳本內容</p>
+                  <p>• <strong>14 天規劃</strong>：存取您在 IP人設規劃生成的 14 天短影音規劃內容</p>
                   <p className="mt-2 text-blue-700 dark:text-blue-300">所有資料僅儲存在您的帳號中，我們不會與第三方分享您的內容。</p>
                 </div>
               </div>
@@ -851,21 +851,21 @@ export default function UserDB() {
                         </Button>
                       ) : (
                         <div className="space-y-2">
-                          <p className="text-sm text-muted-foreground">前往 Mode3 或 Mode1 生成腳本內容</p>
+                          <p className="text-sm text-muted-foreground">前往一鍵生成或 IP人設規劃生成腳本內容</p>
                           <div className="flex gap-2 justify-center">
                             <Button
                               variant="outline"
                               size="sm"
                               onClick={() => navigate('/mode3')}
                             >
-                              前往 Mode3
+                              前往一鍵生成
                             </Button>
                             <Button
                               variant="outline"
                               size="sm"
                               onClick={() => navigate('/mode1')}
                             >
-                              前往 Mode1
+                              前往 IP人設規劃
                             </Button>
                           </div>
                         </div>
@@ -1033,13 +1033,13 @@ export default function UserDB() {
                         </Button>
                       ) : (
                         <div className="space-y-2">
-                          <p className="text-sm text-muted-foreground">前往 Mode1 開始對話規劃</p>
+                          <p className="text-sm text-muted-foreground">前往 IP人設規劃開始對話規劃</p>
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => navigate('/mode1')}
                           >
-                            前往 Mode1
+                            前往 IP人設規劃
                           </Button>
                         </div>
                       )}
@@ -1171,13 +1171,13 @@ export default function UserDB() {
                         </Button>
                       ) : (
                         <div className="space-y-2">
-                          <p className="text-sm text-muted-foreground">前往 Mode3 生成內容</p>
+                          <p className="text-sm text-muted-foreground">前往一鍵生成生成內容</p>
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => navigate('/mode3')}
                           >
-                            前往 Mode3
+                            前往一鍵生成
                           </Button>
                         </div>
                       )}
@@ -1353,7 +1353,7 @@ export default function UserDB() {
                           className="mt-4"
                           onClick={() => navigate('/mode1')}
                         >
-                          前往 Mode1 生成內容
+                          前往 IP人設規劃生成內容
                         </Button>
                       )}
                     </div>

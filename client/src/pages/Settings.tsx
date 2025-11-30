@@ -49,7 +49,7 @@ const Settings: React.FC = () => {
   // 表單狀態
   const [provider, setProvider] = useState<'gemini' | 'openai'>('gemini');
   const [apiKey, setApiKey] = useState('');
-  const [modelName, setModelName] = useState('');
+  const [modelName, setModelName] = useState<string>('__default__');
   const [showApiKey, setShowApiKey] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
   
@@ -82,10 +82,18 @@ const Settings: React.FC = () => {
       setAvailableModels(data);
       // 如果有已保存的 key，設置對應的模型
       if (keys.length > 0 && keys[0].provider === provider) {
-        setModelName(keys[0].model_name || '__default__');
+        const savedModelName = keys[0].model_name;
+        if (savedModelName && savedModelName !== '' && savedModelName !== '__default__') {
+          setModelName(savedModelName);
+        } else {
+          setModelName('__default__');
+        }
+      } else {
+        setModelName('__default__');
       }
     } catch (error) {
       console.error('載入模型列表失敗:', error);
+      setModelName('__default__');
     }
   };
 
@@ -135,7 +143,7 @@ const Settings: React.FC = () => {
   // 當 provider 改變時，更新 modelName
   useEffect(() => {
     const existingKey = keys.find(k => k.provider === provider);
-    if (existingKey && existingKey.model_name) {
+    if (existingKey && existingKey.model_name && existingKey.model_name !== '') {
       setModelName(existingKey.model_name);
     } else {
       setModelName('__default__');
@@ -161,7 +169,7 @@ const Settings: React.FC = () => {
       const response = await apiPost<{ valid: boolean; message?: string; error?: string }>('/api/user/llm-keys/test', {
         provider,
         api_key: apiKey,
-        model_name: modelName && modelName !== '__default__' ? modelName : undefined
+        model_name: modelName && modelName !== '' && modelName !== '__default__' ? modelName : undefined
       });
 
       if (response.valid) {
@@ -201,7 +209,7 @@ const Settings: React.FC = () => {
         user_id: user.user_id,
         provider,
         api_key: apiKey,
-        model_name: modelName && modelName !== '__default__' ? modelName : undefined
+        model_name: modelName && modelName !== '' && modelName !== '__default__' ? modelName : undefined
       });
 
       toast.success('API Key 已保存');
@@ -423,19 +431,27 @@ const Settings: React.FC = () => {
                   <div>
                     <Label htmlFor="model">模型（可選）</Label>
                     <Select 
-                      value={modelName && modelName !== '' ? modelName : undefined} 
-                      onValueChange={(value) => setModelName(value || '__default__')}
+                      value={modelName && modelName !== '' && modelName !== '__default__' ? modelName : '__default__'} 
+                      onValueChange={(value) => {
+                        if (value && value !== '') {
+                          setModelName(value);
+                        } else {
+                          setModelName('__default__');
+                        }
+                      }}
                     >
                       <SelectTrigger id="model">
                         <SelectValue placeholder="使用系統預設" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="__default__">使用系統預設</SelectItem>
-                        {availableModels && availableModels[provider] && availableModels[provider].map((model) => (
-                          <SelectItem key={model.value} value={model.value}>
-                            {model.label}
-                          </SelectItem>
-                        ))}
+                        {availableModels && availableModels[provider] && availableModels[provider]
+                          .filter((model) => model.value && model.value !== '') // 過濾掉空字符串的 value
+                          .map((model) => (
+                            <SelectItem key={model.value} value={model.value}>
+                              {model.label}
+                            </SelectItem>
+                          ))}
                       </SelectContent>
                     </Select>
                     <p className="text-xs text-muted-foreground mt-1">
