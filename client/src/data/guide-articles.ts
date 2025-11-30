@@ -994,7 +994,10 @@ guideArticles['how-to-get-llm-api-key'] = {
       heading: '如何取得 Google Gemini API Key',
       level: 1,
       content: [
-        'ReelMind 目前支援 Google Gemini API。以下是詳細步驟：'
+        'ReelMind 目前支援 Google Gemini API。以下是詳細步驟：',
+        '',
+        '**📹 影片教學：**',
+        'VIDEO:https://www.youtube.com/embed/MlxRy6qmFBo'
       ]
     },
     {
@@ -1035,6 +1038,16 @@ guideArticles['how-to-get-llm-api-key'] = {
       ]
     },
     {
+      heading: '如何取得 OpenAI ChatGPT API Key',
+      level: 1,
+      content: [
+        'ReelMind 也支援 OpenAI ChatGPT API。以下是詳細步驟：',
+        '',
+        '**📹 影片教學：**',
+        'VIDEO:https://www.youtube.com/embed/lIh8wCSn_PM'
+      ]
+    },
+    {
       heading: '步驟四：在 ReelMind 中設定',
       level: 2,
       content: [
@@ -1042,7 +1055,7 @@ guideArticles['how-to-get-llm-api-key'] = {
         '2. 前往 **「創作者資料庫」** → **「設定」**',
         '3. 找到 **「AI API Key 管理」** 區塊',
         '4. 點擊 **「綁定 API Key」**',
-        '5. 選擇 **「Gemini」** 作為 Provider',
+        '5. 選擇 **「Gemini」** 或 **「OpenAI」** 作為 Provider',
         '6. 貼上你的 API Key',
         '7. 點擊 **「測試」** 確認 Key 有效',
         '8. 如果測試成功，點擊 **「儲存」**',
