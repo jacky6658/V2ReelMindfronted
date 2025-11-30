@@ -3,7 +3,7 @@
  * 包含：帳號定位對話、14天規劃、今日腳本
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, memo, useMemo } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -39,6 +39,127 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import ThinkingAnimation from '@/components/ThinkingAnimation';
 
+// 處理行內 Markdown（粗體、斜體）
+function formatInlineMarkdown(text: string): (string | JSX.Element)[] {
+  const parts: (string | JSX.Element)[] = [];
+  let lastIndex = 0;
+  
+  // 先處理粗體 **text**（優先級更高）
+  const boldRegex = /\*\*(.+?)\*\*/g;
+  const boldMatches: Array<{ index: number; text: string; fullMatch: string }> = [];
+  let match;
+  
+  while ((match = boldRegex.exec(text)) !== null) {
+    boldMatches.push({
+      index: match.index,
+      text: match[1],
+      fullMatch: match[0]
+    });
+  }
+  
+  // 處理斜體 *text*（排除粗體中的 *）
+  const italicRegex = /(?<!\*)\*([^*]+?)\*(?!\*)/g;
+  const italicMatches: Array<{ index: number; text: string; fullMatch: string }> = [];
+  while ((match = italicRegex.exec(text)) !== null) {
+    // 檢查是否在粗體範圍內
+    const isInBold = boldMatches.some(b => 
+      match.index >= b.index && match.index < b.index + b.fullMatch.length
+    );
+    if (!isInBold) {
+      italicMatches.push({
+        index: match.index,
+        text: match[1],
+        fullMatch: match[0]
+      });
+    }
+  }
+  
+  // 合併並排序所有匹配
+  const allMatches = [
+    ...boldMatches.map(m => ({ ...m, type: 'bold' as const })),
+    ...italicMatches.map(m => ({ ...m, type: 'italic' as const }))
+  ].sort((a, b) => a.index - b.index);
+  
+  // 構建結果
+  allMatches.forEach((match, idx) => {
+    // 添加匹配前的文字
+    if (match.index > lastIndex) {
+      parts.push(text.substring(lastIndex, match.index));
+    }
+    
+    // 添加格式化內容
+    if (match.type === 'bold') {
+      parts.push(<strong key={`bold-${idx}`} className="font-bold">{match.text}</strong>);
+    } else if (match.type === 'italic') {
+      parts.push(<em key={`italic-${idx}`} className="italic">{match.text}</em>);
+    }
+    
+    lastIndex = match.index + match.fullMatch.length;
+  });
+  
+  // 添加剩餘的文字
+  if (lastIndex < text.length) {
+    parts.push(text.substring(lastIndex));
+  }
+  
+  // 如果沒有匹配，直接返回原文字
+  if (allMatches.length === 0) {
+    return [text];
+  }
+  
+  return parts;
+}
+
+// 格式化文字：將 Markdown 符號轉換為 HTML 格式
+// 支援 **粗體**、*斜體*、## 標題、### 標題等
+const FormatText = memo(({ content }: { content: string }) => {
+  const formattedContent = useMemo(() => {
+    const lines = content.split('\n');
+    const result: JSX.Element[] = [];
+    
+    lines.forEach((line, lineIndex) => {
+      // 處理標題（## 或 ### 開頭的行）
+      const headingMatch = line.match(/^(#{2,3})\s+(.+)$/);
+      if (headingMatch) {
+        const level = headingMatch[1].length;
+        const text = headingMatch[2];
+        const HeadingTag = level === 2 ? 'h2' : 'h3';
+        result.push(
+          <HeadingTag 
+            key={`line-${lineIndex}`} 
+            className={`font-bold ${level === 2 ? 'text-xl mt-4 mb-2' : 'text-lg mt-3 mb-1'}`}
+          >
+            {formatInlineMarkdown(text)}
+          </HeadingTag>
+        );
+        return;
+      }
+      
+      // 處理普通行（包含粗體和斜體）
+      if (line.trim()) {
+        result.push(
+          <div key={`line-${lineIndex}`}>
+            {formatInlineMarkdown(line)}
+          </div>
+        );
+      } else {
+        // 空行
+        result.push(<br key={`line-${lineIndex}`} />);
+      }
+    });
+    
+    return result;
+  }, [content]);
+  
+  return (
+    <div className="break-words">
+      {formattedContent}
+    </div>
+  );
+});
+
+FormatText.displayName = 'FormatText';
+
 interface Message {
   role: 'user' | 'assistant';
   content: string;
@@ -61,6 +182,7 @@ interface SavedResult {
   category: 'positioning' | 'topics' | 'script';
   timestamp: Date;
   isEditing?: boolean;
+  savedToDB?: boolean; // 標記是否已儲存到資料庫
 }
 
 export default function Mode1() {
@@ -179,10 +301,80 @@ export default function Mode1() {
     }
   };
 
+  // 載入生成結果（從資料庫和本地狀態）
+  const loadSavedResults = async () => {
+    try {
+      if (!user?.user_id) return;
+      
+      const data = await apiGet<{ results: HistoryItem[] }>('/api/ip-planning/my');
+      
+      // 將資料庫結果轉換為 SavedResult 格式
+      const dbResults: SavedResult[] = data.results.map(item => {
+        // 映射 result_type 到 category
+        const categoryMap: Record<string, 'positioning' | 'topics' | 'script'> = {
+          'profile': 'positioning',
+          'plan': 'topics',
+          'scripts': 'script'
+        };
+        
+        return {
+          id: item.id,
+          title: item.title,
+          content: item.content,
+          category: categoryMap[item.type] || 'positioning',
+          timestamp: new Date(item.created_at),
+          isEditing: false,
+          savedToDB: true // 標記為已儲存到資料庫
+        };
+      });
+      
+      // 合併資料庫結果和本地結果（避免重複）
+      setSavedResults(prev => {
+        const localIds = new Set(prev.map(r => r.id));
+        const dbIds = new Set(dbResults.map(r => r.id));
+        
+        // 保留本地未儲存到資料庫的結果
+        const localOnly = prev.filter(r => !r.savedToDB && !dbIds.has(r.id));
+        
+        // 合併：資料庫結果 + 本地未儲存的結果
+        return [...dbResults, ...localOnly];
+      });
+    } catch (error) {
+      console.error('載入生成結果失敗:', error);
+      // 不顯示錯誤訊息，避免打擾用戶
+    }
+  };
+
   // 檢測儲存意圖
   const detectSaveIntent = (message: string): boolean => {
     const saveKeywords = ['儲存', '保存', '存起來', 'save', '存檔', '記錄'];
     return saveKeywords.some(keyword => message.toLowerCase().includes(keyword.toLowerCase()));
+  };
+
+  // 根據對話內容判斷 category
+  const detectCategory = (userMessage: string, aiResponse: string): 'positioning' | 'topics' | 'script' => {
+    const combinedText = (userMessage + ' ' + aiResponse).toLowerCase();
+    
+    // 檢測選題方向相關關鍵字（優先級較高）
+    const topicsKeywords = ['14天', '14 天', '選題', '選題方向', '主題', '內容規劃', '規劃', '內容方向', 'topics'];
+    if (topicsKeywords.some(keyword => combinedText.includes(keyword))) {
+      return 'topics';
+    }
+    
+    // 檢測腳本相關關鍵字
+    const scriptKeywords = ['腳本', '今日腳本', '短影音腳本', 'script', '台詞', '劇本', '腳本內容'];
+    if (scriptKeywords.some(keyword => combinedText.includes(keyword))) {
+      return 'script';
+    }
+    
+    // 檢測定位相關關鍵字
+    const positioningKeywords = ['定位', '人設', 'ip profile', '帳號定位', '個人品牌', '品牌定位', 'positioning'];
+    if (positioningKeywords.some(keyword => combinedText.includes(keyword))) {
+      return 'positioning';
+    }
+    
+    // 預設為定位（向後兼容）
+    return 'positioning';
   };
 
   // 自動儲存結果
@@ -292,7 +484,7 @@ export default function Mode1() {
           
           // 如果檢測到儲存意圖，自動儲存結果
           if (shouldAutoSave && assistantMessage) {
-            const category = activeTab === 'profile' ? 'positioning' : activeTab === 'planning' ? 'topics' : 'script';
+            const category = detectCategory(userMessage.content, assistantMessage);
             autoSaveResult(assistantMessage, category);
           }
           
@@ -374,8 +566,10 @@ export default function Mode1() {
 
       toast.success('已儲存到創作者資料庫');
       
-      // 從本地 savedResults 中移除已儲存的項目
-      setSavedResults(prev => prev.filter(r => r.id !== result.id));
+      // 標記為已儲存到資料庫，但不移除（保留在生成結果中）
+      setSavedResults(prev => prev.map(r => 
+        r.id === result.id ? { ...r, savedToDB: true } : r
+      ));
       
       // 發送自定義事件，通知 UserDB 頁面刷新資料
       window.dispatchEvent(new CustomEvent('userdb-data-updated', {
@@ -475,7 +669,7 @@ export default function Mode1() {
       <div className="flex-1 container py-8 md:py-12">
         {/* 對話區 */}
         <div className="max-w-5xl mx-auto px-4 md:px-6">
-          <Card className="h-[calc(100vh-200px)] flex flex-col">
+          <Card className="h-[calc(100vh-200px)] flex flex-col overflow-hidden">
             <CardHeader className="border-b">
               <CardTitle className="flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-primary" />
@@ -487,8 +681,8 @@ export default function Mode1() {
             </CardHeader>
 
             {/* 訊息列表 */}
-            <ScrollArea className="flex-1 p-4">
-              <div className="space-y-4">
+            <ScrollArea className="flex-1 min-h-0">
+              <div className="space-y-4 p-4">
                 {messages.length === 0 && (
                   <div className="text-center text-muted-foreground py-12">
                     <Sparkles className="w-12 h-12 mx-auto mb-4 opacity-50" />
@@ -510,9 +704,13 @@ export default function Mode1() {
                             : 'bg-muted'
                         }`}
                       >
-                        <div className="whitespace-pre-wrap break-words">
-                          {message.content}
-                        </div>
+                        {message.role === 'assistant' ? (
+                          <FormatText content={message.content} />
+                        ) : (
+                          <div className="whitespace-pre-wrap break-words">
+                            {message.content}
+                          </div>
+                        )}
                       </div>
                       
                       {/* AI 訊息下方的操作按鈕 */}
@@ -522,7 +720,16 @@ export default function Mode1() {
                             variant="outline"
                             size="sm"
                             onClick={() => {
-                              const category = activeTab === 'profile' ? 'positioning' : activeTab === 'planning' ? 'topics' : 'script';
+                              // 找到對應的用戶訊息（用於判斷 category）
+                              // 往前找最近的用戶訊息
+                              let userMessage = '';
+                              for (let i = index - 1; i >= 0; i--) {
+                                if (messages[i].role === 'user') {
+                                  userMessage = messages[i].content;
+                                  break;
+                                }
+                              }
+                              const category = detectCategory(userMessage, message.content);
                               autoSaveResult(message.content, category);
                             }}
                             className="text-xs"
@@ -719,7 +926,13 @@ export default function Mode1() {
       </Dialog>
 
       {/* 生成結果管理 Dialog */}
-      <Dialog open={showResults} onOpenChange={setShowResults}>
+      <Dialog open={showResults} onOpenChange={(open) => {
+        setShowResults(open);
+        // 當打開 Dialog 時，載入生成結果
+        if (open && user?.user_id) {
+          loadSavedResults();
+        }
+      }}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>生成結果管理</DialogTitle>
@@ -735,8 +948,8 @@ export default function Mode1() {
               <TabsTrigger value="script">短影音腳本</TabsTrigger>
             </TabsList>
 
-            <TabsContent value={resultTab} className="flex-1 overflow-hidden mt-4">
-              <ScrollArea className="h-[calc(60vh-100px)]">
+            <TabsContent value={resultTab} className="flex-1 overflow-hidden mt-4 min-h-0">
+              <ScrollArea className="flex-1 min-h-0">
                 <div className="space-y-4 pr-4">
                   {filteredResults.length === 0 && (
                     <div className="text-center text-muted-foreground py-12">
@@ -821,14 +1034,27 @@ export default function Mode1() {
                             <Copy className="w-4 h-4 mr-2" />
                             複製
                           </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleSaveToUserDB(result)}
-                          >
-                            <Save className="w-4 h-4 mr-2" />
-                            存到資料庫
-                          </Button>
+                          {!result.savedToDB && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleSaveToUserDB(result)}
+                            >
+                              <Save className="w-4 h-4 mr-2" />
+                              存到資料庫
+                            </Button>
+                          )}
+                          {result.savedToDB && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled
+                              className="bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800"
+                            >
+                              <CheckCircle className="w-4 h-4 mr-2" />
+                              已儲存
+                            </Button>
+                          )}
                           <Button
                             variant="outline"
                             size="sm"
@@ -858,9 +1084,9 @@ export default function Mode1() {
             </DialogDescription>
           </DialogHeader>
 
-          <ScrollArea className="flex-1 pr-4">
-            <div className="whitespace-pre-wrap text-sm">
-              {expandedResult?.content}
+          <ScrollArea className="flex-1 min-h-0">
+            <div className="whitespace-pre-wrap text-sm pr-4">
+              {expandedResult && <FormatText content={expandedResult.content} />}
             </div>
           </ScrollArea>
 
@@ -872,13 +1098,25 @@ export default function Mode1() {
               <Copy className="w-4 h-4 mr-2" />
               複製
             </Button>
-            <Button
-              variant="outline"
-              onClick={() => expandedResult && handleSaveToUserDB(expandedResult)}
-            >
-              <Save className="w-4 h-4 mr-2" />
-              存到資料庫
-            </Button>
+            {expandedResult && !expandedResult.savedToDB && (
+              <Button
+                variant="outline"
+                onClick={() => handleSaveToUserDB(expandedResult)}
+              >
+                <Save className="w-4 h-4 mr-2" />
+                存到資料庫
+              </Button>
+            )}
+            {expandedResult && expandedResult.savedToDB && (
+              <Button
+                variant="outline"
+                disabled
+                className="bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800"
+              >
+                <CheckCircle className="w-4 h-4 mr-2" />
+                已儲存到資料庫
+              </Button>
+            )}
           </div>
         </DialogContent>
       </Dialog>
