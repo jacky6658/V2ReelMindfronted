@@ -11,12 +11,18 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { apiGet } from '@/lib/api-client';
 import { toast } from 'sonner';
-import { Sparkles, Target, Zap, Database, ArrowRight, CheckCircle2, TrendingUp, MessageSquare, Home, BookOpen, Users, ExternalLink, Settings, ShoppingBag, BarChart3, HelpCircle, User, Key, Download, FileText } from 'lucide-react';
+import { Sparkles, Target, Zap, Database, ArrowRight, CheckCircle2, TrendingUp, MessageSquare, Home, BookOpen, Users, ExternalLink, Settings, ShoppingBag, BarChart3, HelpCircle, User, Key, Download, FileText, LogOut } from 'lucide-react';
 
 const AppDashboard: React.FC = () => {
-  const { user } = useAuthStore();
+  const { user, logout } = useAuthStore();
   const navigate = useNavigate();
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
+
+  // 登出處理
+  const handleLogout = async () => {
+    await logout();
+    navigate('/');
+  };
 
   const features = [
     {
@@ -103,6 +109,50 @@ const AppDashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* 頁首導航欄 */}
+      <nav className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container flex h-16 items-center justify-between">
+          {/* ReelMind Logo 和標題 */}
+          <div 
+            className="flex items-center gap-2 cursor-pointer"
+            onClick={() => navigate('/')}
+          >
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center">
+              <Sparkles className="w-5 h-5 text-white" />
+            </div>
+            <span className="font-bold text-xl">ReelMind</span>
+          </div>
+
+          {/* 右側操作區 */}
+          <div className="flex items-center gap-2">
+            {user ? (
+              <>
+                <div className="hidden md:flex items-center gap-2 px-2">
+                  <img src={user.picture} alt={user.name} className="w-8 h-8 rounded-full" />
+                  <span className="text-sm">{user.name}</span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleLogout}
+                  title="登出"
+                >
+                  <LogOut className="w-5 h-5" />
+                </Button>
+              </>
+            ) : (
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => navigate('/login')}
+              >
+                登入
+              </Button>
+            )}
+          </div>
+        </div>
+      </nav>
+
       {/* Hero 區塊 - 帶影片背景 */}
       <section className="relative min-h-[400px] md:min-h-[500px] flex items-center overflow-hidden border-b">
         {/* 影片背景 */}
