@@ -1,8 +1,38 @@
 # Netlify/Vercel style redirects (for compatibility)
 # Zeabur should use Caddyfile, but this is a fallback
 
-# Static assets - no redirect
+# Static assets - must be processed first, no redirect
 /assets/* 200
+/assets/*.js 200
+/assets/*.css 200
+/assets/*.woff 200
+/assets/*.woff2 200
+/assets/*.ttf 200
+/assets/*.eot 200
+/assets/*.png 200
+/assets/*.jpg 200
+/assets/*.jpeg 200
+/assets/*.gif 200
+/assets/*.svg 200
+/assets/*.ico 200
+/assets/*.json 200
+/assets/*.map 200
+
+# Other static files in root
+/*.js 200
+/*.css 200
+/*.woff 200
+/*.woff2 200
+/*.ttf 200
+/*.eot 200
+/*.png 200
+/*.jpg 200
+/*.jpeg 200
+/*.gif 200
+/*.svg 200
+/*.ico 200
+/*.json 200
+/*.map 200
 
 # All other routes to index.html for SPA
 /*    /index.html   200
