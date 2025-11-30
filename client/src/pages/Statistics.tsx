@@ -13,7 +13,7 @@ import { apiGet } from '@/lib/api-client';
 import { toast } from 'sonner';
 import { ArrowLeft, BarChart3, MessageSquare, Zap, Database, Calendar, Brain, TrendingUp, Loader2, HelpCircle, PieChart, Activity, Sparkles, Home } from 'lucide-react';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { Area, AreaChart, XAxis, YAxis, CartesianGrid, ResponsiveContainer, PieChart as RechartsPieChart, Pie, Cell, Legend } from 'recharts';
+import { Area, AreaChart, XAxis, YAxis, CartesianGrid, ResponsiveContainer, PieChart as RechartsPieChart, Pie, Cell, Legend, Tooltip as RechartsTooltip } from 'recharts';
 
 interface AnalyticsOverview {
   today: {
@@ -402,7 +402,7 @@ export default function Statistics() {
                     <CardDescription>各功能的使用比例</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="h-[300px]">
+                    <ChartContainer config={chartConfig} className="h-[300px]">
                       <ResponsiveContainer width="100%" height="100%">
                         <RechartsPieChart>
                           <ChartTooltip content={<ChartTooltipContent />} />
@@ -423,7 +423,7 @@ export default function Statistics() {
                           </Pie>
                         </RechartsPieChart>
                       </ResponsiveContainer>
-                    </div>
+                    </ChartContainer>
                   </CardContent>
                 </Card>
               )}
