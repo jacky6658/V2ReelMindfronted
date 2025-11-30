@@ -319,12 +319,12 @@ const Profile: React.FC = () => {
             </Card>
           ) : (
             <Tabs defaultValue="basic" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-2 md:grid-cols-5">
-                <TabsTrigger value="basic">基本資訊</TabsTrigger>
-                <TabsTrigger value="creator">創作者資訊</TabsTrigger>
-                <TabsTrigger value="preferences">偏好設定</TabsTrigger>
-                <TabsTrigger value="billing">帳務資訊</TabsTrigger>
-                <TabsTrigger value="activity">使用紀錄</TabsTrigger>
+              <TabsList className="flex flex-wrap w-full gap-1 md:grid md:grid-cols-5">
+                <TabsTrigger value="basic" className="flex-1 md:flex-none text-xs md:text-sm min-w-0">基本資訊</TabsTrigger>
+                <TabsTrigger value="creator" className="flex-1 md:flex-none text-xs md:text-sm min-w-0">創作者資訊</TabsTrigger>
+                <TabsTrigger value="preferences" className="flex-1 md:flex-none text-xs md:text-sm min-w-0">偏好設定</TabsTrigger>
+                <TabsTrigger value="billing" className="flex-1 md:flex-none text-xs md:text-sm min-w-0">帳務資訊</TabsTrigger>
+                <TabsTrigger value="activity" className="flex-1 md:flex-none text-xs md:text-sm min-w-0 w-full md:w-auto">使用紀錄</TabsTrigger>
               </TabsList>
 
               {/* 基本資訊 */}

@@ -423,15 +423,15 @@ const Settings: React.FC = () => {
                   <div>
                     <Label htmlFor="model">模型（可選）</Label>
                     <Select 
-                      value={modelName || undefined} 
-                      onValueChange={(value) => setModelName(value || '')}
+                      value={modelName && modelName !== '' ? modelName : undefined} 
+                      onValueChange={(value) => setModelName(value || '__default__')}
                     >
                       <SelectTrigger id="model">
                         <SelectValue placeholder="使用系統預設" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="__default__">使用系統預設</SelectItem>
-                        {availableModels[provider].map((model) => (
+                        {availableModels && availableModels[provider] && availableModels[provider].map((model) => (
                           <SelectItem key={model.value} value={model.value}>
                             {model.label}
                           </SelectItem>

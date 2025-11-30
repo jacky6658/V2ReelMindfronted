@@ -272,31 +272,10 @@ export default function HelpCenter() {
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-8">
             找到您需要的答案，或聯繫我們獲得協助
           </p>
-
-          {/* 搜索框 */}
-          <div className="max-w-2xl mx-auto relative">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-            <Input
-              placeholder="搜索問題或關鍵字..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-12 h-12 text-base"
-            />
-            {searchQuery && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute right-2 top-1/2 transform -translate-y-1/2"
-                onClick={() => setSearchQuery('')}
-              >
-                <XCircle className="w-4 h-4" />
-              </Button>
-            )}
-          </div>
         </div>
 
         {/* 快速連結 */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {quickLinks.map((link) => {
             const Icon = link.icon;
             return (
@@ -319,6 +298,27 @@ export default function HelpCenter() {
               </Card>
             );
           })}
+        </div>
+
+        {/* 搜索框 */}
+        <div className="max-w-2xl mx-auto relative mb-12">
+          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+          <Input
+            placeholder="搜索問題或關鍵字..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-12 h-12 text-base"
+          />
+          {searchQuery && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute right-2 top-1/2 transform -translate-y-1/2"
+              onClick={() => setSearchQuery('')}
+            >
+              <XCircle className="w-4 h-4" />
+            </Button>
+          )}
         </div>
 
         {/* 分類篩選 */}
