@@ -666,23 +666,23 @@ export default function Mode1() {
       </nav>
 
       {/* 主要內容區 */}
-      <div className="flex-1 container py-8 md:py-12">
+      <div className="flex-1 flex flex-col min-h-0">
         {/* 對話區 */}
-        <div className="max-w-5xl mx-auto px-4 md:px-6">
-          <Card className="h-[calc(100vh-200px)] flex flex-col overflow-hidden">
-            <CardHeader className="border-b">
-              <CardTitle className="flex items-center gap-2">
+        <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full px-4 md:px-6 py-4 md:py-6">
+          <Card className="flex-1 flex flex-col overflow-hidden min-h-0 shadow-lg">
+            <CardHeader className="border-b shrink-0 px-6 py-4">
+              <CardTitle className="flex items-center gap-2 text-lg">
                 <Sparkles className="w-5 h-5 text-primary" />
                 IP 人設規劃
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-sm">
                 透過 AI 對話，建立你的 IP 人設檔案、規劃 14 天內容、生成今日腳本
               </CardDescription>
             </CardHeader>
 
             {/* 訊息列表 */}
             <ScrollArea className="flex-1 min-h-0">
-              <div className="space-y-4 p-4">
+              <div className="space-y-6 p-6">
                 {messages.length === 0 && (
                   <div className="text-center text-muted-foreground py-12">
                     <Sparkles className="w-12 h-12 mx-auto mb-4 opacity-50" />
@@ -696,11 +696,11 @@ export default function Mode1() {
                     key={index}
                     className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
-                    <div className="flex flex-col gap-2 max-w-[80%]">
+                    <div className="flex flex-col gap-2 max-w-[85%] md:max-w-[75%]">
                       <div
-                        className={`rounded-lg p-4 ${
+                        className={`rounded-xl p-4 md:p-5 ${
                           message.role === 'user'
-                            ? 'bg-primary text-primary-foreground'
+                            ? 'bg-primary text-primary-foreground ml-auto'
                             : 'bg-muted'
                         }`}
                       >
@@ -792,10 +792,10 @@ export default function Mode1() {
             </ScrollArea>
 
             {/* 輸入區 */}
-            <div className="border-t">
+            <div className="border-t shrink-0 bg-background">
               {/* 快速按鈕 */}
               <div className="border-b p-3 md:p-4 bg-muted/30">
-                <div className="flex flex-wrap gap-2 justify-center">
+                <div className="flex flex-wrap gap-2 justify-center max-w-3xl mx-auto">
                   {quickButtons.map((button, index) => (
                     <Button
                       key={index}
@@ -818,42 +818,42 @@ export default function Mode1() {
               </div>
               
               {/* Textarea 和發送按鈕 */}
-              <div className="p-4">
-              <div className="flex gap-2">
-                <Textarea
-                  ref={textareaRef}
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder={
-                    checkingPermission 
-                      ? "正在檢查權限..." 
-                      : hasPermission === false 
-                      ? "試用期已過，請訂閱以繼續使用" 
-                      : "輸入你的問題或需求...（輸入「儲存」可自動保存結果）"
-                  }
-                  className="min-h-[60px] resize-none"
-                  disabled={isLoading || checkingPermission || hasPermission === false}
-                />
-                <Button
-                  onClick={() => {
-                    if (hasPermission === false) {
-                      setShowSubscriptionDialog(true);
-                    } else {
-                      handleSend();
+              <div className="p-4 md:p-6">
+                <div className="flex gap-3 max-w-3xl mx-auto">
+                  <Textarea
+                    ref={textareaRef}
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder={
+                      checkingPermission 
+                        ? "正在檢查權限..." 
+                        : hasPermission === false 
+                        ? "試用期已過，請訂閱以繼續使用" 
+                        : "輸入你的問題或需求...（輸入「儲存」可自動保存結果）"
                     }
-                  }}
-                  disabled={!input.trim() || isLoading || checkingPermission || hasPermission === false}
-                  size="icon"
-                  className="h-[60px] w-[60px]"
-                >
-                  {isLoading ? (
-                    <RefreshCw className="w-5 h-5 animate-spin" />
-                  ) : (
-                    <Send className="w-5 h-5" />
-                  )}
-                </Button>
-              </div>
+                    className="min-h-[60px] md:min-h-[70px] resize-none text-base"
+                    disabled={isLoading || checkingPermission || hasPermission === false}
+                  />
+                  <Button
+                    onClick={() => {
+                      if (hasPermission === false) {
+                        setShowSubscriptionDialog(true);
+                      } else {
+                        handleSend();
+                      }
+                    }}
+                    disabled={!input.trim() || isLoading || checkingPermission || hasPermission === false}
+                    size="icon"
+                    className="h-[60px] md:h-[70px] w-[60px] md:w-[70px] shrink-0"
+                  >
+                    {isLoading ? (
+                      <RefreshCw className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <Send className="w-5 h-5" />
+                    )}
+                  </Button>
+                </div>
               </div>
             </div>
           </Card>
