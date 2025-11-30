@@ -22,7 +22,6 @@ import {
   Download,
   RefreshCw,
   User,
-  LogOut,
   HelpCircle,
   Save,
   FolderOpen,
@@ -188,7 +187,7 @@ interface SavedResult {
 
 export default function Mode1() {
   const navigate = useNavigate();
-  const { user, logout, isLoggedIn } = useAuthStore();
+  const { user, isLoggedIn } = useAuthStore();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -469,8 +468,14 @@ export default function Mode1() {
   const detectCategory = (userMessage: string, aiResponse: string): 'positioning' | 'topics' | 'planning' | 'script' => {
     const combinedText = (userMessage + ' ' + aiResponse).toLowerCase();
     
-    // 檢測 14天規劃相關關鍵字（優先級最高）
-    const planningKeywords = ['14天', '14 天', '14天規劃', '14 天規劃', '規劃', '內容規劃', 'planning'];
+    // 檢測腳本相關關鍵字（優先級最高，避免被"規劃"誤判）
+    const scriptKeywords = ['今日腳本', '短影音腳本', '腳本', 'script', '台詞', '劇本', '腳本內容', '生成腳本'];
+    if (scriptKeywords.some(keyword => combinedText.includes(keyword))) {
+      return 'script';
+    }
+    
+    // 檢測 14天規劃相關關鍵字（需要明確包含14天，避免與腳本混淆）
+    const planningKeywords = ['14天', '14 天', '14天規劃', '14 天規劃', '14天內容', '14 天內容', 'planning'];
     if (planningKeywords.some(keyword => combinedText.includes(keyword))) {
       return 'planning';
     }
@@ -479,12 +484,6 @@ export default function Mode1() {
     const topicsKeywords = ['選題', '選題方向', '主題', '內容方向', 'topics'];
     if (topicsKeywords.some(keyword => combinedText.includes(keyword))) {
       return 'topics';
-    }
-    
-    // 檢測腳本相關關鍵字
-    const scriptKeywords = ['腳本', '今日腳本', '短影音腳本', 'script', '台詞', '劇本', '腳本內容'];
-    if (scriptKeywords.some(keyword => combinedText.includes(keyword))) {
-      return 'script';
     }
     
     // 檢測定位相關關鍵字
@@ -719,11 +718,6 @@ export default function Mode1() {
     }
   };
 
-  // 登出
-  const handleLogout = async () => {
-    await logout();
-    navigate('/');
-  };
 
   // 處理 Enter 鍵發送
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -776,20 +770,10 @@ export default function Mode1() {
               <HelpCircle className="w-5 h-5" />
             </Button>
             {user ? (
-              <>
-                <div className="hidden md:flex items-center gap-2 px-2">
-                  <img src={user.picture} alt={user.name} className="w-8 h-8 rounded-full" />
-                  <span className="text-sm">{user.name}</span>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleLogout}
-                  title="登出"
-                >
-                  <LogOut className="w-5 h-5" />
-                </Button>
-              </>
+              <div className="hidden md:flex items-center gap-2 px-2">
+                <img src={user.picture} alt={user.name} className="w-8 h-8 rounded-full" />
+                <span className="text-sm">{user.name}</span>
+              </div>
             ) : (
               <Button
                 variant="default"
@@ -930,12 +914,12 @@ export default function Mode1() {
                 </div>
               </ScrollArea>
               
-              {/* 滾動到底部按鈕 - 浮動在右下角 */}
+              {/* 滾動到底部按鈕 - 浮動在右下角，避免被輸入區域遮擋 */}
               {showScrollToBottom && (
                 <Button
                   onClick={scrollToBottom}
                   size="icon"
-                  className="absolute bottom-4 right-4 rounded-full shadow-lg z-10 h-10 w-10 bg-primary hover:bg-primary/90 animate-in fade-in slide-in-from-bottom-2"
+                  className="absolute bottom-24 right-4 rounded-full shadow-lg z-20 h-10 w-10 bg-primary hover:bg-primary/90 animate-in fade-in slide-in-from-bottom-2"
                   aria-label="滾動到底部"
                 >
                   <ChevronDown className="w-5 h-5" />
@@ -944,7 +928,7 @@ export default function Mode1() {
             </div>
 
             {/* 輸入區 - 確保固定在底部 */}
-            <div className="border-t shrink-0 bg-background">
+            <div className="border-t shrink-0 bg-background sticky bottom-0">
               {/* 快速按鈕 */}
               <div className="border-b p-3 md:p-4 bg-muted/30">
                 <div className="flex flex-wrap gap-2 justify-center max-w-3xl mx-auto">
@@ -1085,7 +1069,7 @@ export default function Mode1() {
           loadSavedResults();
         }
       }}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
+        <DialogContent className="max-w-5xl max-h-[85vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>生成結果管理</DialogTitle>
             <DialogDescription>
@@ -1234,8 +1218,8 @@ export default function Mode1() {
 
       {/* 展開結果 Dialog */}
       <Dialog open={!!expandedResult} onOpenChange={() => setExpandedResult(null)}>
-        <DialogContent className="max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
-          <DialogHeader>
+        <DialogContent className="max-w-5xl max-h-[85vh] overflow-hidden flex flex-col">
+          <DialogHeader className="shrink-0">
             <DialogTitle>{expandedResult?.title}</DialogTitle>
             <DialogDescription>
               {expandedResult?.timestamp.toLocaleString('zh-TW')}
@@ -1243,7 +1227,7 @@ export default function Mode1() {
           </DialogHeader>
 
           <ScrollArea className="flex-1 min-h-0">
-            <div className="whitespace-pre-wrap text-sm pr-4">
+            <div className="pr-4 pb-4 space-y-4">
               {expandedResult && <FormatText content={expandedResult.content} />}
             </div>
           </ScrollArea>
