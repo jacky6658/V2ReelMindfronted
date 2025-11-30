@@ -213,8 +213,8 @@ export default function ScriptEditor({
     <div className={cn("flex flex-col gap-2", className)}>
       {/* 工具列 */}
       {showToolbar && (
-        <div className="flex items-center justify-between p-2 bg-muted/50 rounded-lg border">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 p-2 bg-muted/50 rounded-lg border">
+          <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
             {!readOnly && isEditing && (
               <>
                 <Button
@@ -222,6 +222,7 @@ export default function ScriptEditor({
                   size="sm"
                   onClick={() => applyFormat('bold')}
                   title="粗體 (Ctrl+B)"
+                  className="h-8"
                 >
                   <Bold className="w-4 h-4" />
                 </Button>
@@ -230,6 +231,7 @@ export default function ScriptEditor({
                   size="sm"
                   onClick={() => applyFormat('italic')}
                   title="斜體 (Ctrl+I)"
+                  className="h-8"
                 >
                   <Italic className="w-4 h-4" />
                 </Button>
@@ -238,6 +240,7 @@ export default function ScriptEditor({
                   size="sm"
                   onClick={() => applyFormat('underline')}
                   title="底線 (Ctrl+U)"
+                  className="h-8"
                 >
                   <Underline className="w-4 h-4" />
                 </Button>
@@ -257,9 +260,10 @@ export default function ScriptEditor({
                     setTimeout(() => textareaRef.current?.focus(), 0);
                   }
                 }}
+                className="h-8"
               >
-                <Save className="w-4 h-4 mr-2" />
-                {isEditing ? '儲存' : '編輯'}
+                <Save className="w-4 h-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">{isEditing ? '儲存' : '編輯'}</span>
               </Button>
             )}
             
@@ -267,9 +271,10 @@ export default function ScriptEditor({
               variant="ghost"
               size="sm"
               onClick={handleCopy}
+              className="h-8"
             >
-              <Copy className="w-4 h-4 mr-2" />
-              複製
+              <Copy className="w-4 h-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">複製</span>
             </Button>
             
             {onExport && (
@@ -278,25 +283,28 @@ export default function ScriptEditor({
                   variant="ghost"
                   size="sm"
                   onClick={() => handleExport('txt')}
+                  className="h-8"
                 >
-                  <Download className="w-4 h-4 mr-2" />
-                  TXT
+                  <Download className="w-4 h-4 mr-1 sm:mr-2" />
+                  <span className="hidden sm:inline">TXT</span>
                 </Button>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => handleExport('pdf')}
+                  className="h-8"
                 >
-                  <Download className="w-4 h-4 mr-2" />
-                  PDF
+                  <Download className="w-4 h-4 mr-1 sm:mr-2" />
+                  <span className="hidden sm:inline">PDF</span>
                 </Button>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => handleExport('word')}
+                  className="h-8"
                 >
-                  <Download className="w-4 h-4 mr-2" />
-                  Word
+                  <Download className="w-4 h-4 mr-1 sm:mr-2" />
+                  <span className="hidden sm:inline">Word</span>
                 </Button>
               </>
             )}
@@ -305,28 +313,29 @@ export default function ScriptEditor({
               variant="ghost"
               size="sm"
               onClick={handleShare}
+              className="h-8"
             >
-              <Share2 className="w-4 h-4 mr-2" />
-              分享
+              <Share2 className="w-4 h-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">分享</span>
             </Button>
           </div>
           
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Badge variant="outline">{wordCount} 字</Badge>
-            <Badge variant="outline">{charCount} 字元</Badge>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground shrink-0">
+            <Badge variant="outline" className="text-xs">{wordCount} 字</Badge>
+            <Badge variant="outline" className="text-xs">{charCount} 字元</Badge>
           </div>
         </div>
       )}
 
       {/* 編輯器 */}
-      <div className="relative">
+      <div className="relative overflow-x-auto">
         <Textarea
           ref={textareaRef}
           value={content}
           onChange={(e) => setContent(e.target.value)}
           readOnly={readOnly || !isEditing}
           className={cn(
-            "min-h-[300px] font-mono text-sm",
+            "min-h-[300px] font-mono text-sm w-full min-w-0",
             (readOnly || !isEditing) && "bg-muted/30 cursor-default"
           )}
           placeholder="開始編輯你的腳本..."
