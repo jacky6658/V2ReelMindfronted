@@ -409,8 +409,9 @@ const AppDashboard: React.FC = () => {
               e.currentTarget.style.display = 'none';
             }}
           >
-            <source src="/reelmind.webm" type="video/webm" />
+            {/* 行動裝置相容性：優先使用 MP4，其次 WebM */}
             <source src="/reelmind.mp4" type="video/mp4" />
+            <source src="/reelmind.webm" type="video/webm" />
           </video>
           <div className="video-overlay"></div>
         </div>

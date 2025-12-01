@@ -385,36 +385,38 @@ export default function Statistics() {
                   </CardHeader>
                   <CardContent className="pt-4 sm:pt-6">
                     <ChartContainer config={chartConfig} className="h-[220px] sm:h-[260px] md:h-[300px]">
-                      <AreaChart data={chartData}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="day" />
-                        <YAxis />
-                        <ChartTooltip content={<ChartTooltipContent />} />
-                        <Area
-                          type="monotone"
-                          dataKey="total"
-                          stackId="1"
-                          stroke="hsl(var(--chart-1))"
-                          fill="hsl(var(--chart-1))"
-                          fillOpacity={0.6}
-                        />
-                        <Area
-                          type="monotone"
-                          dataKey="scripts"
-                          stackId="1"
-                          stroke="hsl(var(--chart-2))"
-                          fill="hsl(var(--chart-2))"
-                          fillOpacity={0.6}
-                        />
-                        <Area
-                          type="monotone"
-                          dataKey="generations"
-                          stackId="1"
-                          stroke="hsl(var(--chart-3))"
-                          fill="hsl(var(--chart-3))"
-                          fillOpacity={0.6}
-                        />
-                      </AreaChart>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="day" />
+                          <YAxis />
+                          <ChartTooltip content={<ChartTooltipContent />} />
+                          <Area
+                            type="monotone"
+                            dataKey="total"
+                            stackId="1"
+                            stroke="hsl(var(--chart-1))"
+                            fill="hsl(var(--chart-1))"
+                            fillOpacity={0.6}
+                          />
+                          <Area
+                            type="monotone"
+                            dataKey="scripts"
+                            stackId="1"
+                            stroke="hsl(var(--chart-2))"
+                            fill="hsl(var(--chart-2))"
+                            fillOpacity={0.6}
+                          />
+                          <Area
+                            type="monotone"
+                            dataKey="generations"
+                            stackId="1"
+                            stroke="hsl(var(--chart-3))"
+                            fill="hsl(var(--chart-3))"
+                            fillOpacity={0.6}
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
                     </ChartContainer>
                   </CardContent>
                 </Card>
@@ -433,7 +435,7 @@ export default function Statistics() {
                   <CardContent className="pt-4 sm:pt-6">
                     <ChartContainer config={chartConfig} className="h-[220px] sm:h-[260px] md:h-[300px]">
                       <ResponsiveContainer width="100%" height="100%">
-                        <RechartsPieChart>
+                        <RechartsPieChart margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
                           <ChartTooltip content={<ChartTooltipContent />} />
                           <Legend wrapperStyle={{ fontSize: '12px' }} />
                           <Pie

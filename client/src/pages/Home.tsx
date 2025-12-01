@@ -293,8 +293,9 @@ export default function Home() {
               e.currentTarget.style.display = 'none';
             }}
           >
-            <source src="/hero-bg.webm" type="video/webm" />
+            {/* 行動裝置相容性：優先使用 MP4，其次 WebM */}
             <source src="/hero-bg.mp4" type="video/mp4" />
+            <source src="/hero-bg.webm" type="video/webm" />
           </video>
           <div className="video-overlay"></div>
         </div>
