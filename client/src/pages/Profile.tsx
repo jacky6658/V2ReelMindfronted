@@ -954,15 +954,14 @@ const Profile: React.FC = () => {
                           <div className="bg-muted/50 rounded-lg p-4 space-y-2 text-sm">
                             <p className="font-semibold">🎁 推薦獎勵機制</p>
                             <ul className="space-y-1 text-muted-foreground list-disc list-inside">
-                              <li>每成功邀請一位好友註冊，您可獲得 7 天免費試用延長（無限制）</li>
-                              <li className="font-medium text-foreground">
-                                <strong>二選一獎勵（擇一發放，先達到條件者優先）：</strong>
-                              </li>
-                              <li className="ml-4">• 好友完成首次訂閱 → 您可獲得額外 30 天使用期限（每個被推薦用戶只能觸發一次）</li>
-                              <li className="ml-4">• 累積邀請 5 位付費用戶（必須完成付費訂閱，月付或年付均可）→ 可獲得 1 個月免費使用（每個推薦人只能獲得一次）</li>
+                              <li>每成功邀請一位好友註冊，邀請人與被邀請人雙方都可獲得 7 天免費試用延長（一個帳號最多延長至 5 週，共 35 天）</li>
                               <li className="text-xs mt-2 text-muted-foreground/80">
-                                ※ 注意：兩個獎勵為二選一，先達到條件者優先發放，已發放過的獎勵不會重複發放
+                                ※ 上述規則不與下方規則抵觸，一個帳號至多可以免費體驗全功能 2 個月
                               </li>
+                              <li className="font-medium text-foreground mt-3">
+                                <strong>額外獎勵：</strong>
+                              </li>
+                              <li className="ml-4">• 累積邀請 10 位用戶 → 可獲得 1 個月免費使用（每個推薦人只能獲得一次）</li>
                             </ul>
                           </div>
                         </div>

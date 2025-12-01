@@ -174,6 +174,11 @@ interface HistoryItem {
   content: string;
   created_at: string;
   type: 'profile' | 'planning' | 'script';
+  metadata?: {
+    category?: 'positioning' | 'topics' | 'planning' | 'script';
+    source?: 'mode1' | 'mode3';
+    timestamp?: string;
+  };
 }
 
 interface SavedResult {
@@ -395,11 +400,19 @@ export default function Mode1() {
   // 載入歷史記錄
   const loadHistory = async () => {
     try {
-      const data = await apiGet<{ results: HistoryItem[] }>('/api/ip-planning/my');
+      // 增加超時時間到 30 秒，因為後端處理可能需要較長時間
+      const data = await apiGet<{ results: HistoryItem[] }>('/api/ip-planning/my', {
+        timeout: 30000 // 30 秒超時
+      });
       const filtered = data.results.filter(item => item.type === activeTab);
       setHistory(filtered);
-    } catch (error) {
+    } catch (error: any) {
       console.error('載入歷史記錄失敗:', error);
+      // 如果是超時錯誤，不顯示錯誤訊息（後端可能正在處理）
+      if (error?.code === 'ECONNABORTED' || error?.message?.includes('timeout')) {
+        console.log('載入歷史記錄超時，但後端可能正在處理，不顯示錯誤');
+        return;
+      }
       // 如果是 401 錯誤，不顯示錯誤訊息（用戶未登入）
       if (error && typeof error === 'object' && 'status' in error && error.status !== 401) {
         toast.error('載入歷史記錄失敗');
@@ -424,24 +437,37 @@ export default function Mode1() {
       // 2. 從資料庫載入（異步，不阻塞 UI）
       let dbResults: SavedResult[] = [];
       try {
-        const data = await apiGet<{ results: HistoryItem[] }>('/api/ip-planning/my');
+        // 增加超時時間到 30 秒，因為後端處理可能需要較長時間
+        const data = await apiGet<{ results: HistoryItem[] }>('/api/ip-planning/my', {
+          timeout: 30000 // 30 秒超時
+        });
         
         // 將資料庫結果轉換為 SavedResult 格式
         dbResults = data.results.map(item => {
           // 映射 result_type 到 category
-          const categoryMap: Record<string, 'positioning' | 'topics' | 'planning' | 'script'> = {
-            'profile': 'positioning',
-            'plan': 'planning', // 14天規劃
-            'planning': 'planning', // 兼容新的 type 值
-            'topics': 'topics', // 選題方向
-            'scripts': 'script'
-          };
+          // 注意：需要根據 metadata.category 來判斷，如果沒有則使用 result_type
+          let category: 'positioning' | 'topics' | 'planning' | 'script' = 'positioning';
+          
+          // 優先使用 metadata.category（更準確）
+          if (item.metadata?.category) {
+            category = item.metadata.category as 'positioning' | 'topics' | 'planning' | 'script';
+          } else {
+            // 如果沒有 metadata.category，使用 result_type 映射
+            const categoryMap: Record<string, 'positioning' | 'topics' | 'planning' | 'script'> = {
+              'profile': 'positioning',
+              'plan': 'planning', // 14天規劃或選題方向都可能是 'plan'
+              'planning': 'planning', // 兼容新的 type 值
+              'topics': 'topics', // 選題方向
+              'scripts': 'script'
+            };
+            category = categoryMap[item.type] || 'positioning';
+          }
           
           return {
             id: item.id,
             title: item.title,
             content: item.content,
-            category: categoryMap[item.type] || 'positioning',
+            category: category,
             timestamp: new Date(item.created_at),
             isEditing: false,
             savedToDB: true // 標記為已儲存到資料庫
@@ -666,6 +692,11 @@ export default function Mode1() {
               hasContent: !!assistantMessage
             });
             autoSaveResult(assistantMessage, category);
+            // 如果是 14 天規劃，確保切換到正確的標籤頁
+            if (category === 'planning') {
+              setResultTab('planning');
+              toast.info('14 天規劃已自動儲存到生成結果，請點擊「生成結果」查看「14天規劃」標籤頁。', { duration: 5000 });
+            }
           }
           
           // 重新載入歷史記錄

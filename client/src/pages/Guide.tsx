@@ -11,8 +11,6 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { Moon, Sun, BookOpen, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
-import { apiGet } from '@/lib/api-client';
-import { toast } from 'sonner';
 
 // 指南文章列表
 const guides = [
@@ -135,16 +133,9 @@ export default function Guide() {
   const { isLoggedIn } = useAuthStore();
   const [selectedCategory, setSelectedCategory] = useState('全部');
 
-  const handleGoogleLogin = async () => {
-    try {
-      // 使用與 Login.tsx 相同的登入邏輯
-      // 使用新版前端的專用端點 /api/auth/google-new
-      const { auth_url } = await apiGet<{ auth_url: string }>('/api/auth/google-new');
-      window.location.href = auth_url;
-    } catch (error) {
-      console.error('登入失敗:', error);
-      toast.error('登入失敗，請稍後再試');
-    }
+  const handleGoogleLogin = () => {
+    // 導向登入頁面，讓用戶有機會輸入推薦碼
+    navigate('/login');
   };
 
   // 篩選文章
