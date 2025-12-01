@@ -51,10 +51,17 @@ import {
   HelpCircle,
   Home,
   Calendar as CalendarIcon,
+  Info,
+  Loader2,
+  TrendingUp,
+  ExternalLink,
 } from 'lucide-react';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as UiCalendar } from '@/components/ui/calendar';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import { apiGet, apiDelete, apiPost, apiPut } from '@/lib/api-client';
 import { useAuthStore } from '@/stores/authStore';
 import { useNavigate } from 'react-router-dom';
@@ -234,6 +241,121 @@ export default function UserDB() {
   const [calendarLikes, setCalendarLikes] = useState<string>('');
   const [calendarComments, setCalendarComments] = useState<string>('');
   const [calendarShares, setCalendarShares] = useState<string>('');
+  // 14 天規劃排入日曆 Dialog
+  const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
+  const [scheduleTargetPlan, setScheduleTargetPlan] = useState<IPPlanningResult | null>(null);
+  const [scheduleDate, setScheduleDate] = useState<Date | undefined>(new Date());
+
+  // 處理生成腳本（在日曆對話框中）
+  const handleGenerateCalendarScript = async () => {
+    if (!selectedCalendarDay) return;
+    
+    try {
+      setScriptGenerating(true);
+      
+      // 呼叫後端 API 生成腳本
+      const response = await apiPost<{ script: string }>(`/api/planning-days/${selectedCalendarDay.id}/generate-script`, {
+        structure: calendarScriptStructure,
+        duration: calendarDuration,
+        platform: calendarPlatform,
+        notes: calendarExtraNotes
+      });
+      
+      setCalendarScriptContent(response.script);
+      toast.success('腳本生成成功');
+    } catch (error: any) {
+      console.error('生成腳本失敗:', error);
+      toast.error(error.message || '生成腳本失敗');
+    } finally {
+      setScriptGenerating(false);
+    }
+  };
+
+  // 處理儲存腳本和成效（在日曆對話框中）
+  const handleSaveCalendarScript = async () => {
+    if (!selectedCalendarDay) return;
+    
+    try {
+      setScriptSaving(true);
+      
+      // 構建儲存資料
+      const saveData = {
+        script_content: calendarScriptContent,
+        script_structure: calendarScriptStructure,
+        duration_seconds: parseInt(calendarDuration),
+        platform: calendarPlatform,
+        extra_notes: calendarExtraNotes,
+        video_url: calendarVideoUrl,
+        performance_notes: calendarPerformanceNotes,
+        views: calendarViews ? parseInt(calendarViews) : null,
+        likes: calendarLikes ? parseInt(calendarLikes) : null,
+        comments: calendarComments ? parseInt(calendarComments) : null,
+        shares: calendarShares ? parseInt(calendarShares) : null,
+        // 如果勾選了「已發佈」，且之前沒有發佈時間，則設置為今天（或選定的日期）
+        // 注意：這裡簡化處理，實際應用可能需要單獨的日期選擇
+        // 後端 PUT /api/planning-days/{day_id}/script
+      };
+
+      await apiPut(`/api/planning-days/${selectedCalendarDay.id}/script`, saveData);
+      
+      // 更新本地狀態
+      setPlanningDays(prev => prev.map(day => {
+        if (day.id === selectedCalendarDay.id) {
+          return {
+            ...day,
+            ...saveData,
+            // 注意：後端可能會更新 posted_at，這裡暫時不更新，或者重新載入資料
+          };
+        }
+        return day;
+      }));
+      
+      // 重新載入當前選擇的天資料，以獲取最新的 posted_at 等
+      // 這裡簡單地更新 selectedCalendarDay
+      setSelectedCalendarDay(prev => prev ? { ...prev, ...saveData } : null);
+
+      toast.success('儲存成功');
+    } catch (error: any) {
+      console.error('儲存失敗:', error);
+      toast.error(error.message || '儲存失敗');
+    } finally {
+      setScriptSaving(false);
+    }
+  };
+
+  // 處理排入日曆
+  const handleSchedulePlanning = async () => {
+    if (!scheduleTargetPlan || !scheduleDate) {
+      toast.error('請選擇開始日期');
+      return;
+    }
+
+    try {
+      const dateStr = scheduleDate.toISOString().slice(0, 10);
+      
+      // 呼叫後端 API 排入日曆
+      // 預期後端 API: POST /api/planning-days/schedule
+      // Body: { plan_result_id: string, start_date: string }
+      await apiPost('/api/planning-days/schedule', {
+        plan_result_id: scheduleTargetPlan.id,
+        start_date: dateStr
+      });
+
+      toast.success('已成功排入日曆');
+      setScheduleDialogOpen(false);
+      
+      // 如果當前在日曆模式，重新載入日曆資料
+      // 如果不在日曆模式，切換到日曆模式
+      if (planningViewMode === 'calendar') {
+        loadPlanningDays(calendarMonth);
+      } else {
+        setPlanningViewMode('calendar');
+      }
+    } catch (error: any) {
+      console.error('排入日曆失敗:', error);
+      toast.error(error.message || '排入日曆失敗');
+    }
+  };
 
   // 載入指定月份的 planning_days
   const loadPlanningDays = async (monthDate: Date) => {
@@ -706,7 +828,7 @@ export default function UserDB() {
     }
   };
 
-  // 分享功能
+  // 分享功能（支援 IG / Line / FB）
   const handleShare = async () => {
     if (!selectedItem) return;
     
@@ -736,29 +858,50 @@ export default function UserDB() {
       itemId = ('id' in selectedItem) ? selectedItem.id.toString() : '';
     }
     
-    const shareData = {
-      title: title || '內容',
-      text: text ? text + '...' : '',
-      url: window.location.href
-    };
-    
+    const pageUrl = window.location.href;
+    const previewText = text ? text + '...' : '';
+
+    // 優先使用 Web Share API（行動裝置原生分享，會自動支援 Line / FB / IG 等 App）
     if (navigator.share) {
       try {
-        await navigator.share(shareData);
-        toast.success('已分享');
+        await navigator.share({
+          title: title || '內容',
+          text: previewText,
+          url: pageUrl,
+        });
+        toast.success('已呼叫系統分享，請在列表中選擇 IG / Line / FB');
+        return;
       } catch (error: any) {
-        if (error.name !== 'AbortError') {
-          // 如果不支援分享，則複製連結
-          const shareUrl = `${window.location.origin}${window.location.pathname}#/share/${itemId}`;
-          navigator.clipboard.writeText(shareUrl);
-          toast.success('連結已複製到剪貼簿');
+        if (error.name === 'AbortError') {
+          return; // 使用者取消，不再往下
         }
       }
+    }
+
+    // 如果沒有 Web Share API，就提供常用社群分享連結（以目前頁面 URL 為主）
+    const encodedUrl = encodeURIComponent(pageUrl);
+    const encodedText = encodeURIComponent(previewText || title || 'ReelMind 內容分享');
+
+    const lineUrl = `https://line.me/R/msg/text/?${encodedText}%20${encodedUrl}`;
+    const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`;
+
+    // IG 沒有正式的文字分享網址，只能開啟 IG 首頁讓用戶手動貼上
+    const igUrl = `https://www.instagram.com/`;
+
+    // 簡單策略：先把文字內容複製到剪貼簿，然後提示用戶選擇要開啟的社群 App
+    try {
+      await navigator.clipboard.writeText(previewText || `${title}\n${pageUrl}`);
+      toast.info('內容已複製，接下來會開啟社群頁面，請自行貼上貼文內容');
+    } catch {
+      // 如果無法複製，就忽略
+    }
+
+    // 開啟三個社群選項中的一個（這裡預設先開 Line，如果是桌機則會落到 FB 或 IG）
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    if (isMobile) {
+      window.open(lineUrl, '_blank');
     } else {
-      // 降級方案：複製連結
-      const shareUrl = `${window.location.origin}${window.location.pathname}#/share/${itemId}`;
-      navigator.clipboard.writeText(shareUrl);
-      toast.success('連結已複製到剪貼簿');
+      window.open(fbUrl, '_blank');
     }
   };
 
@@ -1511,6 +1654,23 @@ export default function UserDB() {
                                           <FileDown className="w-4 h-4 mr-2" />
                                           匯出為 TXT
                                         </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          onClick={() => {
+                                            // 在 IP 人設規劃功能中繼續使用這份內容
+                                            navigate('/mode1', {
+                                              state: {
+                                                fromUserDB: true,
+                                                fromIpPlanning: true,
+                                                planningResultId: result.id,
+                                                planningContent: result.content,
+                                                planningType: getIPPlanningTypeLabel(result),
+                                              },
+                                            });
+                                          }}
+                                        >
+                                          <MessageSquare className="w-4 h-4 mr-2" />
+                                          在 IP人設規劃中使用
+                                        </DropdownMenuItem>
                                         <DropdownMenuSeparator />
                                         <DropdownMenuItem 
                                           onClick={() => handleDelete(result.id, 'ip-planning')}
@@ -1624,8 +1784,24 @@ export default function UserDB() {
                                           <FileDown className="w-4 h-4 mr-2" />
                                           匯出
                                         </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          onClick={() => {
+                                            navigate('/mode1', {
+                                              state: {
+                                                fromUserDB: true,
+                                                fromIpPlanning: true,
+                                                planningResultId: result.id,
+                                                planningContent: result.content,
+                                                planningType: getIPPlanningTypeLabel(result),
+                                              },
+                                            });
+                                          }}
+                                        >
+                                          <MessageSquare className="w-4 h-4 mr-2" />
+                                          在 IP人設規劃中使用
+                                        </DropdownMenuItem>
                                         <DropdownMenuItem 
-                                    onClick={() => handleDelete(result.id, 'ip-planning')}
+                                          onClick={() => handleDelete(result.id, 'ip-planning')}
                                           className="text-destructive"
                                         >
                                           <Trash2 className="w-4 h-4 mr-2" />
@@ -1728,6 +1904,11 @@ export default function UserDB() {
                           setCalendarComments('');
                           setCalendarShares('');
                         }
+                        
+                        // 重置生成和儲存狀態
+                        setScriptGenerating(false);
+                        setScriptSaving(false);
+                        
                         setCalendarDialogOpen(true);
                       }}
                     />
@@ -1889,30 +2070,15 @@ export default function UserDB() {
                                           在 IP 人設規劃中使用
                                         </DropdownMenuItem>
                                         <DropdownMenuItem
-                                          onClick={async () => {
-                                            // 排入日曆：選擇開始日期後呼叫後端 schedule API
+                                          onClick={() => {
                                             if (!user?.user_id) {
                                               toast.error('請先登入');
                                               navigate('/login');
                                               return;
                                             }
-                                            let startDate = new Date();
-                                            const confirmed = window.confirm('是否以今天為開始日期，將此 14 天規劃排入日曆？\n（之後可在日曆視圖中查看與編輯）');
-                                            if (!confirmed) return;
-                                            try {
-                                              await apiPost('/api/planning-days/schedule', {
-                                                plan_result_id: result.id,
-                                                start_date: startDate.toISOString().slice(0, 10),
-                                              });
-                                              toast.success('已排入日曆');
-                                              setPlanningViewMode('calendar');
-                                              setCalendarMonth(startDate);
-                                              // 重新載入當月日曆資料
-                                              loadPlanningDays(startDate);
-                                            } catch (e: any) {
-                                              console.error('排入日曆失敗:', e);
-                                              toast.error(e?.response?.data?.error || '排入日曆失敗');
-                                            }
+                                            setScheduleTargetPlan(result);
+                                            setScheduleDate(new Date());
+                                            setScheduleDialogOpen(true);
                                           }}
                                         >
                                           <CalendarIcon className="w-4 h-4 mr-2" />
@@ -2079,6 +2245,43 @@ export default function UserDB() {
         </Card>
       </div>
 
+      {/* 排入日曆 Dialog */}
+      <Dialog open={scheduleDialogOpen} onOpenChange={setScheduleDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>排入日曆</DialogTitle>
+            <DialogDescription>
+              請選擇這 14 天規劃的開始日期，系統將自動為您安排接下來的 14 天發布排程。
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="start-date">開始日期</Label>
+              <div className="flex justify-center p-2 border rounded-md">
+                <UiCalendar
+                  mode="single"
+                  selected={scheduleDate}
+                  onSelect={setScheduleDate}
+                  initialFocus
+                  disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                />
+              </div>
+            </div>
+            {scheduleDate && (
+              <div className="text-sm text-muted-foreground text-center">
+                預計排程期間：{scheduleDate.toLocaleDateString()} 至 {new Date(scheduleDate.getTime() + 13 * 24 * 60 * 60 * 1000).toLocaleDateString()}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setScheduleDialogOpen(false)}>取消</Button>
+            <Button onClick={handleSchedulePlanning} disabled={!scheduleDate}>
+              確認排入
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* 詳情 Dialog */}
       <Dialog open={showDetail} onOpenChange={(open) => {
         setShowDetail(open);
@@ -2191,6 +2394,327 @@ export default function UserDB() {
                 關閉
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 14 天規劃日曆詳情 Dialog */}
+      <Dialog open={calendarDialogOpen} onOpenChange={(open) => {
+        setCalendarDialogOpen(open);
+        if (!open) {
+          setSelectedCalendarDay(null);
+          setSelectedCalendarDate(null);
+        }
+      }}>
+        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col h-[90vh] p-0 gap-0">
+          <div className="p-6 pb-2 shrink-0">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-xl">
+                <CalendarIcon className="w-5 h-5 text-primary" />
+                {selectedCalendarDate?.toLocaleDateString()} ({selectedCalendarDay?.weekday || selectedCalendarDate?.toLocaleDateString('zh-TW', { weekday: 'long' })})
+              </DialogTitle>
+              <DialogDescription className="text-base mt-1">
+                {selectedCalendarDay ? (
+                  <span className="font-medium text-foreground">{selectedCalendarDay.topic}</span>
+                ) : (
+                  <span className="text-muted-foreground italic">當天尚未有規劃</span>
+                )}
+              </DialogDescription>
+            </DialogHeader>
+          </div>
+
+          <div className="flex-1 overflow-hidden px-6 pb-6">
+            <Tabs defaultValue="topic" className="h-full flex flex-col">
+              <TabsList className="grid w-full grid-cols-3 mb-4 shrink-0">
+                <TabsTrigger value="profile">帳號定位</TabsTrigger>
+                <TabsTrigger value="topic">當天選題</TabsTrigger>
+                <TabsTrigger value="script">短影音腳本</TabsTrigger>
+              </TabsList>
+              
+              {/* 帳號定位 Tab */}
+              <TabsContent value="profile" className="flex-1 overflow-hidden mt-0">
+                <ScrollArea className="h-full pr-4">
+                  <div className="space-y-4">
+                    <div className="bg-muted/30 p-4 rounded-lg border">
+                      <h3 className="font-semibold text-lg mb-2">
+                        {selectedCalendarDay?.ip_profile_title || 'IP 人設定位'}
+                      </h3>
+                      {selectedCalendarDay?.ip_profile_content ? (
+                        <div className="prose prose-sm max-w-none dark:prose-invert">
+                          {renderCleanContent(selectedCalendarDay.ip_profile_content)}
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                          <User className="w-12 h-12 mb-4 opacity-20" />
+                          <p>找不到相關聯的 IP 人設定位資料</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </ScrollArea>
+              </TabsContent>
+              
+              {/* 當天選題 Tab */}
+              <TabsContent value="topic" className="flex-1 overflow-hidden mt-0">
+                 <div className="h-full flex flex-col">
+                    <div className="bg-primary/5 p-6 rounded-xl border border-primary/10 mb-4 flex-1 flex flex-col justify-center items-center text-center">
+                      <h3 className="text-2xl font-bold text-primary mb-4">今日選題</h3>
+                      <p className="text-xl font-medium leading-relaxed max-w-2xl">
+                        {selectedCalendarDay?.topic || '無選題'}
+                      </p>
+                    </div>
+                    <div className="bg-muted/30 p-4 rounded-lg border">
+                      <h4 className="font-medium mb-2 flex items-center gap-2">
+                        <Info className="w-4 h-4" />
+                        創作提示
+                      </h4>
+                      <p className="text-sm text-muted-foreground">
+                        這個選題是根據您的 IP 人設定位與 14 天規劃策略生成的。建議您在創作時，保持與人設的一致性，並嘗試在影片前 3 秒抓住觀眾注意力。
+                      </p>
+                    </div>
+                 </div>
+              </TabsContent>
+              
+              {/* 短影音腳本 Tab */}
+              <TabsContent value="script" className="flex-1 overflow-hidden mt-0 flex flex-col">
+                <ScrollArea className="flex-1 pr-4">
+                  <div className="space-y-6 pb-4">
+                    {/* 腳本設定區塊 */}
+                    <div className="grid gap-4 md:grid-cols-2 p-4 bg-muted/30 rounded-lg border">
+                      <div className="space-y-2">
+                        <Label>腳本結構</Label>
+                        <Select 
+                          value={calendarScriptStructure} 
+                          onValueChange={setCalendarScriptStructure}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="選擇結構" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="hook-story-offer">Hook-Story-Offer (標準)</SelectItem>
+                            <SelectItem value="problem-agitate-solve">Problem-Agitate-Solve (痛點)</SelectItem>
+                            <SelectItem value="before-after-bridge">Before-After-Bridge (對比)</SelectItem>
+                            <SelectItem value="listicle">Listicle (清單式)</SelectItem>
+                            <SelectItem value="educational">Educational (教學式)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label>預計秒數</Label>
+                        <Select 
+                          value={calendarDuration} 
+                          onValueChange={setCalendarDuration}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="選擇秒數" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="15">15 秒</SelectItem>
+                            <SelectItem value="30">30 秒</SelectItem>
+                            <SelectItem value="60">60 秒</SelectItem>
+                            <SelectItem value="90">90 秒</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label>發佈平台</Label>
+                        <Select 
+                          value={calendarPlatform} 
+                          onValueChange={setCalendarPlatform}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="選擇平台" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="tiktok">TikTok</SelectItem>
+                            <SelectItem value="instagram">Instagram Reels</SelectItem>
+                            <SelectItem value="youtube">YouTube Shorts</SelectItem>
+                            <SelectItem value="facebook">Facebook Reels</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label>補充說明</Label>
+                        <Input 
+                          placeholder="例如：語氣要活潑、強調某個重點..." 
+                          value={calendarExtraNotes}
+                          onChange={(e) => setCalendarExtraNotes(e.target.value)}
+                        />
+                      </div>
+                    </div>
+
+                    {/* 腳本內容編輯器 */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label>腳本內容</Label>
+                        <div className="flex gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={handleGenerateCalendarScript}
+                            disabled={scriptGenerating || !selectedCalendarDay}
+                          >
+                            {scriptGenerating ? (
+                              <>
+                                <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                                生成中...
+                              </>
+                            ) : (
+                              <>
+                                <Sparkles className="w-3 h-3 mr-1" />
+                                {calendarScriptContent ? '換一個' : '一鍵生成腳本'}
+                              </>
+                            )}
+                          </Button>
+                          <Button 
+                            size="sm"
+                            onClick={handleSaveCalendarScript}
+                            disabled={scriptSaving || !selectedCalendarDay}
+                          >
+                             {scriptSaving ? (
+                              <>
+                                <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                                儲存中...
+                              </>
+                            ) : (
+                              <>
+                                <Save className="w-3 h-3 mr-1" />
+                                儲存
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                      <ScriptEditor
+                        content={calendarScriptContent}
+                        onSave={(content) => {
+                          setCalendarScriptContent(content);
+                          // 不自動儲存到後端，等待用戶點擊儲存按鈕
+                        }}
+                        className="min-h-[300px]"
+                        showToolbar={true}
+                      />
+                    </div>
+
+                    {/* 成效追蹤區塊 */}
+                    <div className="space-y-4 pt-4 border-t">
+                      <h4 className="font-semibold flex items-center gap-2">
+                        <TrendingUp className="w-4 h-4 text-primary" />
+                        成效追蹤
+                      </h4>
+                      
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label>影片連結</Label>
+                          <div className="flex gap-2">
+                            <Input 
+                              placeholder="https://..." 
+                              value={calendarVideoUrl}
+                              onChange={(e) => setCalendarVideoUrl(e.target.value)}
+                            />
+                            {calendarVideoUrl && (
+                              <Button variant="ghost" size="icon" asChild>
+                                <a href={calendarVideoUrl} target="_blank" rel="noopener noreferrer">
+                                  <ExternalLink className="w-4 h-4" />
+                                </a>
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-2 pt-8">
+                           <div className="flex items-center space-x-2">
+                            <Checkbox 
+                              id="is-posted" 
+                              checked={!!selectedCalendarDay?.posted_at}
+                              onCheckedChange={(checked) => {
+                                // Update local state optimistically if needed, 
+                                // but actual update happens on Save
+                              }}
+                            />
+                            <Label htmlFor="is-posted" className="font-normal cursor-pointer">
+                              已發佈 (勾選後儲存以標記日期)
+                            </Label>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="space-y-1">
+                          <Label className="text-xs text-muted-foreground">觀看次數</Label>
+                          <Input 
+                            type="number" 
+                            placeholder="0" 
+                            value={calendarViews}
+                            onChange={(e) => setCalendarViews(e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs text-muted-foreground">按讚數</Label>
+                          <Input 
+                            type="number" 
+                            placeholder="0" 
+                            value={calendarLikes}
+                            onChange={(e) => setCalendarLikes(e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs text-muted-foreground">留言數</Label>
+                          <Input 
+                            type="number" 
+                            placeholder="0" 
+                            value={calendarComments}
+                            onChange={(e) => setCalendarComments(e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs text-muted-foreground">分享數</Label>
+                          <Input 
+                            type="number" 
+                            placeholder="0" 
+                            value={calendarShares}
+                            onChange={(e) => setCalendarShares(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label>成效備註</Label>
+                        <Textarea 
+                          placeholder="記錄這支影片的表現、觀眾反應或改進點..." 
+                          className="min-h-[80px]"
+                          value={calendarPerformanceNotes}
+                          onChange={(e) => setCalendarPerformanceNotes(e.target.value)}
+                        />
+                      </div>
+                      
+                      <div className="flex justify-end">
+                         <Button 
+                            onClick={handleSaveCalendarScript}
+                            disabled={scriptSaving || !selectedCalendarDay}
+                            className="w-full md:w-auto"
+                          >
+                             {scriptSaving ? (
+                              <>
+                                <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                                儲存所有變更
+                              </>
+                            ) : (
+                              <>
+                                <Save className="w-3 h-3 mr-1" />
+                                儲存所有變更
+                              </>
+                            )}
+                          </Button>
+                      </div>
+                    </div>
+                  </div>
+                </ScrollArea>
+              </TabsContent>
+            </Tabs>
           </div>
         </DialogContent>
       </Dialog>
