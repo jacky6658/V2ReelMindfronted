@@ -699,9 +699,9 @@ export default function Home() {
                   )}
                   <div className="flex items-baseline justify-center gap-2">
                     <span className="text-5xl font-bold text-primary">
-                      NT${billingCycle === 'yearly' ? '3,990' : '399'}
+                      NT${billingCycle === 'yearly' ? '332' : '399'}
                     </span>
-                    <span className="text-muted-foreground">/ {billingCycle === 'yearly' ? '年' : '月'}</span>
+                    <span className="text-muted-foreground">/ 月</span>
                   </div>
                   {billingCycle === 'yearly' && (
                     <div className="mt-2 flex flex-col items-center gap-1">
@@ -710,9 +710,6 @@ export default function Home() {
                       </Badge>
                       <span className="text-xs text-green-600 dark:text-green-400 font-medium">
                         省下 NT$798 (17%)
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        平均每月只需 NT$332
                       </span>
                     </div>
                   )}

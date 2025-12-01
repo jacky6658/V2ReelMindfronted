@@ -1055,24 +1055,113 @@ const Profile: React.FC = () => {
                           </div>
                         )}
 
-                        {/* 獎勵說明 */}
+                        {/* 獎勵說明 - FOMO 設計 */}
                         <div className="pt-4 border-t">
-                          <div className="bg-muted/50 rounded-lg p-4 space-y-2 text-sm">
-                            <p className="font-semibold">🎁 推薦獎勵機制</p>
-                            <ul className="space-y-1 text-muted-foreground list-disc list-inside">
-                              <li>每成功邀請一位好友註冊，邀請人與被邀請人雙方都可獲得 7 天免費試用延長（一個帳號最多延長至 5 週，共 35 天）</li>
-                              <li className="text-xs mt-2 text-muted-foreground/80">
-                                ※ 上述規則不與下方規則抵觸，一個帳號至多可以免費體驗全功能 2 個月
-                              </li>
-                              <li className="font-medium text-foreground mt-3">
-                                <strong>額外獎勵（二擇一，任一完成後即無獎勵）：</strong>
-                              </li>
-                              <li className="ml-4">• 累積邀請 10 位用戶 → 可獲得 1 個月免費使用（每個推薦人只能獲得一次）</li>
-                              <li className="ml-4">• 邀請的好友中有一位完成月付或年付付款 → 可獲得 1 個月免費使用（每個推薦人只能獲得一次）</li>
-                              <li className="text-xs mt-2 text-muted-foreground/80">
-                                ※ 後續有新活動另外公布
-                              </li>
-                            </ul>
+                          <div className="bg-gradient-to-br from-primary/10 via-purple-500/10 to-pink-500/10 rounded-lg p-6 border-2 border-primary/20 space-y-4">
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-purple-500 flex items-center justify-center">
+                                <span className="text-white font-bold text-sm">🎁</span>
+                              </div>
+                              <h3 className="text-lg font-bold bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent">
+                                推薦邀請獎勵機制
+                              </h3>
+                            </div>
+                            
+                            {/* 獎勵表格 */}
+                            <div className="space-y-3">
+                              {/* 基礎獎勵 */}
+                              <div className="bg-background/80 rounded-lg p-4 border border-green-500/30">
+                                <div className="flex items-start justify-between mb-2">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
+                                      <span className="text-white text-xs font-bold">✓</span>
+                                    </div>
+                                    <h4 className="font-semibold text-foreground">基礎獎勵（無上限）</h4>
+                                  </div>
+                                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300">
+                                    立即獲得
+                                  </Badge>
+                                </div>
+                                <p className="text-sm text-muted-foreground ml-8">
+                                  每成功邀請一位好友註冊，<strong className="text-foreground">邀請人與被邀請人雙方</strong>都可獲得 <strong className="text-primary font-bold">7 天免費試用延長</strong>
+                                </p>
+                                <div className="mt-2 ml-8 p-2 bg-muted/50 rounded text-xs">
+                                  <p className="text-muted-foreground">
+                                    💡 一個帳號最多延長至 <strong className="text-foreground">5 週（共 35 天）</strong>，一個帳號至多可以免費體驗全功能 <strong className="text-primary">2 個月</strong>
+                                  </p>
+                                </div>
+                              </div>
+
+                              {/* 額外獎勵 */}
+                              <div className="bg-background/80 rounded-lg p-4 border-2 border-purple-500/40 relative overflow-hidden">
+                                <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-full -mr-10 -mt-10 blur-xl"></div>
+                                <div className="relative">
+                                  <div className="flex items-start justify-between mb-3">
+                                    <div className="flex items-center gap-2">
+                                      <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0">
+                                        <span className="text-white text-xs font-bold">⭐</span>
+                                      </div>
+                                      <div>
+                                        <h4 className="font-bold text-foreground">額外獎勵（二擇一）</h4>
+                                        <p className="text-xs text-muted-foreground">任一完成後即無獎勵</p>
+                                      </div>
+                                    </div>
+                                    <Badge className="bg-gradient-to-r from-purple-500 to-pink-500 text-white border-0">
+                                      限時活動
+                                    </Badge>
+                                  </div>
+                                  
+                                  <div className="space-y-3 ml-8">
+                                    {/* 選項 1 */}
+                                    <div className="p-3 bg-purple-500/10 rounded-lg border border-purple-500/30">
+                                      <div className="flex items-center gap-2 mb-1">
+                                        <span className="text-purple-500 font-bold">選項 A</span>
+                                        <Badge variant="outline" className="text-xs">熱門</Badge>
+                                      </div>
+                                      <p className="text-sm text-foreground">
+                                        累積邀請 <strong className="text-purple-500 font-bold text-base">10 位用戶</strong> → 
+                                      </p>
+                                      <p className="text-sm text-primary font-bold mt-1">
+                                        🎉 可獲得 <strong className="text-lg">1 個月免費使用</strong>
+                                      </p>
+                                      <p className="text-xs text-muted-foreground mt-1">（每個推薦人只能獲得一次）</p>
+                                    </div>
+
+                                    {/* 選項 2 */}
+                                    <div className="p-3 bg-pink-500/10 rounded-lg border border-pink-500/30">
+                                      <div className="flex items-center gap-2 mb-1">
+                                        <span className="text-pink-500 font-bold">選項 B</span>
+                                        <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-300">快速達成</Badge>
+                                      </div>
+                                      <p className="text-sm text-foreground">
+                                        邀請的好友中有一位完成 <strong className="text-pink-500 font-bold">月付或年付付款</strong> → 
+                                      </p>
+                                      <p className="text-sm text-primary font-bold mt-1">
+                                        🎉 可獲得 <strong className="text-lg">1 個月免費使用</strong>
+                                      </p>
+                                      <p className="text-xs text-muted-foreground mt-1">（每個推薦人只能獲得一次）</p>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* FOMO 提示 */}
+                              <div className="bg-gradient-to-r from-amber-500/20 to-orange-500/20 rounded-lg p-4 border border-amber-500/30">
+                                <div className="flex items-start gap-2">
+                                  <span className="text-2xl">🔥</span>
+                                  <div className="flex-1">
+                                    <p className="text-sm font-semibold text-foreground mb-1">
+                                      為什麼要現在開始邀請？
+                                    </p>
+                                    <ul className="text-xs text-muted-foreground space-y-1">
+                                      <li>• 邀請越多，免費使用時間越長（最多 2 個月）</li>
+                                      <li>• 額外獎勵活動可能隨時結束，把握機會！</li>
+                                      <li>• 好友訂閱後，您也能立即獲得 1 個月免費使用</li>
+                                    </ul>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </>

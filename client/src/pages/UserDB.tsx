@@ -1882,9 +1882,9 @@ export default function UserDB() {
             <ScriptEditor
                 content={
                   selectedItem && 'content' in selectedItem 
-                    ? cleanMarkdownToPlainText(selectedItem.content) // 使用專門的純文字清理函數，移除所有 Markdown 符號
+                    ? selectedItem.content // 傳遞原始內容，讓 ScriptEditor 在只讀模式下渲染粗體
                     : (selectedItem && 'summary' in selectedItem 
-                        ? `對話類型：${selectedItem.mode || '未知'}\n訊息數：${selectedItem.message_count || 0}\n\n摘要：\n${cleanMarkdownToPlainText(selectedItem.summary || '')}` 
+                        ? `對話類型：${selectedItem.mode || '未知'}\n訊息數：${selectedItem.message_count || 0}\n\n摘要：\n${selectedItem.summary || ''}` 
                         : '')
                 }
                 title={

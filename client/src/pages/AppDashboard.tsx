@@ -177,22 +177,24 @@ const AppDashboard: React.FC = () => {
     {
       id: 'mode1',
       title: 'IP人設規劃',
-      description: 'AI 對話式規劃，打造專屬 IP 人設與內容策略',
+      description: 'AI 對話式規劃，打造專屬 IP 人設與 14 天內容策略',
       icon: MessageSquare,
       link: '/mode1',
       gradient: 'from-blue-500 to-cyan-500',
       bgGradient: 'from-blue-500/10 to-cyan-500/10',
-      features: ['AI 對話規劃', '智能內容建議', '個性化策略']
+      features: ['AI 對話規劃：找出你的定位與人設', '內容方向建議：明確知道該拍什麼、不該拍什麼', '14 天腳本藍圖：一次給你半個月的影片方向'],
+      suitable: '適合：需要完整定位、缺乏方向、不知道怎麼開始的人'
     },
     {
       id: 'mode3',
       title: '一鍵生成',
-      description: '快速生成短影音腳本，三步驟完成專業內容',
+      description: '快速生成短影音腳本，三步驟完成當日內容',
       icon: Zap,
       link: '/mode3',
       gradient: 'from-purple-500 to-pink-500',
       bgGradient: 'from-purple-500/10 to-pink-500/10',
-      features: ['帳號定位', '選題建議', '腳本生成']
+      features: ['帳號定位同步：依你的風格推薦今日選題', '智能選題：每天給你最新最好拍的主題', '腳本自動生成：一句話就能拍的短影音腳本'],
+      suitable: '適合：每天要更新、不想花時間想題材的人'
     },
     {
       id: 'userdb',
@@ -469,6 +471,13 @@ const AppDashboard: React.FC = () => {
                     ))}
                   </ul>
                   
+                  {/* 適合對象 */}
+                  {(feature as any).suitable && (
+                    <div className="pt-2 border-t">
+                      <p className="text-xs text-muted-foreground">{(feature as any).suitable}</p>
+                    </div>
+                  )}
+                  
                   {/* 操作按鈕 */}
                   <Link to={feature.link} className="block">
                     <Button 
@@ -493,8 +502,8 @@ const AppDashboard: React.FC = () => {
                   <Target className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-sm">智能規劃</h3>
-                  <p className="text-xs text-muted-foreground">AI 協助制定策略</p>
+                  <h3 className="font-semibold text-sm">IP人設規劃</h3>
+                  <p className="text-xs text-muted-foreground">長期策略→幫你決定「你要成為誰」</p>
                 </div>
               </div>
             </CardContent>
@@ -507,8 +516,8 @@ const AppDashboard: React.FC = () => {
                   <Zap className="w-5 h-5 text-purple-500" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-sm">快速生成</h3>
-                  <p className="text-xs text-muted-foreground">三步驟完成內容</p>
+                  <h3 className="font-semibold text-sm">一鍵生成</h3>
+                  <p className="text-xs text-muted-foreground">每日腳本→幫你決定「你今天要拍什麼」</p>
                 </div>
               </div>
             </CardContent>
