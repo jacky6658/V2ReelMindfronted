@@ -37,13 +37,18 @@ interface Order {
 
 export default function Orders() {
   const navigate = useNavigate();
-  const { user } = useAuthStore();
+  const { user, loading: authLoading } = useAuthStore();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
 
   // 載入訂單記錄
   useEffect(() => {
     const loadOrders = async () => {
+      // 如果正在載入認證狀態，等待載入完成
+      if (authLoading) {
+        return;
+      }
+
       if (!user?.user_id) {
         toast.error('請先登入');
         navigate('/login');
@@ -63,7 +68,7 @@ export default function Orders() {
     };
 
     loadOrders();
-  }, [user, navigate]);
+  }, [user, navigate, authLoading]);
 
   // 格式化日期
   const formatDate = (dateString: string | null) => {

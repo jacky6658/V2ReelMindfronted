@@ -40,7 +40,7 @@ interface AnalyticsOverview {
 }
 
 const AppDashboard: React.FC = () => {
-  const { user, logout } = useAuthStore();
+  const { user, logout, loading: authLoading } = useAuthStore();
   const navigate = useNavigate();
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
   const [analyticsOverview, setAnalyticsOverview] = useState<AnalyticsOverview | null>(null);
@@ -671,21 +671,29 @@ const AppDashboard: React.FC = () => {
             <Card 
               className="cursor-pointer hover:border-primary/50 transition-all"
               onClick={async () => {
+                // 如果正在載入認證狀態，等待載入完成
+                if (authLoading) {
+                  toast.info('正在載入用戶資訊，請稍候...');
+                  return;
+                }
+
                 if (!user?.user_id) {
                   toast.error('請先登入');
+                  navigate('/login');
                   return;
                 }
 
                 try {
                   // 匯出用戶的所有資料
                   const [scriptsRes, conversationsRes, generationsRes, ipPlanningRes] = await Promise.all([
-                    apiGet<any[]>(`/api/scripts/my`).catch(() => []),
+                    apiGet<{ scripts: any[] }>(`/api/scripts/my`).catch(() => ({ scripts: [] })),
                     apiGet<any[]>(`/api/user/conversations/${user.user_id}`).catch(() => []),
                     apiGet<any[]>(`/api/user/generations/${user.user_id}`).catch(() => []),
                     apiGet<{ results: any[] }>(`/api/ip-planning/my`).catch(() => ({ results: [] }))
                   ]);
 
-                  const scripts = Array.isArray(scriptsRes) ? scriptsRes : [];
+                  // 正確處理 API 返回格式
+                  const scripts = Array.isArray(scriptsRes?.scripts) ? scriptsRes.scripts : (Array.isArray(scriptsRes) ? scriptsRes : []);
                   const conversations = Array.isArray(conversationsRes) ? conversationsRes : [];
                   const generations = Array.isArray(generationsRes) ? generationsRes : [];
                   const ipPlanning = ipPlanningRes?.results || [];
@@ -757,27 +765,6 @@ const AppDashboard: React.FC = () => {
               </CardContent>
             </Card>
 
-            {/* 如何取得 LLM API Key */}
-            <Card 
-              className="cursor-pointer hover:border-primary/50 transition-all"
-              onClick={() => {
-                setShowSettingsDialog(false);
-                navigate('/guide/how-to-get-llm-api-key');
-              }}
-            >
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg flex-shrink-0">
-                    <FileText className="w-6 h-6 text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-base mb-1">如何取得 LLM API Key</h3>
-                    <p className="text-sm text-muted-foreground">查看詳細教學，學習如何取得與設定 API Key</p>
-                  </div>
-                  <ArrowRight className="w-5 h-5 text-muted-foreground" />
-                </div>
-              </CardContent>
-            </Card>
           </div>
         </DialogContent>
       </Dialog>

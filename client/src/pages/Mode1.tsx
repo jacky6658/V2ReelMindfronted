@@ -193,7 +193,7 @@ interface SavedResult {
 
 export default function Mode1() {
   const navigate = useNavigate();
-  const { user, isLoggedIn } = useAuthStore();
+  const { user, isLoggedIn, loading: authLoading } = useAuthStore();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -753,11 +753,19 @@ export default function Mode1() {
         category: result.category,
         title: result.title,
         hasUser: !!user,
-        userId: user?.user_id
+        userId: user?.user_id,
+        authLoading: authLoading
       });
+
+      // 如果正在載入認證狀態，等待載入完成
+      if (authLoading) {
+        toast.info('正在載入用戶資訊，請稍候...');
+        return;
+      }
 
       if (!user?.user_id) {
         toast.error('請先登入');
+        navigate('/login');
         return;
       }
 

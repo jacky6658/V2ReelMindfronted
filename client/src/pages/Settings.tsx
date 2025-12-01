@@ -40,7 +40,7 @@ interface ModelsResponse {
 
 const Settings: React.FC = () => {
   const navigate = useNavigate();
-  const { user } = useAuthStore();
+  const { user, loading: authLoading } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
@@ -157,8 +157,15 @@ const Settings: React.FC = () => {
       return;
     }
 
+    // 如果正在載入認證狀態，等待載入完成
+    if (authLoading) {
+      toast.info('正在載入用戶資訊，請稍候...');
+      return;
+    }
+
     if (!user?.user_id) {
       toast.error('請先登入');
+      navigate('/login');
       return;
     }
 
@@ -500,19 +507,6 @@ const Settings: React.FC = () => {
                   </Button>
                 </div>
               </div>
-            </div>
-
-            {/* 如何取得 API Key */}
-            <div className="pt-4 border-t">
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => navigate('/guide/how-to-get-llm-api-key')}
-              >
-                <FileText className="w-4 h-4 mr-2" />
-                如何取得 LLM API Key
-                <ExternalLink className="w-4 h-4 ml-2" />
-              </Button>
             </div>
           </CardContent>
         </Card>

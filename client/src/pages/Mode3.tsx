@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { ArrowLeft, Sparkles, CheckCircle2, Loader2, Copy, Lock, Save, Key, Home } from 'lucide-react';
+import { ArrowLeft, Sparkles, CheckCircle2, Loader2, Copy, Lock, Save, Key, Home, HelpCircle, Info } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { apiStream, apiPost, apiGet } from '@/lib/api-client';
 import ThinkingAnimation from '@/components/ThinkingAnimation';
@@ -1024,6 +1024,30 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
         {/* 步驟 3：生成結果 */}
         {currentStep === 3 && (
           <div className="space-y-4">
+            {/* 使用說明提示 */}
+            {!allStepsCompleted && (
+              <Card className="border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20">
+                <CardContent className="pt-6">
+                  <div className="flex items-start gap-3">
+                    <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-sm mb-1 text-blue-900 dark:text-blue-100">
+                        使用說明
+                      </h4>
+                      <p className="text-sm text-blue-800 dark:text-blue-200">
+                        建議等待 <strong>帳號定位</strong>、<strong>選題建議</strong> 和 <strong>腳本內容</strong> 三個部分都生成完成後再儲存，以確保資料完整性。
+                        目前進度：{[
+                          generationStatus.positioning && '✓ 帳號定位',
+                          generationStatus.topics && '✓ 選題建議',
+                          generationStatus.script && '✓ 腳本內容'
+                        ].filter(Boolean).join('、') || '尚未開始生成'}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            
             {/* 結果標籤切換 */}
             <div className="flex border-b">
               {[
@@ -1082,6 +1106,11 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
                     topics: '',
                     script: ''
                   });
+                  setGenerationStatus({
+                    positioning: false,
+                    topics: false,
+                    script: false
+                  });
                   setActiveResultTab('positioning');
                   setCurrentStep(1);
                 }} 
@@ -1100,7 +1129,6 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
                     disabled={
                       loading || 
                       !generationStatus.positioning || 
-                      !allStepsCompleted ||
                       authLoading || 
                       !isLoggedIn || 
                       !user?.user_id
@@ -1108,7 +1136,6 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
                     title={(() => {
                       if (loading) return '正在生成中，請稍候...';
                       if (!generationStatus.positioning) return '帳號定位尚未生成完成';
-                      if (!allStepsCompleted) return '請等待所有步驟生成完成';
                       if (authLoading && !user) return '正在載入用戶資訊...';
                       if (!isLoggedIn) return '請先登入';
                       if (!user?.user_id) return '用戶資訊不完整';
@@ -1129,7 +1156,6 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
                     disabled={
                       loading || 
                       !generationStatus.topics || 
-                      !allStepsCompleted ||
                       authLoading || 
                       !isLoggedIn || 
                       !user?.user_id
@@ -1137,7 +1163,6 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
                     title={(() => {
                       if (loading) return '正在生成中，請稍候...';
                       if (!generationStatus.topics) return '選題建議尚未生成完成';
-                      if (!allStepsCompleted) return '請等待所有步驟生成完成';
                       if (authLoading && !user) return '正在載入用戶資訊...';
                       if (!isLoggedIn) return '請先登入';
                       if (!user?.user_id) return '用戶資訊不完整';
@@ -1158,7 +1183,6 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
                     disabled={
                       loading || 
                       !generationStatus.script || 
-                      !allStepsCompleted ||
                       authLoading || 
                       !isLoggedIn || 
                       !user?.user_id
@@ -1166,7 +1190,6 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
                     title={(() => {
                       if (loading) return '正在生成中，請稍候...';
                       if (!generationStatus.script) return '腳本內容尚未生成完成';
-                      if (!allStepsCompleted) return '請等待所有步驟生成完成';
                       if (authLoading && !user) return '正在載入用戶資訊...';
                       if (!isLoggedIn) return '請先登入';
                       if (!user?.user_id) return '用戶資訊不完整';

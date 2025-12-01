@@ -158,9 +158,23 @@ const Profile: React.FC = () => {
     
     try {
       setLoadingReferral(true);
-      // 生成或獲取用戶的推薦碼（使用 user_id 的前 8 位 + 隨機字串）
-      const code = user.user_id.substring(0, 8).toUpperCase() + Math.random().toString(36).substring(2, 6).toUpperCase();
-      setReferralCode(code);
+      
+      // 從後端獲取推薦碼
+      try {
+        const codeData = await apiGet<{ referral_code: string }>(`/api/user/referral/code/${user.user_id}`);
+        if (codeData?.referral_code) {
+          setReferralCode(codeData.referral_code);
+        } else {
+          // 如果後端沒有返回推薦碼，使用臨時生成（向後兼容）
+          const code = user.user_id.substring(0, 8).toUpperCase() + Math.random().toString(36).substring(2, 6).toUpperCase();
+          setReferralCode(code);
+        }
+      } catch (error: any) {
+        console.error('載入推薦碼失敗:', error);
+        // 如果 API 失敗，使用臨時生成（向後兼容）
+        const code = user.user_id.substring(0, 8).toUpperCase() + Math.random().toString(36).substring(2, 6).toUpperCase();
+        setReferralCode(code);
+      }
       
       // 獲取推薦統計
       try {
