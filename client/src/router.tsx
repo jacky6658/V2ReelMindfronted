@@ -26,7 +26,7 @@ import UserDB from './pages/UserDB';
 const About = lazy(() => import('./pages/About'));
 const Contact = lazy(() => import('./pages/Contact'));
 const Forum = lazy(() => import('./pages/Forum'));
-const HelpCenter = lazy(() => import('./pages/HelpCenter'));
+import HelpCenter from './pages/HelpCenter';
 const Checkout = lazy(() => import('./pages/Checkout'));
 const PaymentResult = lazy(() => import('./pages/PaymentResult'));
 const Subscription = lazy(() => import('./pages/Subscription'));
