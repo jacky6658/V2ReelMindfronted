@@ -191,13 +191,13 @@ export default function Statistics() {
 
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-3">
-                <h1 className="text-3xl font-bold">使用統計</h1>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <h1 className="text-2xl sm:text-3xl font-bold">使用統計</h1>
                 <Dialog open={showHelpDialog} onOpenChange={setShowHelpDialog}>
                   <DialogTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0">
                       <HelpCircle className="w-4 h-4" />
                     </Button>
                   </DialogTrigger>
@@ -227,13 +227,40 @@ export default function Statistics() {
                         </ul>
                       </div>
                       <div>
-                        <h3 className="font-semibold mb-2">💡 使用價值</h3>
-                        <ul className="space-y-2 text-sm text-muted-foreground">
-                          <li>• <strong>追蹤進度</strong>：了解自己的內容產出情況，設定創作目標</li>
-                          <li>• <strong>優化策略</strong>：根據使用數據調整創作頻率和內容方向</li>
-                          <li>• <strong>成長分析</strong>：觀察長期趨勢，評估創作能力的提升</li>
-                          <li>• <strong>效率評估</strong>：透過 AI 智能分析獲得專業建議和改進方向</li>
-                        </ul>
+                        <h3 className="font-semibold mb-3">📈 使用趨勢圖表能幫您解決什麼問題？</h3>
+                        <div className="space-y-3">
+                          <div className="bg-muted/50 p-3 rounded-lg">
+                            <p className="font-medium mb-2 text-sm">💡 實際應用場景：</p>
+                            <ul className="list-disc list-inside space-y-1.5 text-muted-foreground text-xs">
+                              <li><strong>找出最佳創作時間</strong>：看到週一到週日的使用量變化，發現「原來我週二、週三最活躍」，以後就專注在這兩天創作，效率提升 2 倍</li>
+                              <li><strong>避免創作空窗期</strong>：發現「週末使用量為 0」，提醒自己週末也要保持創作習慣，避免內容斷更</li>
+                              <li><strong>設定合理目標</strong>：看到「過去一週平均每天 5 個腳本」，設定「本週目標：每天至少 5 個」，有數據依據，不會好高騖遠</li>
+                              <li><strong>追蹤進步幅度</strong>：對比「上週總計 10 個」vs「本週總計 18 個」，清楚看到自己成長了 80%，更有動力繼續創作</li>
+                              <li><strong>發現問題及時調整</strong>：看到「週四開始下降，週五幾乎為 0」，意識到可能是週末前疲勞，提前規劃內容，避免斷更</li>
+                            </ul>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            <strong>簡單來說</strong>：趨勢圖表就像您的「創作健康檢查表」，幫您找出創作規律、發現問題、設定目標，讓創作更有效率、更有持續性。
+                          </p>
+                        </div>
+                      </div>
+                      <div>
+                        <h3 className="font-semibold mb-3">🥧 功能使用分布圖能幫您解決什麼問題？</h3>
+                        <div className="space-y-3">
+                          <div className="bg-muted/50 p-3 rounded-lg">
+                            <p className="font-medium mb-2 text-sm">💡 實際應用場景：</p>
+                            <ul className="list-disc list-inside space-y-1.5 text-muted-foreground text-xs">
+                              <li><strong>了解自己的創作偏好</strong>：看到「對話記錄 92%」，發現自己主要用「IP人設規劃」功能，更適合深度思考的創作方式</li>
+                              <li><strong>發現功能使用不平衡</strong>：看到「腳本 6%，生成記錄 2%」，意識到自己很少用「一鍵生成」，可以嘗試多使用，提升創作效率</li>
+                              <li><strong>優化功能使用策略</strong>：發現「對話記錄佔比太高」，可以嘗試用「一鍵生成」快速產出腳本，平衡深度規劃和快速產出</li>
+                              <li><strong>評估功能價值</strong>：看到「生成記錄只有 2%」，思考是否「一鍵生成」功能對自己幫助不大，或需要更多學習如何使用</li>
+                              <li><strong>制定學習計劃</strong>：發現某個功能使用率低，可以設定目標「本週要使用一鍵生成功能至少 5 次」，拓展創作方式</li>
+                            </ul>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            <strong>簡單來說</strong>：功能分布圖就像您的「功能使用體檢報告」，幫您了解自己最常用哪些功能、哪些功能被忽略，讓您更全面地使用平台，找到最適合的創作方式。
+                          </p>
+                        </div>
                       </div>
                       <div>
                         <h3 className="font-semibold mb-2">🤖 AI 智能分析</h3>
@@ -246,25 +273,27 @@ export default function Statistics() {
                   </DialogContent>
                 </Dialog>
               </div>
-              <p className="text-muted-foreground mt-2">查看您的內容產出與使用情況</p>
+              <p className="text-sm sm:text-base text-muted-foreground mt-2">查看您的內容產出與使用情況</p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 w-full sm:w-auto">
               {!aiInsights && analyticsOverview && (
                 <Button
                   variant="outline"
                   onClick={loadAIInsights}
                   disabled={loadingInsights}
-                  className="gap-2"
+                  className="gap-2 w-full sm:w-auto text-sm sm:text-base"
                 >
                   {loadingInsights ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      分析中...
+                      <span className="hidden sm:inline">分析中...</span>
+                      <span className="sm:hidden">分析中</span>
                     </>
                   ) : (
                     <>
                       <Brain className="w-4 h-4" />
-                      AI 智能分析
+                      <span className="hidden sm:inline">AI 智能分析</span>
+                      <span className="sm:hidden">AI 分析</span>
                     </>
                   )}
                 </Button>
@@ -284,60 +313,60 @@ export default function Statistics() {
           ) : analyticsOverview ? (
             <div className="space-y-6">
               {/* 總覽統計 */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
                 <Card className="border-2 border-blue-500/20 bg-blue-500/5">
-                  <CardContent className="pt-6">
+                  <CardContent className="pt-4 sm:pt-6 p-3 sm:p-6">
                     <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-muted-foreground mb-1">對話記錄</p>
-                        <p className="text-3xl font-bold">{analyticsOverview.total.conversations}</p>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs sm:text-sm text-muted-foreground mb-1 truncate">對話記錄</p>
+                        <p className="text-2xl sm:text-3xl font-bold">{analyticsOverview.total.conversations}</p>
                       </div>
-                      <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center">
-                        <MessageSquare className="w-6 h-6 text-blue-500" />
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-blue-500/20 flex items-center justify-center flex-shrink-0 ml-2">
+                        <MessageSquare className="w-5 h-5 sm:w-6 sm:h-6 text-blue-500" />
                       </div>
                     </div>
                   </CardContent>
                 </Card>
 
                 <Card className="border-2 border-purple-500/20 bg-purple-500/5">
-                  <CardContent className="pt-6">
+                  <CardContent className="pt-4 sm:pt-6 p-3 sm:p-6">
                     <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-muted-foreground mb-1">生成記錄</p>
-                        <p className="text-3xl font-bold">{analyticsOverview.total.generations}</p>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs sm:text-sm text-muted-foreground mb-1 truncate">生成記錄</p>
+                        <p className="text-2xl sm:text-3xl font-bold">{analyticsOverview.total.generations}</p>
                       </div>
-                      <div className="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center">
-                        <Zap className="w-6 h-6 text-purple-500" />
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-purple-500/20 flex items-center justify-center flex-shrink-0 ml-2">
+                        <Zap className="w-5 h-5 sm:w-6 sm:h-6 text-purple-500" />
                       </div>
                     </div>
                   </CardContent>
                 </Card>
 
                 <Card className="border-2 border-emerald-500/20 bg-emerald-500/5">
-                  <CardContent className="pt-6">
+                  <CardContent className="pt-4 sm:pt-6 p-3 sm:p-6">
                     <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-muted-foreground mb-1">腳本數量</p>
-                        <p className="text-3xl font-bold">{analyticsOverview.total.scripts}</p>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs sm:text-sm text-muted-foreground mb-1 truncate">腳本數量</p>
+                        <p className="text-2xl sm:text-3xl font-bold">{analyticsOverview.total.scripts}</p>
                       </div>
-                      <div className="w-12 h-12 rounded-xl bg-emerald-500/20 flex items-center justify-center">
-                        <Database className="w-6 h-6 text-emerald-500" />
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-emerald-500/20 flex items-center justify-center flex-shrink-0 ml-2">
+                        <Database className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-500" />
                       </div>
                     </div>
                   </CardContent>
                 </Card>
 
                 <Card className="border-2 border-orange-500/20 bg-orange-500/5">
-                  <CardContent className="pt-6">
+                  <CardContent className="pt-4 sm:pt-6 p-3 sm:p-6">
                     <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-muted-foreground mb-1">總計</p>
-                        <p className="text-3xl font-bold">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs sm:text-sm text-muted-foreground mb-1 truncate">總計</p>
+                        <p className="text-2xl sm:text-3xl font-bold">
                           {analyticsOverview.total.scripts + analyticsOverview.total.generations + analyticsOverview.total.conversations}
                         </p>
                       </div>
-                      <div className="w-12 h-12 rounded-xl bg-orange-500/20 flex items-center justify-center">
-                        <BarChart3 className="w-6 h-6 text-orange-500" />
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-orange-500/20 flex items-center justify-center flex-shrink-0 ml-2">
+                        <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 text-orange-500" />
                       </div>
                     </div>
                   </CardContent>
@@ -355,7 +384,7 @@ export default function Statistics() {
                     <CardDescription>過去一週的使用量趨勢</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <ChartContainer config={chartConfig} className="h-[300px]">
+                    <ChartContainer config={chartConfig} className="h-[250px] sm:h-[300px]">
                       <AreaChart data={chartData}>
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis dataKey="day" />
@@ -402,18 +431,18 @@ export default function Statistics() {
                     <CardDescription>各功能的使用比例</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <ChartContainer config={chartConfig} className="h-[300px]">
+                    <ChartContainer config={chartConfig} className="h-[250px] sm:h-[300px]">
                       <ResponsiveContainer width="100%" height="100%">
                         <RechartsPieChart>
                           <ChartTooltip content={<ChartTooltipContent />} />
-                          <Legend />
+                          <Legend wrapperStyle={{ fontSize: '12px' }} />
                           <Pie
                             data={pieData}
                             cx="50%"
                             cy="50%"
                             labelLine={false}
                             label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                            outerRadius={80}
+                            outerRadius="60%"
                             fill="#8884d8"
                             dataKey="value"
                           >
@@ -429,14 +458,14 @@ export default function Statistics() {
               )}
 
               {/* 時間段產出統計 */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                 <Card className="border-2 border-blue-500/20 bg-blue-500/5">
-                  <CardContent className="pt-6">
+                  <CardContent className="pt-4 sm:pt-6 p-4 sm:p-6">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-muted-foreground">今日產出</span>
-                      <Zap className="w-5 h-5 text-blue-500" />
+                      <span className="text-xs sm:text-sm text-muted-foreground">今日產出</span>
+                      <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500 flex-shrink-0" />
                     </div>
-                    <p className="text-3xl font-bold">{analyticsOverview.today.total}</p>
+                    <p className="text-2xl sm:text-3xl font-bold">{analyticsOverview.today.total}</p>
                     <p className="text-xs text-muted-foreground mt-1">
                       腳本 {analyticsOverview.today.scripts} · 生成 {analyticsOverview.today.generations}
                     </p>
@@ -444,12 +473,12 @@ export default function Statistics() {
                 </Card>
 
                 <Card className="border-2 border-purple-500/20 bg-purple-500/5">
-                  <CardContent className="pt-6">
+                  <CardContent className="pt-4 sm:pt-6 p-4 sm:p-6">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-muted-foreground">本週產出</span>
-                      <TrendingUp className="w-5 h-5 text-purple-500" />
+                      <span className="text-xs sm:text-sm text-muted-foreground">本週產出</span>
+                      <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500 flex-shrink-0" />
                     </div>
-                    <p className="text-3xl font-bold">{analyticsOverview.week.total}</p>
+                    <p className="text-2xl sm:text-3xl font-bold">{analyticsOverview.week.total}</p>
                     <p className="text-xs text-muted-foreground mt-1">
                       腳本 {analyticsOverview.week.scripts} · 生成 {analyticsOverview.week.generations}
                     </p>
@@ -457,12 +486,12 @@ export default function Statistics() {
                 </Card>
 
                 <Card className="border-2 border-emerald-500/20 bg-emerald-500/5">
-                  <CardContent className="pt-6">
+                  <CardContent className="pt-4 sm:pt-6 p-4 sm:p-6">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-muted-foreground">本月產出</span>
-                      <BarChart3 className="w-5 h-5 text-emerald-500" />
+                      <span className="text-xs sm:text-sm text-muted-foreground">本月產出</span>
+                      <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-500 flex-shrink-0" />
                     </div>
-                    <p className="text-3xl font-bold">{analyticsOverview.month.total}</p>
+                    <p className="text-2xl sm:text-3xl font-bold">{analyticsOverview.month.total}</p>
                     <p className="text-xs text-muted-foreground mt-1">
                       腳本 {analyticsOverview.month.scripts} · 生成 {analyticsOverview.month.generations}
                     </p>

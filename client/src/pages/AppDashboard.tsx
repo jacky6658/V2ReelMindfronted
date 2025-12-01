@@ -971,18 +971,40 @@ const AppDashboard: React.FC = () => {
               </ul>
             </div>
             <div>
-              <h4 className="font-semibold mb-2">使用趨勢圖表的價值與效益</h4>
-              <p className="text-muted-foreground mb-3">
-                使用趨勢圖表不僅僅是展示數據，更是幫助您做出更明智的創作決策：
-              </p>
-              <ul className="list-disc list-inside space-y-2 text-muted-foreground">
-                <li><strong>發現創作規律</strong>：透過圖表觀察您在一週中哪些時段最活躍，找出您的創作黃金時段，提升效率</li>
-                <li><strong>追蹤成長軌跡</strong>：清楚看到您的使用量變化趨勢，了解自己的進步幅度，激發持續創作的動力</li>
-                <li><strong>優化時間分配</strong>：識別使用高峰期和低谷期，幫助您更合理地安排創作時間，避免靈感浪費</li>
-                <li><strong>設定目標與追蹤</strong>：基於歷史趨勢數據，設定合理的創作目標，並透過圖表即時追蹤達成進度</li>
-                <li><strong>功能使用偏好分析</strong>：比較不同功能（腳本生成、IP規劃等）的使用頻率，了解自己最適合的創作方式</li>
-                <li><strong>長期規劃參考</strong>：累積的趨勢數據可作為您制定長期內容策略的重要參考依據</li>
-              </ul>
+              <h4 className="font-semibold mb-3">📈 使用趨勢圖表能幫您解決什麼問題？</h4>
+              <div className="space-y-4">
+                <div className="bg-muted/50 p-3 rounded-lg">
+                  <p className="font-medium mb-2">💡 實際應用場景：</p>
+                  <ul className="list-disc list-inside space-y-1.5 text-muted-foreground text-sm">
+                    <li><strong>找出最佳創作時間</strong>：看到週一到週日的使用量變化，發現「原來我週二、週三最活躍」，以後就專注在這兩天創作，效率提升 2 倍</li>
+                    <li><strong>避免創作空窗期</strong>：發現「週末使用量為 0」，提醒自己週末也要保持創作習慣，避免內容斷更</li>
+                    <li><strong>設定合理目標</strong>：看到「過去一週平均每天 5 個腳本」，設定「本週目標：每天至少 5 個」，有數據依據，不會好高騖遠</li>
+                    <li><strong>追蹤進步幅度</strong>：對比「上週總計 10 個」vs「本週總計 18 個」，清楚看到自己成長了 80%，更有動力繼續創作</li>
+                    <li><strong>發現問題及時調整</strong>：看到「週四開始下降，週五幾乎為 0」，意識到可能是週末前疲勞，提前規劃內容，避免斷更</li>
+                  </ul>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  <strong>簡單來說</strong>：趨勢圖表就像您的「創作健康檢查表」，幫您找出創作規律、發現問題、設定目標，讓創作更有效率、更有持續性。
+                </p>
+              </div>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-3">🥧 功能使用分布圖能幫您解決什麼問題？</h4>
+              <div className="space-y-4">
+                <div className="bg-muted/50 p-3 rounded-lg">
+                  <p className="font-medium mb-2">💡 實際應用場景：</p>
+                  <ul className="list-disc list-inside space-y-1.5 text-muted-foreground text-sm">
+                    <li><strong>了解自己的創作偏好</strong>：看到「對話記錄 92%」，發現自己主要用「IP人設規劃」功能，更適合深度思考的創作方式</li>
+                    <li><strong>發現功能使用不平衡</strong>：看到「腳本 6%，生成記錄 2%」，意識到自己很少用「一鍵生成」，可以嘗試多使用，提升創作效率</li>
+                    <li><strong>優化功能使用策略</strong>：發現「對話記錄佔比太高」，可以嘗試用「一鍵生成」快速產出腳本，平衡深度規劃和快速產出</li>
+                    <li><strong>評估功能價值</strong>：看到「生成記錄只有 2%」，思考是否「一鍵生成」功能對自己幫助不大，或需要更多學習如何使用</li>
+                    <li><strong>制定學習計劃</strong>：發現某個功能使用率低，可以設定目標「本週要使用一鍵生成功能至少 5 次」，拓展創作方式</li>
+                  </ul>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  <strong>簡單來說</strong>：功能分布圖就像您的「功能使用體檢報告」，幫您了解自己最常用哪些功能、哪些功能被忽略，讓您更全面地使用平台，找到最適合的創作方式。
+                </p>
+              </div>
             </div>
             <div>
               <h4 className="font-semibold mb-2">如何使用？</h4>
