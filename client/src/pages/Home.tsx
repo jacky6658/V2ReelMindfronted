@@ -286,13 +286,14 @@ export default function Home() {
             loop
             muted
             playsInline
-            preload="metadata"
+            preload="auto"
             className="object-cover"
             onError={(e) => {
               console.warn('视频加载失败，使用背景色替代');
               e.currentTarget.style.display = 'none';
             }}
           >
+            <source src="/hero-bg.webm" type="video/webm" />
             <source src="/hero-bg.mp4" type="video/mp4" />
           </video>
           <div className="video-overlay"></div>

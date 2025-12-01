@@ -402,8 +402,14 @@ const AppDashboard: React.FC = () => {
             loop
             muted
             playsInline
+            preload="auto"
             className="object-cover"
+            onError={(e) => {
+              console.warn('视频加载失败，使用背景色替代');
+              e.currentTarget.style.display = 'none';
+            }}
           >
+            <source src="/reelmind.webm" type="video/webm" />
             <source src="/reelmind.mp4" type="video/mp4" />
           </video>
           <div className="video-overlay"></div>
