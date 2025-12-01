@@ -31,6 +31,7 @@ const PaymentResult = lazy(() => import('./pages/PaymentResult'));
 const Subscription = lazy(() => import('./pages/Subscription'));
 const Orders = lazy(() => import('./pages/Orders'));
 const Statistics = lazy(() => import('./pages/Statistics'));
+const ReferralRewards = lazy(() => import('./pages/ReferralRewards'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
 // Loading fallback component
@@ -286,6 +287,14 @@ export const router = createHashRouter([
         <PrivateRoute requiresAuth={true}>
           <Statistics />
         </PrivateRoute>
+      </Suspense>
+    ),
+  },
+  {
+    path: '/referral-rewards',
+    element: (
+      <Suspense fallback={<LoadingFallback />}>
+        <ReferralRewards />
       </Suspense>
     ),
   },
