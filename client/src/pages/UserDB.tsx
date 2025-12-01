@@ -55,6 +55,8 @@ import {
   Loader2,
   TrendingUp,
   ExternalLink,
+  User,
+  Save,
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
