@@ -448,12 +448,12 @@ const AppDashboard: React.FC = () => {
             return (
               <Card
                 key={feature.id}
-                className="group relative overflow-hidden border-2 hover:border-primary/50 transition-all duration-300 hover:shadow-lg hover:shadow-primary/10"
+                className="group relative overflow-hidden border-2 hover:border-primary/50 transition-all duration-300 hover:shadow-lg hover:shadow-primary/10 flex flex-col h-full"
               >
                 {/* 背景漸變 */}
                 <div className={`absolute inset-0 bg-gradient-to-br ${feature.bgGradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
                 
-                <CardHeader className="relative">
+                <CardHeader className="relative flex-shrink-0">
                   <div className="flex items-start justify-between mb-4">
                     <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${feature.gradient} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}>
                       <Icon className="w-7 h-7 text-white" />
@@ -466,9 +466,9 @@ const AppDashboard: React.FC = () => {
                   </CardDescription>
                 </CardHeader>
                 
-                <CardContent className="relative space-y-4">
+                <CardContent className="relative flex-1 flex flex-col space-y-4">
                   {/* 功能列表 */}
-                  <ul className="space-y-2">
+                  <ul className="space-y-2 flex-1">
                     {feature.features.map((item, index) => (
                       <li key={index} className="flex items-center gap-2 text-sm text-muted-foreground">
                         <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0" />
@@ -479,20 +479,22 @@ const AppDashboard: React.FC = () => {
                   
                   {/* 適合對象 */}
                   {(feature as any).suitable && (
-                    <div className="pt-2 border-t">
+                    <div className="pt-2 border-t flex-shrink-0">
                       <p className="text-xs text-muted-foreground">{(feature as any).suitable}</p>
                     </div>
                   )}
                   
-                  {/* 操作按鈕 */}
-                  <Link to={feature.link} className="block">
-                    <Button 
-                      className={`w-full bg-gradient-to-r ${feature.gradient} hover:opacity-90 text-white border-0 shadow-md hover:shadow-lg transition-all duration-300`}
-                    >
-                      開始使用
-                      <ArrowRight className="ml-2 w-4 h-4" />
-                    </Button>
-                  </Link>
+                  {/* 操作按鈕 - 固定在底部 */}
+                  <div className="mt-auto pt-4 flex-shrink-0">
+                    <Link to={feature.link} className="block">
+                      <Button 
+                        className={`w-full bg-gradient-to-r ${feature.gradient} hover:opacity-90 text-white border-0 shadow-md hover:shadow-lg transition-all duration-300`}
+                      >
+                        開始使用
+                        <ArrowRight className="ml-2 w-4 h-4" />
+                      </Button>
+                    </Link>
+                  </div>
                 </CardContent>
               </Card>
             );

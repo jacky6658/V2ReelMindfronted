@@ -68,7 +68,7 @@ interface RecentActivity {
 
 const Profile: React.FC = () => {
   const navigate = useNavigate();
-  const { user, subscription, logout } = useAuthStore();
+  const { user, subscription, logout, loading: authLoading } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -154,13 +154,28 @@ const Profile: React.FC = () => {
   };
 
   useEffect(() => {
-    if (user?.user_id) {
+    // 确保用户信息已加载且不在加载中
+    if (user?.user_id && !authLoading) {
       loadProfile();
       loadBillingSummary();
       loadRecentActivity();
       loadReferralCode();
     }
-  }, [user?.user_id]);
+  }, [user?.user_id, authLoading]);
+  
+  // 页面可见性监听：当页面重新获得焦点时刷新数据
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && user?.user_id && !authLoading) {
+        loadReferralCode(); // 刷新推荐码相关数据
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [user?.user_id, authLoading]);
   
   // 載入推薦邀請碼
   const loadReferralCode = async () => {

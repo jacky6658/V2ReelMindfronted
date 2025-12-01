@@ -110,7 +110,7 @@ type SelectedItem = Script | IPPlanningResult | null;
 
 export default function UserDB() {
   const navigate = useNavigate();
-  const { logout, user } = useAuthStore();
+  const { logout, user, loading: authLoading } = useAuthStore();
   const [activeTab, setActiveTab] = useState<'scripts' | 'ip-planning' | 'planning'>('scripts');
   const [scripts, setScripts] = useState<Script[]>([]);
   const [ipPlanningResults, setIpPlanningResults] = useState<IPPlanningResult[]>([]);
@@ -143,8 +143,25 @@ export default function UserDB() {
 
   // 載入資料
   useEffect(() => {
-    loadData();
-  }, [activeTab]);
+    // 等待用户信息加载完成后再加载数据
+    if (user?.user_id && !authLoading) {
+      loadData();
+    }
+  }, [activeTab, user?.user_id, authLoading]);
+  
+  // 页面可见性监听：当页面重新获得焦点时刷新数据
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && user?.user_id && !authLoading) {
+        loadData();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [user?.user_id, authLoading]);
 
   // 監聽資料更新事件（當 IP人設規劃功能 儲存內容到 UserDB 時）
   useEffect(() => {
