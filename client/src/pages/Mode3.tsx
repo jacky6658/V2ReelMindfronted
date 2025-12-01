@@ -150,6 +150,110 @@ export default function Mode3() {
     return generationStatus.positioning && generationStatus.topics && generationStatus.script;
   }, [generationStatus]);
 
+  // ===== localStorage 緩存功能 =====
+  // 獲取 localStorage 鍵名
+  const getStorageKey = () => `mode3_cache_${user?.user_id || 'guest'}`;
+
+  // 從 localStorage 載入緩存
+  const loadFromLocalStorage = () => {
+    try {
+      if (!user?.user_id) return null;
+      const storageKey = getStorageKey();
+      const stored = localStorage.getItem(storageKey);
+      if (!stored) return null;
+      const cached = JSON.parse(stored);
+      return {
+        formData: cached.formData || formData,
+        results: cached.results || results,
+        generationStatus: cached.generationStatus || generationStatus,
+        currentStep: cached.currentStep || 1
+      };
+    } catch (error) {
+      console.error('[Mode3] 從 localStorage 載入失敗:', error);
+      return null;
+    }
+  };
+
+  // 保存到 localStorage
+  const saveToLocalStorage = () => {
+    try {
+      if (!user?.user_id) return;
+      const storageKey = getStorageKey();
+      const cache = {
+        formData,
+        results,
+        generationStatus,
+        currentStep
+      };
+      localStorage.setItem(storageKey, JSON.stringify(cache));
+    } catch (error) {
+      console.error('[Mode3] 保存到 localStorage 失敗:', error);
+    }
+  };
+
+  // 清除 localStorage 緩存
+  const clearLocalStorage = () => {
+    try {
+      if (!user?.user_id) return;
+      const storageKey = getStorageKey();
+      localStorage.removeItem(storageKey);
+    } catch (error) {
+      console.error('[Mode3] 清除 localStorage 失敗:', error);
+    }
+  };
+
+  // 頁面載入時恢復緩存（僅在用戶登入且沒有現有數據時）
+  useEffect(() => {
+    if (user?.user_id && !formData.topic && !results.positioning && !results.topics && !results.script) {
+      const cached = loadFromLocalStorage();
+      if (cached) {
+        // 恢復表單數據
+        if (cached.formData && Object.values(cached.formData).some(v => v)) {
+          setFormData(cached.formData);
+        }
+        // 恢復生成結果
+        if (cached.results && (cached.results.positioning || cached.results.topics || cached.results.script)) {
+          setResults(cached.results);
+          // 如果有生成結果，提示用戶
+          toast.info('已恢復未保存的生成結果', { duration: 3000 });
+        }
+        // 恢復生成狀態
+        if (cached.generationStatus) {
+          setGenerationStatus(cached.generationStatus);
+        }
+        // 恢復當前步驟
+        if (cached.currentStep && cached.currentStep > 1) {
+          setCurrentStep(cached.currentStep);
+        }
+      }
+    }
+  }, [user?.user_id]); // 只在 user_id 變化時執行一次
+
+  // 用戶登出時清除緩存
+  useEffect(() => {
+    if (!user?.user_id && !isLoggedIn) {
+      // 用戶已登出，清除緩存
+      try {
+        const storageKey = `mode3_cache_guest`;
+        localStorage.removeItem(storageKey);
+      } catch (error) {
+        console.error('[Mode3] 清除訪客緩存失敗:', error);
+      }
+    }
+  }, [user?.user_id, isLoggedIn]);
+
+  // 當表單數據、生成結果或狀態變化時自動保存到 localStorage
+  useEffect(() => {
+    if (user?.user_id) {
+      // 使用 setTimeout 避免頻繁寫入
+      const timer = setTimeout(() => {
+        saveToLocalStorage();
+      }, 500); // 防抖：500ms 內只保存一次
+      
+      return () => clearTimeout(timer);
+    }
+  }, [formData, results, generationStatus, currentStep, user?.user_id]);
+
   // 使用 useMemo 優化當前結果內容
   const currentResult = useMemo(() => {
     return results[activeResultTab as keyof typeof results] || '';
@@ -249,6 +353,14 @@ export default function Mode3() {
     });
     setActiveResultTab('positioning');
     setPermissionError('');
+    
+    // 清除 localStorage 中的舊生成結果（保留表單數據）
+    const cached = loadFromLocalStorage();
+    if (cached) {
+      cached.results = { positioning: '', topics: '', script: '' };
+      cached.generationStatus = { positioning: false, topics: false, script: false };
+      localStorage.setItem(getStorageKey(), JSON.stringify(cached));
+    }
     
     // 先跳到步驟3並設置loading，確保動畫立即顯示
     setCurrentStep(3);
@@ -570,6 +682,49 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
         }
       });
       console.log('[Mode3 Save] 儲存成功');
+      
+      // 保存成功後，清除對應的生成結果（從 state 和 localStorage）
+      setResults(prev => {
+        const updated = {
+          ...prev,
+          [type]: '' // 清除已保存的結果
+        };
+        
+        // 更新 localStorage（移除已保存的結果，但保留表單數據）
+        try {
+          const storageKey = getStorageKey();
+          const cached = loadFromLocalStorage();
+          if (cached) {
+            cached.results[type] = '';
+            cached.generationStatus[type] = false;
+            localStorage.setItem(storageKey, JSON.stringify(cached));
+          }
+          
+          // 如果所有結果都已保存，清除生成結果緩存（但保留表單數據）
+          const allSaved = !updated.positioning && !updated.topics && !updated.script;
+          if (allSaved) {
+            // 只清除生成結果，保留表單數據
+            const formDataOnly = {
+              formData: formData,
+              results: { positioning: '', topics: '', script: '' },
+              generationStatus: { positioning: false, topics: false, script: false },
+              currentStep: currentStep
+            };
+            localStorage.setItem(storageKey, JSON.stringify(formDataOnly));
+            console.log('[Mode3] 所有結果已保存，清除生成結果緩存（保留表單數據）');
+          }
+        } catch (error) {
+          console.error('[Mode3] 更新 localStorage 失敗:', error);
+        }
+        
+        return updated;
+      });
+      
+      // 更新生成狀態
+      setGenerationStatus(prev => ({
+        ...prev,
+        [type]: false
+      }));
       
       // 發送自定義事件通知 UserDB 刷新
       window.dispatchEvent(new CustomEvent('userdb-data-updated', { detail: { type: 'ip-planning' } }));

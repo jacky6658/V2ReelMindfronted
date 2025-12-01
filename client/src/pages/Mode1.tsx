@@ -32,7 +32,8 @@ import {
   Maximize2,
   ArrowLeft,
   Key,
-  ChevronDown
+  ChevronDown,
+  Home
 } from 'lucide-react';
 import { apiPost, apiGet, apiDelete, apiStream } from '@/lib/api-client';
 import { useNavigate } from 'react-router-dom';
@@ -699,7 +700,8 @@ export default function Mode1() {
       // 將 category 映射到 result_type
       const resultTypeMap: Record<string, string> = {
         'positioning': 'profile',
-        'topics': 'plan',
+        'topics': 'plan',        // 選題方向 → plan
+        'planning': 'plan',      // 14 天規劃 → plan
         'script': 'scripts'
       };
 
@@ -712,19 +714,22 @@ export default function Mode1() {
         title: result.title,
         content: result.content,
         metadata: {
-          category: result.category,
+          source: 'mode1',        // 標記來源為 mode1
+          category: result.category,  // 保存原始 category 用於區分
           timestamp: result.timestamp.toISOString()
         }
       });
 
-      // 根據類型告訴用戶存在哪裡
+      // 根據 category 告訴用戶存在哪裡（使用 category 而不是 result_type 來區分）
       let locationHint = '';
-      if (result_type === 'profile') {
+      if (result.category === 'positioning') {
         locationHint = '可在「我的資料」→「IP 人設規劃」標籤頁查看';
-      } else if (result_type === 'plan') {
+      } else if (result.category === 'topics') {
+        locationHint = '可在「我的資料」→「IP 人設規劃」標籤頁查看（選題方向）';
+      } else if (result.category === 'planning') {
         locationHint = '可在「我的資料」→「14 天規劃」標籤頁查看';
-      } else if (result_type === 'scripts') {
-        locationHint = '可在「我的資料」→「IP 人設規劃」標籤頁查看';
+      } else if (result.category === 'script') {
+        locationHint = '可在「我的資料」→「我的腳本」標籤頁查看';
       }
       
       toast.success('已儲存到創作者資料庫', {
