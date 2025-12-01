@@ -240,8 +240,13 @@ function PlanningCalendarView({
 
   const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+  // RWD: On mobile, use a different layout or just simple stacking.
+  // For now, let's adjust the grid columns for mobile if needed, 
+  // but standard calendar usually keeps 7 columns even on mobile (just smaller).
+  // We can use overflow-x-auto for a scrollable calendar on very small screens if needed.
+  
   return (
-    <div className="flex flex-col h-full bg-card rounded-xl border shadow-sm w-full">
+    <div className="flex flex-col h-full bg-card rounded-xl border shadow-sm w-full overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b">
         <div className="flex items-center gap-2">
@@ -270,7 +275,7 @@ function PlanningCalendarView({
       </div>
 
       {/* Grid Body */}
-      <div className="grid grid-cols-7 border-l border-t-0">
+      <div className="grid grid-cols-7 border-l border-t-0 overflow-y-auto">
         {cells}
       </div>
     </div>
@@ -338,18 +343,24 @@ export default function UserDB() {
       setScriptGenerating(true);
       
       // 呼叫後端 API 生成腳本
-      const response = await apiPost<{ script: string }>(`/api/planning-days/${selectedCalendarDay.id}/generate-script`, {
-        structure: calendarScriptStructure,
-        duration: calendarDuration,
-        platform: calendarPlatform,
-        notes: calendarExtraNotes
-      });
+      // 使用 apiPost，超時設定已在 api-client.ts 中統一調整為 60s，這裡不需要額外處理
+      // 為了保險起見，如果需要更長，可以直接使用 axios config (apiPost 第三個參數)
+      const response = await apiPost<{ script: string }>(
+        `/api/planning-days/${selectedCalendarDay.id}/generate-script`, 
+        {
+          structure: calendarScriptStructure,
+          duration: calendarDuration,
+          platform: calendarPlatform,
+          notes: calendarExtraNotes
+        },
+        { timeout: 60000 } // 顯式設置 60s 超時，以防萬一
+      );
       
       setCalendarScriptContent(response.script);
       toast.success('腳本生成成功');
     } catch (error: any) {
       console.error('生成腳本失敗:', error);
-      toast.error(error.message || '生成腳本失敗');
+      toast.error(error.message || '生成腳本失敗，請稍後再試');
     } finally {
       setScriptGenerating(false);
     }
@@ -2499,7 +2510,8 @@ export default function UserDB() {
               </DialogTitle>
               <DialogDescription className="text-base mt-1">
                 {selectedCalendarDay ? (
-                  <span className="font-medium text-foreground">{selectedCalendarDay.topic}</span>
+                   // Clean markdown here as well if topic contains it
+                  <span className="font-medium text-foreground" dangerouslySetInnerHTML={{ __html: cleanMarkdown(selectedCalendarDay.topic) }} />
                 ) : (
                   <span className="text-muted-foreground italic">當天尚未有規劃</span>
                 )}
@@ -2518,7 +2530,7 @@ export default function UserDB() {
               {/* 帳號定位 Tab */}
               <TabsContent value="profile" className="flex-1 overflow-hidden mt-0">
                 <ScrollArea className="h-full pr-4">
-                  <div className="space-y-4">
+                  <div className="space-y-4 pb-4">
                     <div className="bg-muted/30 p-4 rounded-lg border">
                       <h3 className="font-semibold text-lg mb-2">
                         IP 帳號定位
@@ -2540,23 +2552,23 @@ export default function UserDB() {
               
               {/* 當天選題 Tab */}
               <TabsContent value="topic" className="flex-1 overflow-hidden mt-0">
-                 <div className="h-full flex flex-col">
-                    <div className="bg-primary/5 p-6 rounded-xl border border-primary/10 mb-4 flex-1 flex flex-col justify-center items-center text-center">
-                      <h3 className="text-2xl font-bold text-primary mb-4">今日選題</h3>
-                      <p className="text-xl font-medium leading-relaxed max-w-2xl">
-                        {selectedCalendarDay?.topic || '無選題'}
-                      </p>
-                    </div>
-                    <div className="bg-muted/30 p-4 rounded-lg border">
-                      <h4 className="font-medium mb-2 flex items-center gap-2">
-                        <Info className="w-4 h-4" />
-                        創作提示
-                      </h4>
-                      <p className="text-sm text-muted-foreground">
-                        這個選題是根據您的 IP 人設定位與 14 天規劃策略生成的。建議您在創作時，保持與人設的一致性，並嘗試在影片前 3 秒抓住觀眾注意力。
-                      </p>
-                    </div>
-                 </div>
+                 <ScrollArea className="h-full">
+                    <div className="h-full flex flex-col">
+                        <div className="bg-primary/5 p-6 rounded-xl border border-primary/10 mb-4 flex-1 flex flex-col justify-center items-center text-center min-h-[200px]">
+                          <h3 className="text-2xl font-bold text-primary mb-4">今日選題</h3>
+                          <p className="text-xl font-medium leading-relaxed max-w-2xl" dangerouslySetInnerHTML={{ __html: cleanMarkdown(selectedCalendarDay?.topic || '無選題') }} />
+                        </div>
+                        <div className="bg-muted/30 p-4 rounded-lg border">
+                          <h4 className="font-medium mb-2 flex items-center gap-2">
+                            <Info className="w-4 h-4" />
+                            創作提示
+                          </h4>
+                          <p className="text-sm text-muted-foreground">
+                            這個選題是根據您的 IP 人設定位與 14 天規劃策略生成的。建議您在創作時，保持與人設的一致性，並嘗試在影片前 3 秒抓住觀眾注意力。
+                          </p>
+                        </div>
+                     </div>
+                 </ScrollArea>
               </TabsContent>
               
               {/* 短影音腳本 Tab */}
@@ -2632,14 +2644,15 @@ export default function UserDB() {
 
                     {/* 腳本內容編輯器 */}
                     <div className="space-y-2">
-                      <div className="flex items-center justify-between">
+                      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
                         <Label>腳本內容</Label>
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap gap-2 w-full md:w-auto">
                           <Button 
                             variant="outline" 
                             size="sm"
                             onClick={handleGenerateCalendarScript}
                             disabled={scriptGenerating || !selectedCalendarDay}
+                            className="flex-1 md:flex-none"
                           >
                             {scriptGenerating ? (
                               <>
@@ -2657,6 +2670,7 @@ export default function UserDB() {
                             size="sm"
                             onClick={handleSaveCalendarScript}
                             disabled={scriptSaving || !selectedCalendarDay}
+                            className="flex-1 md:flex-none"
                           >
                              {scriptSaving ? (
                               <>
