@@ -7,7 +7,7 @@ import React, { lazy, Suspense } from 'react';
 import { createHashRouter, Navigate, useRouteError, isRouteErrorResponse } from 'react-router-dom';
 import PrivateRoute from './components/PrivateRoute';
 
-// Lazy load components for better performance
+// Lazy load components for一般頁面；關鍵功能頁與 404 則改為同步載入避免動態匯入失敗
 const Home = lazy(() => import('./pages/Home'));
 const Intro = lazy(() => import('./pages/Intro'));
 const Pricing = lazy(() => import('./pages/Pricing'));
@@ -20,8 +20,9 @@ const OAuthCallback = lazy(() => import('./pages/OAuthCallback'));
 const Profile = lazy(() => import('./pages/Profile'));
 const Settings = lazy(() => import('./pages/Settings'));
 const Mode1 = lazy(() => import('./pages/Mode1'));
-const Mode3 = lazy(() => import('./pages/Mode3'));
-const UserDB = lazy(() => import('./pages/UserDB'));
+// 一鍵生成 / UserDB / 404 改為同步載入，避免動態模組載入錯誤
+import Mode3 from './pages/Mode3';
+import UserDB from './pages/UserDB';
 const About = lazy(() => import('./pages/About'));
 const Contact = lazy(() => import('./pages/Contact'));
 const Forum = lazy(() => import('./pages/Forum'));
@@ -32,7 +33,7 @@ const Subscription = lazy(() => import('./pages/Subscription'));
 const Orders = lazy(() => import('./pages/Orders'));
 const Statistics = lazy(() => import('./pages/Statistics'));
 const ReferralRewards = lazy(() => import('./pages/ReferralRewards'));
-const NotFound = lazy(() => import('./pages/NotFound'));
+import NotFound from './pages/NotFound';
 
 // Loading fallback component
 const LoadingFallback = () => (
