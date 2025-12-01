@@ -337,17 +337,33 @@ export default function ScriptEditor({
               "prose prose-sm max-w-none break-words"
             )}
             dangerouslySetInnerHTML={{ 
-              __html: content
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-                .replace(/__(.+?)__/g, '<strong>$1</strong>')
-                .replace(/\n/g, '<br />')
+              __html: (() => {
+                // 先轉義 HTML 特殊字符（但保留已轉義的內容）
+                let html = content
+                  .replace(/&/g, '&amp;')
+                  .replace(/</g, '&lt;')
+                  .replace(/>/g, '&gt;');
+                
+                // 處理粗體：**text** 或 __text__（支援跨行和多個）
+                // 使用 [\s\S] 來匹配包括換行符在內的所有字符，*? 允許空內容
+                // 添加內聯樣式確保粗體正確顯示
+                html = html.replace(/\*\*([\s\S]*?)\*\*/g, '<strong style="font-weight: bold;">$1</strong>');
+                html = html.replace(/__([\s\S]*?)__/g, '<strong style="font-weight: bold;">$1</strong>');
+                
+                // 處理斜體：*text* 或 _text_（但不在 ** 或 __ 內）
+                // 使用負向前後查找確保不是粗體標記的一部分
+                html = html.replace(/(?<!\*)\*(?!\*)([^\n*]+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>');
+                html = html.replace(/(?<!_)_(?!_)([^\n_]+?)(?<!_)_(?!_)/g, '<em>$1</em>');
+                
+                // 處理換行
+                html = html.replace(/\n/g, '<br />');
+                
+                return html;
+              })()
             }}
           />
         ) : (
-          // 編輯模式：使用純文字輸入框
+          // 編輯模式：使用純文字輸入框（顯示原始 Markdown）
           <Textarea
             ref={textareaRef}
             value={content}
