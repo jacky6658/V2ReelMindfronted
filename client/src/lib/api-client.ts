@@ -11,7 +11,7 @@ import { useAuthStore } from '../stores/authStore';
 // 創建 axios 實例
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
+  timeout: 60000, // 60 秒超時，適應 AI 生成
   headers: {
     'Content-Type': 'application/json',
   },
