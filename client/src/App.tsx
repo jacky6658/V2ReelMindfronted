@@ -162,6 +162,21 @@ function App() {
     };
   }, []);
 
+  // 路由切換時自動滾動到頁面頂部，避免有時候停在中間或底部
+  useEffect(() => {
+    const handleRouteChange = () => {
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    };
+
+    window.addEventListener("hashchange", handleRouteChange);
+    window.addEventListener("popstate", handleRouteChange);
+
+    return () => {
+      window.removeEventListener("hashchange", handleRouteChange);
+      window.removeEventListener("popstate", handleRouteChange);
+    };
+  }, []);
+
   return (
     <ErrorBoundary>
       <ColorThemeProvider>
