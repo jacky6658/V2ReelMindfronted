@@ -3,14 +3,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
-import { useTheme } from "@/contexts/ThemeContext";
-import { Moon, Sun, Sparkles, Target, Zap, TrendingUp, CheckCircle2, Play, Check, Mail, Shield, CreditCard, Menu, User, LogOut, Home as HomeIcon, BookOpen, Users, Settings, ArrowLeft } from "lucide-react";
+import { Sparkles, Target, Zap, TrendingUp, CheckCircle2, Play, Check, Mail, Shield, CreditCard, Menu, User, LogOut, Home as HomeIcon, BookOpen, Users, Settings, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useAuthStore } from "@/stores/authStore";
 
 export default function Home() {
-  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const { isLoggedIn, getToken, user, logout } = useAuthStore();
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('yearly');
@@ -98,21 +96,8 @@ export default function Home() {
             </span>
           </div>
 
-          {/* 桌面版：右侧按钮（主题切换和登录/主控台） */}
+          {/* 桌面版：右侧按钮（登录/主控台） */}
           <div className="hidden md:flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={toggleTheme}
-              className="rounded-full"
-              aria-label={theme === 'dark' ? '切換到淺色模式' : '切換到深色模式'}
-            >
-              {theme === 'dark' ? (
-                <Sun className="h-5 w-5" />
-              ) : (
-                <Moon className="h-5 w-5" />
-              )}
-            </Button>
             {isLoggedIn ? (
               <Button variant="default" onClick={() => navigate('/app')}>
                 主控台
@@ -285,26 +270,6 @@ export default function Home() {
                     </Button>
                   )}
 
-                  <Separator />
-
-                  {/* 主題切換（移動版） */}
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-start md:hidden"
-                    onClick={toggleTheme}
-                  >
-                    {theme === 'dark' ? (
-                      <>
-                        <Sun className="w-4 h-4 mr-2" />
-                        切換到淺色模式
-                      </>
-                    ) : (
-                      <>
-                        <Moon className="w-4 h-4 mr-2" />
-                        切換到深色模式
-                      </>
-                    )}
-                  </Button>
                 </div>
               </SheetContent>
             </Sheet>
@@ -312,8 +277,8 @@ export default function Home() {
         </div>
       </nav>
 
-      {/* Hero 區塊 */}
-      <section className="relative min-h-[600px] md:min-h-[700px] flex items-center overflow-hidden">
+      {/* Hero 區塊 - 強制淺色模式 */}
+      <section className="relative min-h-[600px] md:min-h-[700px] flex items-center overflow-hidden light">
         {/* 影片背景 */}
         <div className="video-background">
           <video
@@ -333,10 +298,10 @@ export default function Home() {
           <div className="video-overlay"></div>
         </div>
 
-        {/* Hero 內容 */}
+        {/* Hero 內容 - 強制淺色模式樣式 */}
         <div className="container relative z-10">
           <div className="max-w-3xl mx-auto text-center space-y-6 px-4">
-            <h1 className="text-4xl md:text-6xl font-bold tracking-tight">
+            <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-foreground">
               AI 短影音智能體
               <span className="block mt-2 bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
                 從靈感枯竭到內容量產
@@ -352,7 +317,7 @@ export default function Home() {
               <Button 
                 size="lg" 
                 variant="outline" 
-                className="text-base px-8 border-2 border-primary/50 bg-primary/5 hover:bg-primary/10 hover:border-primary dark:border-primary/70 dark:bg-primary/10 dark:hover:bg-primary/20 font-semibold" 
+                className="text-base px-8 border-2 border-primary/50 bg-primary/5 hover:bg-primary/10 hover:border-primary font-semibold" 
                 onClick={isLoggedIn ? () => navigate('/app') : handleGoogleLogin}
               >
                 免費體驗

@@ -137,6 +137,7 @@ export default function Checkout() {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
+        credentials: 'include', // 添加這行，確保發送 cookies 和處理 CORS
         body: JSON.stringify({
           plan: plan,
           amount: amount,

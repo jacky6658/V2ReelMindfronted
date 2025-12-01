@@ -9,9 +9,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { apiGet } from '@/lib/api-client';
+import { apiGet, apiPut } from '@/lib/api-client';
 import { toast } from 'sonner';
-import { Sparkles, Target, Zap, Database, ArrowRight, CheckCircle2, TrendingUp, MessageSquare, Home, BookOpen, Users, ExternalLink, Settings, ShoppingBag, BarChart3, HelpCircle, User, Key, Download, FileText, LogOut, Loader2 } from 'lucide-react';
+import { Sparkles, Target, Zap, Database, ArrowRight, CheckCircle2, TrendingUp, MessageSquare, Home, BookOpen, Users, ExternalLink, Settings, ShoppingBag, BarChart3, HelpCircle, User, Key, Download, FileText, LogOut, Loader2, Bell, X } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { Area, AreaChart, Bar, BarChart, Line, LineChart, XAxis, YAxis, CartesianGrid } from 'recharts';
@@ -46,6 +46,28 @@ const AppDashboard: React.FC = () => {
   const [analyticsOverview, setAnalyticsOverview] = useState<AnalyticsOverview | null>(null);
   const [loadingAnalytics, setLoadingAnalytics] = useState(false);
   const [showStatisticsHelpDialog, setShowStatisticsHelpDialog] = useState(false);
+  const [notifications, setNotifications] = useState<Array<{
+    id: number;
+    type: string;
+    title: string;
+    message: string;
+    is_read: boolean;
+    created_at: string;
+  }>>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [loadingNotifications, setLoadingNotifications] = useState(false);
+  const [notifications, setNotifications] = useState<Array<{
+    id: number;
+    type: string;
+    title: string;
+    message: string;
+    is_read: boolean;
+    created_at: string;
+  }>>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [loadingNotifications, setLoadingNotifications] = useState(false);
 
   // 登出處理
   const handleLogout = async () => {
@@ -71,7 +93,70 @@ const AppDashboard: React.FC = () => {
     };
 
     loadAnalytics();
-  }, [user?.user_id]);
+  }, [user?.user_id, authLoading]);
+
+  // 載入通知
+  useEffect(() => {
+    const loadNotifications = async () => {
+      if (!user?.user_id || authLoading) return;
+      
+      try {
+        setLoadingNotifications(true);
+        const data = await apiGet<{
+          notifications: Array<{
+            id: number;
+            type: string;
+            title: string;
+            message: string;
+            is_read: boolean;
+            created_at: string;
+          }>;
+          unread_count: number;
+          total: number;
+        }>(`/api/user/notifications/${user.user_id}?unread_only=true`);
+        
+        if (data) {
+          setNotifications(data.notifications || []);
+          setUnreadCount(data.unread_count || 0);
+        }
+      } catch (error) {
+        console.error('載入通知失敗:', error);
+      } finally {
+        setLoadingNotifications(false);
+      }
+    };
+
+    loadNotifications();
+    // 每30秒刷新一次通知
+    const interval = setInterval(loadNotifications, 30000);
+    return () => clearInterval(interval);
+  }, [user?.user_id, authLoading]);
+
+  // 標記通知為已讀
+  const markNotificationRead = async (notificationId: number) => {
+    try {
+      await apiPut(`/api/user/notifications/${notificationId}/read`);
+      setNotifications(prev => prev.map(n => 
+        n.id === notificationId ? { ...n, is_read: true } : n
+      ));
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    } catch (error) {
+      console.error('標記通知為已讀失敗:', error);
+    }
+  };
+
+  // 標記所有通知為已讀
+  const markAllNotificationsRead = async () => {
+    if (!user?.user_id) return;
+    
+    try {
+      await apiPut(`/api/user/notifications/${user.user_id}/read-all`);
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+      setUnreadCount(0);
+    } catch (error) {
+      console.error('標記所有通知為已讀失敗:', error);
+    }
+  };
 
   // 準備圖表數據
   const chartData = useMemo(() => {
@@ -202,6 +287,95 @@ const AppDashboard: React.FC = () => {
           <div className="flex items-center gap-2">
             {user ? (
               <>
+                {/* 通知按鈕 */}
+                <div className="relative">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setShowNotifications(!showNotifications)}
+                    title="通知"
+                    className="relative"
+                  >
+                    <Bell className="w-5 h-5" />
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                        {unreadCount > 9 ? '9+' : unreadCount}
+                      </span>
+                    )}
+                  </Button>
+                  
+                  {/* 通知下拉列表 */}
+                  {showNotifications && (
+                    <div className="absolute right-0 top-full mt-2 w-80 md:w-96 bg-background border rounded-lg shadow-lg z-50 max-h-[500px] overflow-hidden flex flex-col">
+                      <div className="flex items-center justify-between p-4 border-b">
+                        <h3 className="font-semibold">通知</h3>
+                        <div className="flex items-center gap-2">
+                          {unreadCount > 0 && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={markAllNotificationsRead}
+                              className="text-xs"
+                            >
+                              全部標記為已讀
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setShowNotifications(false)}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="overflow-y-auto flex-1">
+                        {loadingNotifications ? (
+                          <div className="flex items-center justify-center p-8">
+                            <Loader2 className="w-6 h-6 animate-spin" />
+                          </div>
+                        ) : notifications.length === 0 ? (
+                          <div className="p-8 text-center text-muted-foreground">
+                            <Bell className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                            <p>目前沒有通知</p>
+                          </div>
+                        ) : (
+                          <div className="divide-y">
+                            {notifications.map((notification) => (
+                              <div
+                                key={notification.id}
+                                className={`p-4 hover:bg-muted/50 cursor-pointer transition-colors ${
+                                  !notification.is_read ? 'bg-primary/5' : ''
+                                }`}
+                                onClick={() => {
+                                  if (!notification.is_read) {
+                                    markNotificationRead(notification.id);
+                                  }
+                                }}
+                              >
+                                <div className="flex items-start gap-3">
+                                  <div className="flex-1">
+                                    <p className="font-semibold text-sm">{notification.title}</p>
+                                    <p className="text-sm text-muted-foreground mt-1">
+                                      {notification.message}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground mt-2">
+                                      {new Date(notification.created_at).toLocaleString('zh-TW')}
+                                    </p>
+                                  </div>
+                                  {!notification.is_read && (
+                                    <div className="w-2 h-2 bg-primary rounded-full mt-2" />
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
                 <div className="hidden md:flex items-center gap-2 px-2">
                   <img src={user.picture} alt={user.name} className="w-8 h-8 rounded-full" />
                   <span className="text-sm">{user.name}</span>
@@ -793,11 +967,26 @@ const AppDashboard: React.FC = () => {
               </ul>
             </div>
             <div>
+              <h4 className="font-semibold mb-2">使用趨勢圖表的價值與效益</h4>
+              <p className="text-muted-foreground mb-3">
+                使用趨勢圖表不僅僅是展示數據，更是幫助您做出更明智的創作決策：
+              </p>
+              <ul className="list-disc list-inside space-y-2 text-muted-foreground">
+                <li><strong>發現創作規律</strong>：透過圖表觀察您在一週中哪些時段最活躍，找出您的創作黃金時段，提升效率</li>
+                <li><strong>追蹤成長軌跡</strong>：清楚看到您的使用量變化趨勢，了解自己的進步幅度，激發持續創作的動力</li>
+                <li><strong>優化時間分配</strong>：識別使用高峰期和低谷期，幫助您更合理地安排創作時間，避免靈感浪費</li>
+                <li><strong>設定目標與追蹤</strong>：基於歷史趨勢數據，設定合理的創作目標，並透過圖表即時追蹤達成進度</li>
+                <li><strong>功能使用偏好分析</strong>：比較不同功能（腳本生成、IP規劃等）的使用頻率，了解自己最適合的創作方式</li>
+                <li><strong>長期規劃參考</strong>：累積的趨勢數據可作為您制定長期內容策略的重要參考依據</li>
+              </ul>
+            </div>
+            <div>
               <h4 className="font-semibold mb-2">如何使用？</h4>
               <ol className="list-decimal list-inside space-y-2 text-muted-foreground">
                 <li>點擊「使用統計」卡片進入詳細統計頁面</li>
                 <li>查看不同時間段的統計數據（今日、本週、本月）</li>
-                <li>透過趨勢圖表了解您的創作習慣變化</li>
+                <li>仔細觀察趨勢圖表的變化，找出您的創作規律和最佳時段</li>
+                <li>根據趨勢數據調整您的創作計劃，提升效率</li>
                 <li>使用 AI 智能分析功能獲取個人化建議</li>
               </ol>
             </div>

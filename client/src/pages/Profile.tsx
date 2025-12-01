@@ -89,6 +89,8 @@ const Profile: React.FC = () => {
     referred_user_email: string;
     created_at: string;
     reward_status: string;
+    has_paid?: boolean;
+    is_subscribed?: boolean;
   }>>([]);
   const [copiedReferralCode, setCopiedReferralCode] = useState(false);
   const [copiedReferralLink, setCopiedReferralLink] = useState(false);
@@ -207,6 +209,8 @@ const Profile: React.FC = () => {
             referred_user_email: string;
             created_at: string;
             reward_status: string;
+            has_paid?: boolean;
+            is_subscribed?: boolean;
           }>;
           total: number;
         }>(`/api/user/referral/list/${user.user_id}`);
@@ -1014,11 +1018,23 @@ const Profile: React.FC = () => {
                                           >
                                             {referral.reward_status === 'completed' ? '已發放獎勵' : '待發放'}
                                           </Badge>
+                                          {referral.has_paid && (
+                                            <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-300">
+                                              已付款
+                                            </Badge>
+                                          )}
                                         </div>
                                         <p className="text-sm text-muted-foreground truncate">{referral.referred_user_email}</p>
-                                        <p className="text-xs text-muted-foreground mt-1 font-mono">
-                                          用戶ID: {referral.referred_user_id}
-                                        </p>
+                                        <div className="flex items-center gap-2 mt-1">
+                                          <p className="text-xs text-muted-foreground font-mono">
+                                            用戶ID: {referral.referred_user_id}
+                                          </p>
+                                          {referral.is_subscribed && (
+                                            <Badge variant="outline" className="text-xs">
+                                              已訂閱
+                                            </Badge>
+                                          )}
+                                        </div>
                                       </div>
                                       <div className="text-right shrink-0">
                                         <p className="text-xs text-muted-foreground">
@@ -1049,9 +1065,13 @@ const Profile: React.FC = () => {
                                 ※ 上述規則不與下方規則抵觸，一個帳號至多可以免費體驗全功能 2 個月
                               </li>
                               <li className="font-medium text-foreground mt-3">
-                                <strong>額外獎勵：</strong>
+                                <strong>額外獎勵（二擇一，任一完成後即無獎勵）：</strong>
                               </li>
                               <li className="ml-4">• 累積邀請 10 位用戶 → 可獲得 1 個月免費使用（每個推薦人只能獲得一次）</li>
+                              <li className="ml-4">• 邀請的好友中有一位完成月付或年付付款 → 可獲得 1 個月免費使用（每個推薦人只能獲得一次）</li>
+                              <li className="text-xs mt-2 text-muted-foreground/80">
+                                ※ 後續有新活動另外公布
+                              </li>
                             </ul>
                           </div>
                         </div>
