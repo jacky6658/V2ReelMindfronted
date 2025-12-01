@@ -15,6 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { CreditCard, ArrowLeft, Shield } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { toast } from 'sonner';
+import { getCsrfToken } from '@/lib/api-client';
 
 export default function Checkout() {
   const navigate = useNavigate();
@@ -130,14 +131,25 @@ export default function Checkout() {
     setIsProcessing(true);
 
     try {
+      // 獲取 CSRF Token
+      const csrfToken = await getCsrfToken();
+      if (!csrfToken) {
+        toast.error('無法獲取安全令牌，請重新整理頁面後再試');
+        setIsProcessing(false);
+        return;
+      }
+
       const frontend_return_url = `${window.location.origin}/#/payment-result`;
+      const headers: HeadersInit = {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrfToken
+      };
+
       const response = await fetch('https://api.aijob.com.tw/api/payment/checkout', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include', // 添加這行，確保發送 cookies 和處理 CORS
+        headers: headers,
+        credentials: 'include', // 確保發送 cookies 和處理 CORS
         body: JSON.stringify({
           plan: plan,
           amount: amount,
