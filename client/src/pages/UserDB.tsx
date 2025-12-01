@@ -57,6 +57,8 @@ import {
   ExternalLink,
   User,
   Save,
+  ChevronLeftIcon,
+  ChevronRightIcon,
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -68,6 +70,7 @@ import { apiGet, apiDelete, apiPost, apiPut } from '@/lib/api-client';
 import { useAuthStore } from '@/stores/authStore';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 import ScriptEditor from '@/components/ScriptEditor';
 
 interface Script {
