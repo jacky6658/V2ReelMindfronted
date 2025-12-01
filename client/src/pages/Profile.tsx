@@ -95,6 +95,17 @@ const Profile: React.FC = () => {
   const [copiedReferralCode, setCopiedReferralCode] = useState(false);
   const [copiedReferralLink, setCopiedReferralLink] = useState(false);
   const [loadingReferral, setLoadingReferral] = useState(false);
+  // 推薦人資訊
+  const [referrerInfo, setReferrerInfo] = useState<{
+    userId: string;
+    name: string;
+    email: string;
+    boundAt?: string | null;
+    referralCode?: string | null;
+  } | null>(null);
+  const [canBindReferrer, setCanBindReferrer] = useState(false);
+  const [referrerCodeInput, setReferrerCodeInput] = useState('');
+  const [bindingReferrer, setBindingReferrer] = useState(false);
   
   // 使用說明對話框狀態
   const [showCreatorHelpDialog, setShowCreatorHelpDialog] = useState(false);
@@ -201,6 +212,31 @@ const Profile: React.FC = () => {
         setReferralCode(code);
       }
       
+      // 取得我的推薦人資訊與是否可以綁定推薦人
+      try {
+        const info = await apiGet<{
+          referrer?: { user_id: string; name?: string; email?: string; bound_at?: string | null };
+          can_bind?: boolean;
+          referral_code_used?: string | null;
+        }>(`/api/user/referral/me/${user.user_id}`);
+        
+        if (info?.referrer) {
+          setReferrerInfo({
+            userId: info.referrer.user_id,
+            name: info.referrer.name || '',
+            email: info.referrer.email || '',
+            boundAt: info.referrer.bound_at || null,
+            referralCode: info.referral_code_used || undefined,
+          });
+        } else {
+          setReferrerInfo(null);
+        }
+        setCanBindReferrer(!!info?.can_bind);
+      } catch (error: any) {
+        console.error('載入推薦人資訊失敗:', error);
+        setReferrerInfo(null);
+      }
+      
       // 獲取推薦統計
       try {
         const stats = await apiGet<{ total_referrals: number; rewards: number }>(`/api/user/referral/stats/${user.user_id}`);
@@ -259,6 +295,39 @@ const Profile: React.FC = () => {
     setCopiedReferralLink(true);
     toast.success('推薦連結已複製到剪貼簿');
     setTimeout(() => setCopiedReferralLink(false), 2000);
+  };
+
+  // 綁定推薦人（3 天內可綁定一次）
+  const handleBindReferrer = async () => {
+    if (!user?.user_id) {
+      toast.error('請先登入');
+      navigate('/login');
+      return;
+    }
+    const code = referrerCodeInput.trim().toUpperCase();
+    if (!code) {
+      toast.error('請先輸入推薦碼');
+      return;
+    }
+    if (!canBindReferrer) {
+      toast.error('目前無法綁定推薦人（可能已綁定或已超過期限）');
+      return;
+    }
+
+    try {
+      setBindingReferrer(true);
+      // 將推薦碼暫存到 localStorage，讓下一次登入時後端可以綁定
+      localStorage.setItem('referral_code', code);
+      toast.success('推薦碼已儲存，請重新登入以完成綁定');
+      // 登出並導向登入頁，使用者重新登入後會完成綁定
+      await logout();
+      navigate('/login', { replace: true });
+    } catch (error) {
+      console.error('綁定推薦人失敗:', error);
+      toast.error('綁定推薦人時發生錯誤，請稍後再試');
+    } finally {
+      setBindingReferrer(false);
+    }
   };
 
   // 根據平台生成連結格式
@@ -951,6 +1020,68 @@ const Profile: React.FC = () => {
                       </div>
                     ) : (
                       <>
+                        {/* 我的推薦人區塊 */}
+                        <div className="border rounded-lg p-4 bg-muted/40 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg">👥</span>
+                              <span className="font-semibold">我的推薦人</span>
+                            </div>
+                            {referrerInfo && (
+                              <Badge variant="outline" className="text-xs">
+                                已綁定
+                              </Badge>
+                            )}
+                          </div>
+                          {referrerInfo ? (
+                            <div className="space-y-1 text-sm">
+                              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                                <span className="font-medium">
+                                  {referrerInfo.name || '未命名用戶'}
+                                </span>
+                                {referrerInfo.email && (
+                                  <span className="text-xs text-muted-foreground break-all">
+                                    {referrerInfo.email}
+                                  </span>
+                                )}
+                              </div>
+                              {referrerInfo.referralCode && (
+                                <p className="text-xs text-muted-foreground">
+                                  使用推薦碼：
+                                  <span className="font-mono">
+                                    {referrerInfo.referralCode}
+                                  </span>
+                                </p>
+                              )}
+                            </div>
+                          ) : canBindReferrer ? (
+                            <div className="space-y-2 text-sm">
+                              <p className="text-xs text-muted-foreground">
+                                您尚未綁定推薦人，可在首次註冊後 3 天內填寫一次推薦碼。
+                              </p>
+                              <div className="flex flex-col sm:flex-row gap-2">
+                                <Input
+                                  placeholder="輸入朋友提供的推薦碼"
+                                  value={referrerCodeInput}
+                                  onChange={(e) => setReferrerCodeInput(e.target.value.toUpperCase())}
+                                />
+                                <Button
+                                  variant="default"
+                                  className="whitespace-nowrap"
+                                  disabled={bindingReferrer}
+                                  onClick={handleBindReferrer}
+                                >
+                                  {bindingReferrer ? '處理中...' : '綁定推薦人'}
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="text-xs text-muted-foreground">
+                              目前尚未綁定推薦人，且已超過可填寫推薦碼的期限。
+                            </p>
+                          )}
+                        </div>
+
                         {/* 推薦碼顯示 */}
                         <div>
                           <Label>您的推薦碼</Label>
