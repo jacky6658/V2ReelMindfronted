@@ -329,17 +329,35 @@ export default function ScriptEditor({
 
       {/* 編輯器 */}
       <div className="relative overflow-x-auto">
-        <Textarea
-          ref={textareaRef}
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          readOnly={readOnly || !isEditing}
-          className={cn(
-            "min-h-[300px] font-mono text-sm w-full min-w-0",
-            (readOnly || !isEditing) && "bg-muted/30 cursor-default"
-          )}
-          placeholder="開始編輯你的腳本..."
-        />
+        {(readOnly || !isEditing) ? (
+          // 只讀模式：使用富文本渲染，支援粗體等格式
+          <div
+            className={cn(
+              "min-h-[300px] text-sm w-full p-3 rounded-md border bg-muted/30",
+              "prose prose-sm max-w-none break-words"
+            )}
+            dangerouslySetInnerHTML={{ 
+              __html: content
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                .replace(/__(.+?)__/g, '<strong>$1</strong>')
+                .replace(/\n/g, '<br />')
+            }}
+          />
+        ) : (
+          // 編輯模式：使用純文字輸入框
+          <Textarea
+            ref={textareaRef}
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            className={cn(
+              "min-h-[300px] font-mono text-sm w-full min-w-0"
+            )}
+            placeholder="開始編輯你的腳本..."
+          />
+        )}
       </div>
     </div>
   );
