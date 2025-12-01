@@ -369,7 +369,7 @@ export default function ScriptEditor({
             value={content}
             onChange={(e) => setContent(e.target.value)}
             className={cn(
-              "min-h-[300px] font-mono text-sm w-full min-w-0"
+              "min-h-[300px] font-mono text-sm w-full min-w-0 whitespace-pre-wrap break-words resize-none"
             )}
             placeholder="開始編輯你的腳本..."
           />
