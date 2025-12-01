@@ -1,6 +1,6 @@
 /**
- * UserDB - 使用者資料管理
- * 包含：我的腳本、對話記錄、生成記錄
+ * UserDB - 創作者資料庫
+ * 管理用戶主動保存的內容：我的腳本、IP 人設規劃、14 天規劃
  */
 
 import { useState, useEffect, useMemo } from 'react';
@@ -92,22 +92,27 @@ interface IPPlanningResult {
   result_type: 'profile' | 'plan' | 'scripts';
   title: string;
   content: string;
-  metadata?: any;
+  metadata?: {
+    source?: 'mode1' | 'mode3';  // 來源：IP人設規劃功能 或 一鍵生成功能
+    category?: 'positioning' | 'topics' | 'planning' | 'script';  // 原始分類
+    timestamp?: string;
+    platform?: string;
+    topic?: string;
+    [key: string]: any;  // 其他可能的 metadata 欄位
+  };
   created_at: string;
 }
 
 type SortField = 'time' | 'title' | 'platform' | 'type';
 type SortOrder = 'asc' | 'desc';
 
-type SelectedItem = Script | Conversation | Generation | IPPlanningResult | null;
+type SelectedItem = Script | IPPlanningResult | null;
 
 export default function UserDB() {
   const navigate = useNavigate();
   const { logout, user } = useAuthStore();
-  const [activeTab, setActiveTab] = useState<'scripts' | 'conversations' | 'generations' | 'ip-planning' | 'planning'>('scripts');
+  const [activeTab, setActiveTab] = useState<'scripts' | 'ip-planning' | 'planning'>('scripts');
   const [scripts, setScripts] = useState<Script[]>([]);
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [generations, setGenerations] = useState<Generation[]>([]);
   const [ipPlanningResults, setIpPlanningResults] = useState<IPPlanningResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedItem, setSelectedItem] = useState<SelectedItem>(null);
@@ -117,8 +122,13 @@ export default function UserDB() {
   // 搜索和筛选状态
   const [searchQuery, setSearchQuery] = useState('');
   const [platformFilter, setPlatformFilter] = useState<string>('all');
+  const [ipPlanningCategoryFilter, setIpPlanningCategoryFilter] = useState<string>('all'); // IP 人設規劃子分類篩選
   const [sortField, setSortField] = useState<SortField>('time');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+  
+  // 标题编辑状态
+  const [editingTitleId, setEditingTitleId] = useState<string | null>(null);
+  const [editingTitleValue, setEditingTitleValue] = useState<string>('');
 
   // 檢查登入狀態（已移除以便本地預覽）
   // useEffect(() => {
@@ -133,7 +143,7 @@ export default function UserDB() {
     loadData();
   }, [activeTab]);
 
-  // 監聽資料更新事件（當 Mode1 儲存內容到 UserDB 時）
+  // 監聽資料更新事件（當 IP人設規劃功能 儲存內容到 UserDB 時）
   useEffect(() => {
     const handleDataUpdate = (event: CustomEvent) => {
       const { type } = event.detail || {};
@@ -172,13 +182,8 @@ export default function UserDB() {
         case 'scripts':
           await loadScripts();
           break;
-        case 'conversations':
-          await loadConversations();
-          break;
-        case 'generations':
-          await loadGenerations();
-          break;
         case 'ip-planning':
+        case 'planning':
           await loadIPPlanningResults();
           break;
       }
@@ -206,39 +211,6 @@ export default function UserDB() {
     }
   };
 
-  // 載入對話記錄
-  const loadConversations = async () => {
-    if (!user?.user_id) {
-      setConversations([]);
-      return;
-    }
-    try {
-      // 後端端點：/api/user/conversations/{user_id}（需要傳入實際的 user_id）
-      // 後端返回格式：{ user_id, conversations: [{ id, mode, summary, message_count, created_at }] }
-      const data = await apiGet<{ conversations: Conversation[] }>(`/api/user/conversations/${user.user_id}`);
-      setConversations(data.conversations || []);
-    } catch (error) {
-      console.error('載入對話記錄失敗:', error);
-      setConversations([]);
-    }
-  };
-
-  // 載入生成記錄
-  const loadGenerations = async () => {
-    if (!user?.user_id) {
-      setGenerations([]);
-      return;
-    }
-    try {
-      // 後端端點：/api/user/generations/{user_id}（需要傳入實際的 user_id）
-      // 後端返回格式：{ user_id, generations: [{ platform, topic, content, created_at }] }
-      const data = await apiGet<{ generations: Generation[] }>(`/api/user/generations/${user.user_id}`);
-      setGenerations(data.generations || []);
-    } catch (error) {
-      console.error('載入生成記錄失敗:', error);
-      setGenerations([]);
-    }
-  };
 
   // 載入 IP 人設規劃結果
   const loadIPPlanningResults = async () => {
@@ -259,14 +231,6 @@ export default function UserDB() {
         case 'script':
           // 後端端點：DELETE /api/scripts/{script_id}
           endpoint = `/api/scripts/${id}`;
-          break;
-        case 'conversation':
-          // 注意：後端目前沒有刪除對話記錄的端點
-          toast.error('目前不支援刪除對話記錄');
-          return;
-        case 'generation':
-          // 後端端點：DELETE /api/generations/{gen_id}（不是 /api/user/generations/{id}）
-          endpoint = `/api/generations/${id}`;
           break;
         case 'ip-planning':
           // 後端端點：DELETE /api/ip-planning/results/{result_id}
@@ -300,6 +264,61 @@ export default function UserDB() {
     setShowDetail(true);
   };
 
+  // 獲取 IP 規劃結果的類型標籤（基於 metadata.category）
+  const getIPPlanningTypeLabel = (result: IPPlanningResult): string => {
+    const category = result.metadata?.category;
+    if (category === 'positioning') return '帳號定位';
+    if (category === 'topics') return '選題方向';
+    if (category === 'planning') return '14 天規劃';
+    if (category === 'script') return '腳本';
+    // 向後兼容：如果沒有 category，使用 result_type
+    const typeLabels: Record<string, string> = {
+      'profile': '帳號定位',
+      'plan': '選題規劃',
+      'scripts': '腳本'
+    };
+    return typeLabels[result.result_type] || result.result_type;
+  };
+
+  // 獲取來源標籤
+  const getSourceLabel = (result: IPPlanningResult): string | null => {
+    const source = result.metadata?.source;
+    if (source === 'mode1') return 'IP人設規劃';
+    if (source === 'mode3') return '一鍵生成';
+    return null;
+  };
+
+  // 保存標題
+  const handleSaveTitle = async (item: Script | IPPlanningResult, newTitle: string) => {
+    if (!newTitle.trim()) {
+      toast.error('標題不能為空');
+      setEditingTitleId(null);
+      return;
+    }
+
+    try {
+      let endpoint = '';
+      
+      if ('platform' in item && item.platform) {
+        // Script 類型
+        endpoint = `/api/scripts/${item.id}/name`;
+        await apiPost(endpoint, { name: newTitle.trim() });
+      } else if ('result_type' in item) {
+        // IP Planning 類型
+        endpoint = `/api/ip-planning/results/${item.id}/title`;
+        await apiPost(endpoint, { title: newTitle.trim() });
+      }
+      
+      toast.success('標題已更新');
+      setEditingTitleId(null);
+      loadData(); // 重新載入資料
+    } catch (error: any) {
+      console.error('更新標題失敗:', error);
+      toast.error(error?.response?.data?.error || '更新標題失敗');
+      setEditingTitleId(null);
+    }
+  };
+
   // 儲存編輯後的內容
   const handleSaveContent = async (content: string) => {
     if (!selectedItem) return;
@@ -310,18 +329,12 @@ export default function UserDB() {
       let endpoint = '';
       
       // 判斷類型（從 selectedItem 的結構判斷）
-      if ('platform' in selectedItem && selectedItem.platform) {
+      if ('platform' in selectedItem && selectedItem.platform && 'title' in selectedItem) {
         // Script 類型
         endpoint = `/api/user/scripts/${selectedItem.id}`;
-      } else if ('message_count' in selectedItem && selectedItem.message_count !== undefined) {
-        // Conversation 類型
-        endpoint = `/api/user/conversations/${selectedItem.id}`;
       } else if ('result_type' in selectedItem && selectedItem.result_type) {
         // IP Planning 類型
         endpoint = `/api/ip-planning/results/${selectedItem.id}`;
-      } else if ('topic' in selectedItem) {
-        // Generation 類型
-        endpoint = `/api/user/generations/${selectedItem.id || ''}`;
       } else {
         // 預設為 script
         endpoint = `/api/user/scripts/${selectedItem.id}`;
@@ -521,23 +534,34 @@ export default function UserDB() {
   const allPlatforms = useMemo(() => {
     const platforms = new Set<string>();
     scripts.forEach(s => s.platform && platforms.add(s.platform));
-    generations.forEach(g => g.platform && platforms.add(g.platform));
     return Array.from(platforms).sort();
-  }, [scripts, generations]);
+  }, [scripts]);
 
-  // 统计数据
+  // 统计数据（使用 metadata.category 区分选题方向和 14 天规划）
   const stats = useMemo(() => {
-    const planningResults = ipPlanningResults.filter(r => r.result_type === 'plan');
-    const otherIPResults = ipPlanningResults.filter(r => r.result_type !== 'plan');
+    // 14 天规划：result_type === 'plan' 且 metadata.category === 'planning'
+    const planningResults = ipPlanningResults.filter(r => 
+      r.result_type === 'plan' && r.metadata?.category === 'planning'
+    );
+    
+    // IP 人設規劃：包含帳號定位、選題方向、腳本
+    // - result_type === 'profile' (帳號定位)
+    // - result_type === 'plan' 且 metadata.category === 'topics' (選題方向)
+    // - result_type === 'scripts' (腳本)
+    const ipPlanningResults_filtered = ipPlanningResults.filter(r => {
+      if (r.result_type === 'profile') return true;  // 帳號定位
+      if (r.result_type === 'scripts') return true;  // 腳本
+      if (r.result_type === 'plan' && r.metadata?.category === 'topics') return true;  // 選題方向
+      return false;
+    });
+    
     return {
       scripts: scripts.length,
-      conversations: conversations.length,
-      generations: generations.length,
-      ipPlanning: otherIPResults.length,
+      ipPlanning: ipPlanningResults_filtered.length,
       planning: planningResults.length,
-      total: scripts.length + conversations.length + generations.length + ipPlanningResults.length
+      total: scripts.length + ipPlanningResults.length
     };
-  }, [scripts, conversations, generations, ipPlanningResults]);
+  }, [scripts, ipPlanningResults]);
 
   // 过滤和排序后的数据
   const filteredAndSortedData = useMemo(() => {
@@ -547,19 +571,34 @@ export default function UserDB() {
       case 'scripts':
         data = [...scripts];
         break;
-      case 'conversations':
-        data = [...conversations];
-        break;
-      case 'generations':
-        data = [...generations];
-        break;
       case 'ip-planning':
-        // 只顯示非 plan 類型的結果
-        data = [...ipPlanningResults.filter(r => r.result_type !== 'plan')];
+        // IP 人設規劃：顯示帳號定位、選題方向、腳本
+        // - result_type === 'profile' (帳號定位)
+        // - result_type === 'plan' 且 metadata.category === 'topics' (選題方向)
+        // - result_type === 'scripts' (腳本)
+        data = [...ipPlanningResults.filter(r => {
+          if (r.result_type === 'profile') return true;  // 帳號定位
+          if (r.result_type === 'scripts') return true;  // 腳本
+          if (r.result_type === 'plan' && r.metadata?.category === 'topics') return true;  // 選題方向
+          return false;
+        })];
+        
+        // 子分類篩選（IP 人設規劃）
+        if (ipPlanningCategoryFilter !== 'all') {
+          data = data.filter(r => {
+            const category = r.metadata?.category;
+            if (ipPlanningCategoryFilter === 'positioning') return category === 'positioning' || r.result_type === 'profile';
+            if (ipPlanningCategoryFilter === 'topics') return category === 'topics';
+            if (ipPlanningCategoryFilter === 'scripts') return category === 'script' || r.result_type === 'scripts';
+            return true;
+          });
+        }
         break;
       case 'planning':
-        // 只顯示 plan 類型的結果（14 天規劃）
-        data = [...ipPlanningResults.filter(r => r.result_type === 'plan')];
+        // 14 天規劃：只顯示真正的 14 天規劃（result_type === 'plan' 且 metadata.category === 'planning'）
+        data = [...ipPlanningResults.filter(r => 
+          r.result_type === 'plan' && r.metadata?.category === 'planning'
+        )];
         break;
     }
 
@@ -573,8 +612,8 @@ export default function UserDB() {
       });
     }
 
-    // 平台筛选（仅对 scripts 和 generations）
-    if (platformFilter !== 'all' && (activeTab === 'scripts' || activeTab === 'generations')) {
+    // 平台筛选（仅对 scripts）
+    if (platformFilter !== 'all' && activeTab === 'scripts') {
       data = data.filter(item => item.platform === platformFilter);
     }
 
@@ -610,7 +649,7 @@ export default function UserDB() {
     });
 
     return data;
-  }, [activeTab, scripts, conversations, generations, ipPlanningResults, searchQuery, platformFilter, sortField, sortOrder]);
+  }, [activeTab, scripts, ipPlanningResults, searchQuery, platformFilter, ipPlanningCategoryFilter, sortField, sortOrder]);
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -674,7 +713,7 @@ export default function UserDB() {
       {/* 主要內容區 */}
       <div className="flex-1 container py-6">
         {/* 統計卡片 */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <Card className="hover:shadow-md transition-shadow">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
@@ -683,28 +722,6 @@ export default function UserDB() {
                   <p className="text-2xl font-bold">{stats.scripts}</p>
                 </div>
                 <FileText className="w-8 h-8 text-blue-500 opacity-70" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="hover:shadow-md transition-shadow">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">對話記錄</p>
-                  <p className="text-2xl font-bold">{stats.conversations}</p>
-                </div>
-                <MessageSquare className="w-8 h-8 text-green-500 opacity-70" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="hover:shadow-md transition-shadow">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">生成記錄</p>
-                  <p className="text-2xl font-bold">{stats.generations}</p>
-                </div>
-                <Sparkles className="w-8 h-8 text-purple-500 opacity-70" />
               </div>
             </CardContent>
           </Card>
@@ -742,7 +759,7 @@ export default function UserDB() {
                   className="pl-10"
                 />
               </div>
-              {(activeTab === 'scripts' || activeTab === 'generations') && allPlatforms.length > 0 && (
+                  {activeTab === 'scripts' && allPlatforms.length > 0 && (
                 <Select value={platformFilter} onValueChange={setPlatformFilter}>
                   <SelectTrigger className="w-full md:w-[180px]">
                     <Filter className="w-4 h-4 mr-2" />
@@ -753,6 +770,20 @@ export default function UserDB() {
                     {allPlatforms.map(platform => (
                       <SelectItem key={platform} value={platform}>{platform}</SelectItem>
                     ))}
+                  </SelectContent>
+                </Select>
+              )}
+              {activeTab === 'ip-planning' && (
+                <Select value={ipPlanningCategoryFilter} onValueChange={setIpPlanningCategoryFilter}>
+                  <SelectTrigger className="w-full md:w-[180px]">
+                    <Filter className="w-4 h-4 mr-2" />
+                    <SelectValue placeholder="選擇類型" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">所有類型</SelectItem>
+                    <SelectItem value="positioning">帳號定位</SelectItem>
+                    <SelectItem value="topics">選題方向</SelectItem>
+                    <SelectItem value="scripts">腳本</SelectItem>
                   </SelectContent>
                 </Select>
               )}
@@ -770,7 +801,7 @@ export default function UserDB() {
                   <SelectItem value="time-asc">時間：最舊</SelectItem>
                   <SelectItem value="title-asc">標題：A-Z</SelectItem>
                   <SelectItem value="title-desc">標題：Z-A</SelectItem>
-                  {(activeTab === 'scripts' || activeTab === 'generations') && (
+                  {activeTab === 'scripts' && (
                     <>
                       <SelectItem value="platform-asc">平台：A-Z</SelectItem>
                       <SelectItem value="platform-desc">平台：Z-A</SelectItem>
@@ -790,22 +821,13 @@ export default function UserDB() {
               setActiveTab(v as any);
               setSearchQuery('');
               setPlatformFilter('all');
+              setIpPlanningCategoryFilter('all');
             }}>
-              <TabsList className="flex md:grid w-full md:grid-cols-5 gap-1 md:gap-2 overflow-x-auto pb-1 md:pb-0">
+              <TabsList className="flex md:grid w-full md:grid-cols-3 gap-1 md:gap-2 overflow-x-auto pb-1 md:pb-0">
                 <TabsTrigger value="scripts" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm whitespace-nowrap flex-shrink-0 min-w-fit">
                   <FileText className="w-3 h-3 md:w-4 md:h-4" />
                   <span className="hidden sm:inline">我的腳本</span>
                   <span className="sm:hidden">腳本</span>
-                </TabsTrigger>
-                <TabsTrigger value="conversations" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm whitespace-nowrap flex-shrink-0 min-w-fit">
-                  <MessageSquare className="w-3 h-3 md:w-4 md:h-4" />
-                  <span className="hidden sm:inline">對話記錄</span>
-                  <span className="sm:hidden">對話</span>
-                </TabsTrigger>
-                <TabsTrigger value="generations" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm whitespace-nowrap flex-shrink-0 min-w-fit">
-                  <Sparkles className="w-3 h-3 md:w-4 md:h-4" />
-                  <span className="hidden sm:inline">生成記錄</span>
-                  <span className="sm:hidden">生成</span>
                 </TabsTrigger>
                 <TabsTrigger value="ip-planning" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm whitespace-nowrap flex-shrink-0 min-w-fit">
                   <Sparkles className="w-3 h-3 md:w-4 md:h-4" />
@@ -881,9 +903,48 @@ export default function UserDB() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                            {filteredAndSortedData.map((script: Script) => (
+                            {filteredAndSortedData.map((script: Script) => {
+                          const titleId = `script-${script.id}`;
+                          const isEditing = editingTitleId === titleId;
+                          return (
                           <TableRow key={script.id}>
-                            <TableCell className="font-medium">{script.title}</TableCell>
+                            <TableCell className="font-medium">
+                              {isEditing ? (
+                                <div className="flex items-center gap-2">
+                                  <Input
+                                    value={editingTitleValue}
+                                    onChange={(e) => setEditingTitleValue(e.target.value)}
+                                    onBlur={() => {
+                                      if (editingTitleValue.trim()) {
+                                        handleSaveTitle(script, editingTitleValue);
+                                      } else {
+                                        setEditingTitleId(null);
+                                      }
+                                    }}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') {
+                                        handleSaveTitle(script, editingTitleValue);
+                                      } else if (e.key === 'Escape') {
+                                        setEditingTitleId(null);
+                                      }
+                                    }}
+                                    className="h-8"
+                                    autoFocus
+                                  />
+                                </div>
+                              ) : (
+                                <div 
+                                  className="flex items-center gap-2 group cursor-pointer hover:text-primary"
+                                  onClick={() => {
+                                    setEditingTitleId(titleId);
+                                    setEditingTitleValue(script.title);
+                                  }}
+                                >
+                                  <span>{script.title}</span>
+                                  <Edit className="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity" />
+                                </div>
+                              )}
+                            </TableCell>
                             <TableCell>
                               <Badge variant="outline">{script.platform}</Badge>
                             </TableCell>
@@ -928,18 +989,54 @@ export default function UserDB() {
                                   </DropdownMenu>
                                 </TableCell>
                               </TableRow>
-                            ))}
+                            );
+                          })}
                           </TableBody>
                         </Table>
                       </div>
                       {/* 移動版：卡片布局 */}
                       <div className="md:hidden space-y-4">
-                        {filteredAndSortedData.map((script: Script) => (
+                        {filteredAndSortedData.map((script: Script) => {
+                          const titleId = `script-${script.id}`;
+                          const isEditing = editingTitleId === titleId;
+                          return (
                           <Card key={script.id} className="hover:shadow-md transition-shadow">
                             <CardContent className="p-4">
                               <div className="space-y-3">
                                 <div className="flex items-start justify-between gap-2">
-                                  <h3 className="font-medium text-sm flex-1">{script.title}</h3>
+                                  {isEditing ? (
+                                    <Input
+                                      value={editingTitleValue}
+                                      onChange={(e) => setEditingTitleValue(e.target.value)}
+                                      onBlur={() => {
+                                        if (editingTitleValue.trim()) {
+                                          handleSaveTitle(script, editingTitleValue);
+                                        } else {
+                                          setEditingTitleId(null);
+                                        }
+                                      }}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                          handleSaveTitle(script, editingTitleValue);
+                                        } else if (e.key === 'Escape') {
+                                          setEditingTitleId(null);
+                                        }
+                                      }}
+                                      className="flex-1 h-8"
+                                      autoFocus
+                                    />
+                                  ) : (
+                                    <h3 
+                                      className="font-medium text-sm flex-1 cursor-pointer hover:text-primary group flex items-center gap-1"
+                                      onClick={() => {
+                                        setEditingTitleId(titleId);
+                                        setEditingTitleValue(script.title);
+                                      }}
+                                    >
+                                      <span>{script.title}</span>
+                                      <Edit className="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity" />
+                                    </h3>
+                                  )}
                                   <Badge variant="outline" className="text-xs">{script.platform}</Badge>
                                 </div>
                                 <p className="text-xs text-muted-foreground">
@@ -997,150 +1094,17 @@ export default function UserDB() {
                               </div>
                             </CardContent>
                           </Card>
-                        ))}
+                          );
+                        })}
                       </div>
                     </>
                   )}
                 </ScrollArea>
               </TabsContent>
 
-              {/* 對話記錄 */}
-              <TabsContent value="conversations" className="mt-6">
-                <ScrollArea className="h-[calc(100vh-500px)] md:h-[calc(100vh-550px)]">
-                  {isLoading ? (
-                    <div className="text-center py-12">
-                      <RefreshCw className="w-8 h-8 mx-auto mb-4 animate-spin text-muted-foreground" />
-                      <p className="text-muted-foreground">載入中...</p>
-                    </div>
-                  ) : filteredAndSortedData.length === 0 ? (
-                    <div className="text-center py-12">
-                      <MessageSquare className="w-12 h-12 mx-auto mb-4 text-muted-foreground dark:text-muted-foreground/70 opacity-50" />
-                      <p className="text-muted-foreground dark:text-muted-foreground/80 mb-2">
-                        {searchQuery ? '沒有找到符合條件的對話記錄' : '暫無對話記錄'}
-                      </p>
-                      {searchQuery ? (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="mt-4"
-                          onClick={() => setSearchQuery('')}
-                        >
-                          清除搜索
-                        </Button>
-                      ) : (
-                        <div className="space-y-2">
-                          <p className="text-sm text-muted-foreground">前往 IP人設規劃開始對話規劃</p>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => navigate('/mode1')}
-                          >
-                            前往 IP人設規劃
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <>
-                      {/* 桌面版：表格布局 */}
-                      <div className="hidden md:block overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>類型</TableHead>
-                          <TableHead>訊息數</TableHead>
-                          <TableHead>摘要</TableHead>
-                          <TableHead>時間</TableHead>
-                          <TableHead className="text-right">操作</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                            {filteredAndSortedData.map((conv: Conversation) => (
-                          <TableRow key={conv.id}>
-                            <TableCell className="font-medium">
-                              <Badge variant="outline">{conv.mode}</Badge>
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant="secondary">{conv.message_count}</Badge>
-                            </TableCell>
-                            <TableCell className="max-w-xs truncate text-muted-foreground text-sm">
-                              {conv.summary || '無摘要'}
-                            </TableCell>
-                            <TableCell className="text-muted-foreground text-sm">
-                              {formatDate(conv.created_at)}
-                            </TableCell>
-                            <TableCell className="text-right">
-                                  <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                      <Button variant="ghost" size="icon">
-                                        <MoreVertical className="w-4 h-4" />
-                                </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                      <DropdownMenuLabel>操作</DropdownMenuLabel>
-                                      <DropdownMenuSeparator />
-                                      <DropdownMenuItem onClick={() => handleView(conv)}>
-                                        <Eye className="w-4 h-4 mr-2" />
-                                        查看詳情
-                                      </DropdownMenuItem>
-                                      <DropdownMenuSeparator />
-                                      <DropdownMenuItem 
-                                  onClick={() => handleDelete(conv.id, 'conversation')}
-                                        className="text-destructive"
-                                        disabled
-                                      >
-                                        <Trash2 className="w-4 h-4 mr-2" />
-                                        刪除（暫不支援）
-                                      </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                      </div>
-                      {/* 移動版：卡片布局 */}
-                      <div className="md:hidden space-y-4">
-                        {filteredAndSortedData.map((conv: Conversation) => (
-                          <Card key={conv.id} className="hover:shadow-md transition-shadow">
-                            <CardContent className="p-4">
-                              <div className="space-y-3">
-                                <div className="flex items-start justify-between gap-2">
-                                  <Badge variant="outline" className="text-xs">{conv.mode}</Badge>
-                                  <Badge variant="secondary" className="text-xs">{conv.message_count} 則訊息</Badge>
-                                </div>
-                                <div className="bg-muted/50 rounded-lg p-2">
-                                  <p className="text-sm text-muted-foreground line-clamp-2">
-                                    {conv.summary || '無摘要'}
-                                  </p>
-                                </div>
-                                <p className="text-xs text-muted-foreground">
-                                  {formatDate(conv.created_at)}
-                                </p>
-                                <div className="flex gap-2 pt-2 border-t">
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="flex-1"
-                                    onClick={() => handleView(conv)}
-                                  >
-                                    <Eye className="w-4 h-4 mr-1" />
-                                    查看
-                                  </Button>
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </ScrollArea>
-              </TabsContent>
 
-              {/* 生成記錄 */}
-              <TabsContent value="generations" className="mt-6">
+              {/* IP 人設規劃結果 */}
+              <TabsContent value="ip-planning" className="mt-6">
                 <ScrollArea className="h-[calc(100vh-500px)] md:h-[calc(100vh-550px)]">
                   {isLoading ? (
                     <div className="text-center py-12">
@@ -1150,24 +1114,33 @@ export default function UserDB() {
                   ) : filteredAndSortedData.length === 0 ? (
                     <div className="text-center py-12">
                       <Sparkles className="w-12 h-12 mx-auto mb-4 text-muted-foreground dark:text-muted-foreground/70 opacity-50" />
-                      <p className="text-muted-foreground dark:text-muted-foreground/80 mb-2">
-                        {searchQuery || platformFilter !== 'all' ? '沒有找到符合條件的生成記錄' : '暫無生成記錄'}
+                      <p className="text-muted-foreground dark:text-muted-foreground/80">
+                        {searchQuery || ipPlanningCategoryFilter !== 'all' ? '沒有找到符合條件的 IP 規劃記錄' : '暫無 IP 人設規劃記錄'}
                       </p>
-                      {searchQuery || platformFilter !== 'all' ? (
+                      <p className="text-sm text-muted-foreground mt-2">
+                        IP 人設規劃包含：帳號定位、選題方向、腳本
+                      </p>
+                      {searchQuery || ipPlanningCategoryFilter !== 'all' ? (
                         <Button
                           variant="outline"
                           size="sm"
                           className="mt-4"
                           onClick={() => {
                             setSearchQuery('');
-                            setPlatformFilter('all');
+                            setIpPlanningCategoryFilter('all');
                           }}
                         >
                           清除篩選
                         </Button>
                       ) : (
-                        <div className="space-y-2">
-                          <p className="text-sm text-muted-foreground">前往一鍵生成生成內容</p>
+                        <div className="space-y-2 mt-4">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => navigate('/mode1')}
+                          >
+                            前往 IP人設規劃
+                          </Button>
                           <Button
                             variant="outline"
                             size="sm"
@@ -1185,181 +1158,6 @@ export default function UserDB() {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>平台</TableHead>
-                          <TableHead>主題</TableHead>
-                          <TableHead>內容預覽</TableHead>
-                          <TableHead>建立時間</TableHead>
-                          <TableHead className="text-right">操作</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                            {filteredAndSortedData.map((gen: Generation, index: number) => (
-                          <TableRow key={gen.id || `gen-${index}`}>
-                            <TableCell>
-                              <Badge variant="outline">{gen.platform || '未知'}</Badge>
-                            </TableCell>
-                            <TableCell className="font-medium">{gen.topic || '無主題'}</TableCell>
-                            <TableCell className="max-w-xs truncate text-muted-foreground text-sm">
-                              {gen.content || '無內容'}
-                            </TableCell>
-                            <TableCell className="text-muted-foreground text-sm">
-                              {formatDate(gen.created_at)}
-                            </TableCell>
-                            <TableCell className="text-right">
-                                  <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                      <Button variant="ghost" size="icon">
-                                        <MoreVertical className="w-4 h-4" />
-                                      </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                      <DropdownMenuLabel>操作</DropdownMenuLabel>
-                                      <DropdownMenuSeparator />
-                                      <DropdownMenuItem onClick={() => handleView(gen)}>
-                                        <Eye className="w-4 h-4 mr-2" />
-                                        查看詳情
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem onClick={() => handleCopy(gen.content)}>
-                                        <Copy className="w-4 h-4 mr-2" />
-                                        複製內容
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem onClick={() => {
-                                        setSelectedItem(gen);
-                                        setShowDetail(true);
-                                        handleExport('txt');
-                                      }}>
-                                        <FileDown className="w-4 h-4 mr-2" />
-                                        匯出為 TXT
-                                      </DropdownMenuItem>
-                                      <DropdownMenuSeparator />
-                                      <DropdownMenuItem 
-                                        onClick={() => handleDelete(gen.id || `gen-${index}`, 'generation')}
-                                        className="text-destructive"
-                                      >
-                                        <Trash2 className="w-4 h-4 mr-2" />
-                                        刪除
-                                      </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </div>
-                      {/* 移動版：卡片布局 */}
-                      <div className="md:hidden space-y-4">
-                        {filteredAndSortedData.map((gen: Generation, index: number) => (
-                          <Card key={gen.id || `gen-${index}`} className="hover:shadow-md transition-shadow">
-                            <CardContent className="p-4">
-                              <div className="space-y-3">
-                                <div className="flex items-start justify-between gap-2">
-                                  <h3 className="font-medium text-sm flex-1">{gen.topic || '無主題'}</h3>
-                                  <Badge variant="outline" className="text-xs">{gen.platform || '未知'}</Badge>
-                                </div>
-                                <div className="bg-muted/50 rounded-lg p-2">
-                                  <p className="text-sm text-muted-foreground line-clamp-3">
-                                    {gen.content || '無內容'}
-                                  </p>
-                                </div>
-                                <p className="text-xs text-muted-foreground">
-                                  {formatDate(gen.created_at)}
-                                </p>
-                                <div className="flex gap-2 pt-2 border-t">
-                                <Button
-                                  variant="ghost"
-                                    size="sm"
-                                    className="flex-1"
-                                  onClick={() => handleView(gen)}
-                                >
-                                    <Eye className="w-4 h-4 mr-1" />
-                                    查看
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                    size="sm"
-                                    className="flex-1"
-                                  onClick={() => handleCopy(gen.content)}
-                                >
-                                    <Copy className="w-4 h-4 mr-1" />
-                                    複製
-                                </Button>
-                                  <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                      <Button variant="ghost" size="sm">
-                                        <MoreVertical className="w-4 h-4" />
-                                      </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                      <DropdownMenuItem onClick={() => {
-                                        setSelectedItem(gen);
-                                        setShowDetail(true);
-                                        handleExport('txt');
-                                      }}>
-                                        <FileDown className="w-4 h-4 mr-2" />
-                                        匯出
-                                      </DropdownMenuItem>
-                                      <DropdownMenuItem 
-                                  onClick={() => handleDelete(gen.id || `gen-${index}`, 'generation')}
-                                        className="text-destructive"
-                                      >
-                                        <Trash2 className="w-4 h-4 mr-2" />
-                                        刪除
-                                      </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
-                              </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </ScrollArea>
-              </TabsContent>
-
-              {/* IP 人設規劃結果 */}
-              <TabsContent value="ip-planning" className="mt-6">
-                <ScrollArea className="h-[calc(100vh-500px)] md:h-[calc(100vh-550px)]">
-                  {isLoading ? (
-                    <div className="text-center py-12">
-                      <RefreshCw className="w-8 h-8 mx-auto mb-4 animate-spin text-muted-foreground" />
-                      <p className="text-muted-foreground">載入中...</p>
-                    </div>
-                  ) : filteredAndSortedData.length === 0 ? (
-                    <div className="text-center py-12">
-                      <Sparkles className="w-12 h-12 mx-auto mb-4 text-muted-foreground dark:text-muted-foreground/70 opacity-50" />
-                      <p className="text-muted-foreground dark:text-muted-foreground/80">
-                        {searchQuery ? '沒有找到符合條件的 IP 規劃記錄' : '暫無 IP 人設規劃記錄'}
-                      </p>
-                      {searchQuery ? (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="mt-4"
-                          onClick={() => setSearchQuery('')}
-                        >
-                          清除搜索
-                        </Button>
-                      ) : (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="mt-4"
-                          onClick={() => navigate('/mode1')}
-                        >
-                          前往 IP人設規劃生成內容
-                        </Button>
-                      )}
-                    </div>
-                  ) : (
-                    <>
-                      {/* 桌面版：表格布局 */}
-                      <div className="hidden md:block overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
                           <TableHead>類型</TableHead>
                           <TableHead>標題</TableHead>
                           <TableHead>建立時間</TableHead>
@@ -1368,17 +1166,59 @@ export default function UserDB() {
                       </TableHeader>
                       <TableBody>
                             {filteredAndSortedData.map((result: IPPlanningResult) => {
-                          const typeLabels: Record<string, string> = {
-                            'profile': '帳號定位',
-                            'plan': '選題規劃',
-                            'scripts': '腳本'
-                          };
+                          const typeLabel = getIPPlanningTypeLabel(result);
+                          const sourceLabel = getSourceLabel(result);
+                          const titleId = `ip-planning-${result.id}`;
+                          const isEditing = editingTitleId === titleId;
                           return (
                             <TableRow key={result.id}>
                               <TableCell>
-                                <Badge variant="outline">{typeLabels[result.result_type] || result.result_type}</Badge>
+                                <div className="flex flex-col gap-1">
+                                  <Badge variant="outline">{typeLabel}</Badge>
+                                  {sourceLabel && (
+                                    <Badge variant="secondary" className="text-xs w-fit">
+                                      {sourceLabel}
+                                    </Badge>
+                                  )}
+                                </div>
                               </TableCell>
-                              <TableCell className="font-medium">{result.title || '未命名'}</TableCell>
+                              <TableCell className="font-medium">
+                                {isEditing ? (
+                                  <div className="flex items-center gap-2">
+                                    <Input
+                                      value={editingTitleValue}
+                                      onChange={(e) => setEditingTitleValue(e.target.value)}
+                                      onBlur={() => {
+                                        if (editingTitleValue.trim()) {
+                                          handleSaveTitle(result, editingTitleValue);
+                                        } else {
+                                          setEditingTitleId(null);
+                                        }
+                                      }}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                          handleSaveTitle(result, editingTitleValue);
+                                        } else if (e.key === 'Escape') {
+                                          setEditingTitleId(null);
+                                        }
+                                      }}
+                                      className="h-8"
+                                      autoFocus
+                                    />
+                                  </div>
+                                ) : (
+                                  <div 
+                                    className="flex items-center gap-2 group cursor-pointer hover:text-primary"
+                                    onClick={() => {
+                                      setEditingTitleId(titleId);
+                                      setEditingTitleValue(result.title || '未命名');
+                                    }}
+                                  >
+                                    <span>{result.title || '未命名'}</span>
+                                    <Edit className="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity" />
+                                  </div>
+                                )}
+                              </TableCell>
                               <TableCell className="text-muted-foreground text-sm">
                                 {formatDate(result.created_at)}
                               </TableCell>
@@ -1428,18 +1268,56 @@ export default function UserDB() {
                       {/* 移動版：卡片布局 */}
                       <div className="md:hidden space-y-4">
                         {filteredAndSortedData.map((result: IPPlanningResult) => {
-                          const typeLabels: Record<string, string> = {
-                            'profile': '帳號定位',
-                            'plan': '選題規劃',
-                            'scripts': '腳本'
-                          };
+                          const typeLabel = getIPPlanningTypeLabel(result);
+                          const sourceLabel = getSourceLabel(result);
+                          const titleId = `ip-planning-${result.id}`;
+                          const isEditing = editingTitleId === titleId;
                           return (
                             <Card key={result.id} className="hover:shadow-md transition-shadow">
                               <CardContent className="p-4">
                                 <div className="space-y-3">
                                   <div className="flex items-start justify-between gap-2">
-                                    <h3 className="font-medium text-sm flex-1">{result.title || '未命名'}</h3>
-                                    <Badge variant="outline" className="text-xs">{typeLabels[result.result_type] || result.result_type}</Badge>
+                                    {isEditing ? (
+                                      <Input
+                                        value={editingTitleValue}
+                                        onChange={(e) => setEditingTitleValue(e.target.value)}
+                                        onBlur={() => {
+                                          if (editingTitleValue.trim()) {
+                                            handleSaveTitle(result, editingTitleValue);
+                                          } else {
+                                            setEditingTitleId(null);
+                                          }
+                                        }}
+                                        onKeyDown={(e) => {
+                                          if (e.key === 'Enter') {
+                                            handleSaveTitle(result, editingTitleValue);
+                                          } else if (e.key === 'Escape') {
+                                            setEditingTitleId(null);
+                                          }
+                                        }}
+                                        className="flex-1 h-8"
+                                        autoFocus
+                                      />
+                                    ) : (
+                                      <h3 
+                                        className="font-medium text-sm flex-1 cursor-pointer hover:text-primary group flex items-center gap-1"
+                                        onClick={() => {
+                                          setEditingTitleId(titleId);
+                                          setEditingTitleValue(result.title || '未命名');
+                                        }}
+                                      >
+                                        <span>{result.title || '未命名'}</span>
+                                        <Edit className="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity" />
+                                      </h3>
+                                    )}
+                                    <div className="flex flex-col gap-1 items-end">
+                                      <Badge variant="outline" className="text-xs">{typeLabel}</Badge>
+                                      {sourceLabel && (
+                                        <Badge variant="secondary" className="text-xs">
+                                          {sourceLabel}
+                                        </Badge>
+                                      )}
+                                    </div>
                                   </div>
                                   <div className="bg-muted/50 rounded-lg p-2">
                                     <p className="text-xs text-muted-foreground line-clamp-2">
@@ -1493,6 +1371,293 @@ export default function UserDB() {
                                       </DropdownMenuContent>
                                     </DropdownMenu>
                                 </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
+                </ScrollArea>
+              </TabsContent>
+
+              {/* 14 天規劃 */}
+              <TabsContent value="planning" className="mt-6">
+                <ScrollArea className="h-[calc(100vh-500px)] md:h-[calc(100vh-550px)]">
+                  {isLoading ? (
+                    <div className="text-center py-12">
+                      <RefreshCw className="w-8 h-8 mx-auto mb-4 animate-spin text-muted-foreground" />
+                      <p className="text-muted-foreground">載入中...</p>
+                    </div>
+                  ) : filteredAndSortedData.length === 0 ? (
+                    <div className="text-center py-12">
+                      <Sparkles className="w-12 h-12 mx-auto mb-4 text-muted-foreground dark:text-muted-foreground/70 opacity-50" />
+                      <p className="text-muted-foreground dark:text-muted-foreground/80">
+                        {searchQuery ? '沒有找到符合條件的 14 天規劃記錄' : '暫無 14 天規劃記錄'}
+                      </p>
+                      {searchQuery ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="mt-4"
+                          onClick={() => setSearchQuery('')}
+                        >
+                          清除搜索
+                        </Button>
+                      ) : (
+                        <div className="space-y-2">
+                          <p className="text-sm text-muted-foreground">前往 IP人設規劃生成 14 天規劃內容</p>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="mt-4"
+                            onClick={() => navigate('/mode1')}
+                          >
+                            前往 IP人設規劃
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <>
+                      {/* 桌面版：表格布局 */}
+                      <div className="hidden md:block overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>來源</TableHead>
+                              <TableHead>標題</TableHead>
+                              <TableHead>建立時間</TableHead>
+                              <TableHead className="text-right">操作</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {filteredAndSortedData.map((result: IPPlanningResult) => {
+                              const sourceLabel = getSourceLabel(result);
+                              const titleId = `planning-${result.id}`;
+                              const isEditing = editingTitleId === titleId;
+                              return (
+                                <TableRow key={result.id}>
+                                  <TableCell>
+                                    {sourceLabel ? (
+                                      <Badge variant="secondary">{sourceLabel}</Badge>
+                                    ) : (
+                                      <span className="text-muted-foreground text-sm">未知</span>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="font-medium">
+                                    {isEditing ? (
+                                      <div className="flex items-center gap-2">
+                                        <Input
+                                          value={editingTitleValue}
+                                          onChange={(e) => setEditingTitleValue(e.target.value)}
+                                          onBlur={() => {
+                                            if (editingTitleValue.trim()) {
+                                              handleSaveTitle(result, editingTitleValue);
+                                            } else {
+                                              setEditingTitleId(null);
+                                            }
+                                          }}
+                                          onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                              handleSaveTitle(result, editingTitleValue);
+                                            } else if (e.key === 'Escape') {
+                                              setEditingTitleId(null);
+                                            }
+                                          }}
+                                          className="h-8"
+                                          autoFocus
+                                        />
+                                      </div>
+                                    ) : (
+                                      <div 
+                                        className="flex items-center gap-2 group cursor-pointer hover:text-primary"
+                                        onClick={() => {
+                                          setEditingTitleId(titleId);
+                                          setEditingTitleValue(result.title || '未命名');
+                                        }}
+                                      >
+                                        <span>{result.title || '未命名'}</span>
+                                        <Edit className="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity" />
+                                      </div>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="text-muted-foreground text-sm">
+                                    {formatDate(result.created_at)}
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="icon">
+                                          <MoreVertical className="w-4 h-4" />
+                                        </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end">
+                                        <DropdownMenuLabel>操作</DropdownMenuLabel>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem onClick={() => handleView(result)}>
+                                          <Eye className="w-4 h-4 mr-2" />
+                                          查看詳情
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => handleCopy(result.content)}>
+                                          <Copy className="w-4 h-4 mr-2" />
+                                          複製內容
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => {
+                                          setSelectedItem(result);
+                                          setShowDetail(true);
+                                          handleExport('txt');
+                                        }}>
+                                          <FileDown className="w-4 h-4 mr-2" />
+                                          匯出為 TXT
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem 
+                                          onClick={() => {
+                                            navigate('/mode3', { 
+                                              state: { 
+                                                fromPlanning: true,
+                                                planningContent: result.content 
+                                              } 
+                                            });
+                                          }}
+                                        >
+                                          <Sparkles className="w-4 h-4 mr-2" />
+                                          基於此規劃生成腳本
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem 
+                                          onClick={() => handleDelete(result.id, 'ip-planning')}
+                                          className="text-destructive"
+                                        >
+                                          <Trash2 className="w-4 h-4 mr-2" />
+                                          刪除
+                                        </DropdownMenuItem>
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
+                          </TableBody>
+                        </Table>
+                      </div>
+                      {/* 移動版：卡片布局 */}
+                      <div className="md:hidden space-y-4">
+                        {filteredAndSortedData.map((result: IPPlanningResult) => {
+                          const sourceLabel = getSourceLabel(result);
+                          const titleId = `planning-${result.id}`;
+                          const isEditing = editingTitleId === titleId;
+                          return (
+                            <Card key={result.id} className="hover:shadow-md transition-shadow">
+                              <CardContent className="p-4">
+                                <div className="space-y-3">
+                                  <div className="flex items-start justify-between gap-2">
+                                    {isEditing ? (
+                                      <Input
+                                        value={editingTitleValue}
+                                        onChange={(e) => setEditingTitleValue(e.target.value)}
+                                        onBlur={() => {
+                                          if (editingTitleValue.trim()) {
+                                            handleSaveTitle(result, editingTitleValue);
+                                          } else {
+                                            setEditingTitleId(null);
+                                          }
+                                        }}
+                                        onKeyDown={(e) => {
+                                          if (e.key === 'Enter') {
+                                            handleSaveTitle(result, editingTitleValue);
+                                          } else if (e.key === 'Escape') {
+                                            setEditingTitleId(null);
+                                          }
+                                        }}
+                                        className="flex-1 h-8"
+                                        autoFocus
+                                      />
+                                    ) : (
+                                      <h3 
+                                        className="font-medium text-sm flex-1 cursor-pointer hover:text-primary group flex items-center gap-1"
+                                        onClick={() => {
+                                          setEditingTitleId(titleId);
+                                          setEditingTitleValue(result.title || '未命名');
+                                        }}
+                                      >
+                                        <span>{result.title || '未命名'}</span>
+                                        <Edit className="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity" />
+                                      </h3>
+                                    )}
+                                    {sourceLabel && (
+                                      <Badge variant="secondary" className="text-xs">
+                                        {sourceLabel}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <div className="bg-muted/50 rounded-lg p-2">
+                                    <p className="text-xs text-muted-foreground line-clamp-2">
+                                      {result.content ? result.content.substring(0, 100) + '...' : '無內容'}
+                                    </p>
+                                  </div>
+                                  <p className="text-xs text-muted-foreground">
+                                    {formatDate(result.created_at)}
+                                  </p>
+                                  <div className="flex gap-2 pt-2 border-t">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="flex-1"
+                                      onClick={() => handleView(result)}
+                                    >
+                                      <Eye className="w-4 h-4 mr-1" />
+                                      查看
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="flex-1"
+                                      onClick={() => handleCopy(result.content)}
+                                    >
+                                      <Copy className="w-4 h-4 mr-1" />
+                                      複製
+                                    </Button>
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="sm">
+                                          <MoreVertical className="w-4 h-4" />
+                                        </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end">
+                                        <DropdownMenuItem onClick={() => {
+                                          setSelectedItem(result);
+                                          setShowDetail(true);
+                                          handleExport('txt');
+                                        }}>
+                                          <FileDown className="w-4 h-4 mr-2" />
+                                          匯出
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem 
+                                          onClick={() => {
+                                            navigate('/mode3', { 
+                                              state: { 
+                                                fromPlanning: true,
+                                                planningContent: result.content 
+                                              } 
+                                            });
+                                          }}
+                                        >
+                                          <Sparkles className="w-4 h-4 mr-2" />
+                                          生成腳本
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem 
+                                          onClick={() => handleDelete(result.id, 'ip-planning')}
+                                          className="text-destructive"
+                                        >
+                                          <Trash2 className="w-4 h-4 mr-2" />
+                                          刪除
+                                        </DropdownMenuItem>
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
+                                  </div>
                                 </div>
                               </CardContent>
                             </Card>

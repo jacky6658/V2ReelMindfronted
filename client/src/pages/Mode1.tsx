@@ -1,5 +1,5 @@
 /**
- * Mode1 - IP 人設規劃
+ * IP 人設規劃功能
  * 包含：帳號定位對話、14天規劃、今日腳本
  */
 
@@ -259,7 +259,7 @@ export default function Mode1() {
           // 但為了避免不必要的請求，我們直接調用權限檢查 API
           // 注意：/api/user/ip-planning/permission 使用的是 check_ip_planning_permission
           // 它檢查的是 tier 和 source，而不是試用期
-          // 所以我們需要直接使用 Mode1 的權限檢查邏輯
+          // 所以我們需要直接使用 IP人設規劃功能的權限檢查邏輯
           // 最簡單的方式：設為 null，允許進入，但在使用時會檢查權限（遇到 403 時顯示訂閱推廣）
           setHasPermission(null); // 設為 null 表示未知，允許進入但使用時會檢查
         } catch (error: any) {
@@ -714,7 +714,7 @@ export default function Mode1() {
         title: result.title,
         content: result.content,
         metadata: {
-          source: 'mode1',        // 標記來源為 mode1
+          source: 'mode1',        // 標記來源為 IP人設規劃功能
           category: result.category,  // 保存原始 category 用於區分
           timestamp: result.timestamp.toISOString()
         }

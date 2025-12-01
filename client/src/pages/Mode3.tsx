@@ -1,6 +1,6 @@
 
 /**
- * Mode3 - 一鍵生成
+ * 一鍵生成功能
  * 表單式 AI 腳本生成（3 步驟流程）
  */
 
@@ -646,7 +646,7 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
         title: titleMap[type],
         content: content,
         metadata: {
-          source: 'mode3',  // 標記來源為 mode3，允許免費版用戶儲存
+          source: 'mode3',  // 標記來源為一鍵生成功能，允許免費版用戶儲存
           platform: formData.platform,
           goal: formData.goal,
           duration: formData.duration,
