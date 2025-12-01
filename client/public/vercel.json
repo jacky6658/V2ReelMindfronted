@@ -1,16 +1,16 @@
 {
   "rewrites": [
     {
-      "source": "/payment-result.html",
-      "destination": "/payment-result.html"
-    },
-    {
       "source": "/assets/:path*",
       "destination": "/assets/:path*"
     },
     {
       "source": "/(.*\\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|json|map))",
       "destination": "/$1"
+    },
+    {
+      "source": "/payment-result.html",
+      "destination": "/payment-result.html"
     },
     {
       "source": "/(.*)",
