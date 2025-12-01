@@ -178,15 +178,16 @@
     left: 0;
     width: 100%;
     height: 100%;
-  /* 統一使用偏亮的淺色遮罩，避免在行動裝置上看起來太暗 */
-  background-color: rgba(248, 249, 251, 0.75);
+    /* 統一使用偏亮的淺色遮罩，避免在行動裝置上看起來太暗 */
+    background-color: rgba(248, 249, 251, 0.75);
     z-index: 1;
+    pointer-events: none;
   }
 
-/* 行動裝置上再降低一點遮罩透明度，讓影片更明顯 */
-@media (max-width: 768px) {
-  .video-overlay {
-    background-color: rgba(248, 249, 251, 0.55);
+  /* 行動裝置上再降低一點遮罩透明度，讓影片更明顯 */
+  @media (max-width: 768px) {
+    .video-overlay {
+      background-color: rgba(248, 249, 251, 0.55);
+    }
   }
- }
 }
