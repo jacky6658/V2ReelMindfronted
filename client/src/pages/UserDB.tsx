@@ -108,6 +108,224 @@ type SortOrder = 'asc' | 'desc';
 
 type SelectedItem = Script | IPPlanningResult | null;
 
+// 14 天規劃：解析內容成每日區塊
+interface PlanningDay {
+  day: number;
+  text: string;
+}
+
+const parsePlanningDays = (content: string): PlanningDay[] => {
+  const lines = content.split('\n');
+  const days: Record<number, string[]> = {};
+  let currentDay = 1;
+
+  const dayPatterns = [
+    /^第\s*(\d{1,2})\s*天/,             // 第 1 天
+    /^Day\s*(\d{1,2})/i,               // Day 1
+    /^(\d{1,2})[．\.、]/               // 1. / 1、
+  ];
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line) continue;
+
+    let matchedDay: number | null = null;
+    for (const pattern of dayPatterns) {
+      const m = line.match(pattern);
+      if (m && m[1]) {
+        const d = parseInt(m[1], 10);
+        if (d >= 1 && d <= 31) {
+          matchedDay = d;
+          break;
+        }
+      }
+    }
+
+    if (matchedDay !== null) {
+      currentDay = matchedDay;
+      if (!days[currentDay]) days[currentDay] = [];
+      // 去掉前綴的「第 X 天」/「Day X」等標題文字
+      const cleaned = line.replace(dayPatterns[0], '')
+        .replace(dayPatterns[1], '')
+        .replace(dayPatterns[2], '')
+        .trim();
+      if (cleaned) days[currentDay].push(cleaned);
+    } else {
+      if (!days[currentDay]) days[currentDay] = [];
+      days[currentDay].push(line);
+    }
+  }
+
+  const result: PlanningDay[] = [];
+  for (let d = 1; d <= 14; d++) {
+    const text = (days[d] || []).join('\n').trim();
+    if (text) {
+      result.push({ day: d, text });
+    }
+  }
+  return result;
+};
+
+// 14 天規劃日曆視圖元件
+function PlanningCalendarView({ plans }: { plans: IPPlanningResult[] }) {
+  const navigate = useNavigate();
+  const [selectedPlanIndex, setSelectedPlanIndex] = useState(0);
+
+  if (!plans || plans.length === 0) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <div className="text-center text-muted-foreground">
+          <p>目前尚未有 14 天規劃記錄</p>
+        </div>
+      </div>
+    );
+  }
+
+  const safeIndex = Math.min(selectedPlanIndex, plans.length - 1);
+  const currentPlan = plans[safeIndex];
+  const days = parsePlanningDays(currentPlan.content || '');
+
+  return (
+    <div className="flex flex-col h-full gap-4">
+      {/* 規劃切換 */}
+      {plans.length > 1 && (
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="text-xs sm:text-sm text-muted-foreground">
+            目前顯示的是第 <span className="font-semibold">{safeIndex + 1}</span> 筆 14 天規劃：
+            <span className="ml-1 font-medium">{currentPlan.title || '未命名規劃'}</span>
+          </div>
+          <Select
+            value={String(safeIndex)}
+            onValueChange={(v) => setSelectedPlanIndex(Number(v))}
+          >
+            <SelectTrigger className="w-full sm:w-[260px]">
+              <SelectValue placeholder="選擇要查看的規劃" />
+            </SelectTrigger>
+            <SelectContent>
+              {plans.map((p, idx) => (
+                <SelectItem key={p.id} value={String(idx)}>
+                  {`#${idx + 1} ${p.title || '未命名規劃'}`}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
+      {/* 手機版：天數列 + 當日詳情 */}
+      <div className="md:hidden flex flex-col gap-3">
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {Array.from({ length: 14 }, (_, i) => i + 1).map((d) => {
+            const hasContent = days.some((day) => day.day === d);
+            const isActive = days[0]?.day === d;
+            return (
+              <Button
+                key={d}
+                variant={isActive ? 'default' : 'outline'}
+                size="sm"
+                className="min-w-[3rem] px-2"
+                disabled={!hasContent}
+              >
+                D{d}
+              </Button>
+            );
+          })}
+        </div>
+
+        {days.length === 0 ? (
+          <div className="text-center text-muted-foreground text-sm mt-4">
+            無法自動解析此規劃的每日內容，請在列表模式中查看完整文字。
+          </div>
+        ) : (
+          <Card className="flex-1">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">
+                第 {days[0].day} 天
+              </CardTitle>
+              <CardDescription className="text-xs">
+                其餘天數可在桌面版日曆視圖中完整查看
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="whitespace-pre-wrap text-sm text-muted-foreground">
+                {days[0].text}
+              </p>
+              <Button
+                size="sm"
+                className="w-full"
+                variant="outline"
+                onClick={() =>
+                  navigate('/mode3', {
+                    state: { fromPlanning: true, planningContent: days[0].text },
+                  })
+                }
+              >
+                <Sparkles className="w-4 h-4 mr-2" />
+                用這一天生成腳本
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      {/* 桌面版：14 天網格 */}
+      <div className="hidden md:block flex-1">
+        {days.length === 0 ? (
+          <div className="h-full flex items-center justify-center">
+            <div className="text-center text-muted-foreground text-sm">
+              無法自動解析此規劃的每日內容，請切換回列表模式查看完整文字。
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-7 gap-3 auto-rows-fr">
+            {Array.from({ length: 14 }, (_, i) => i + 1).map((d) => {
+              const dayData = days.find((day) => day.day === d);
+              return (
+                <Card
+                  key={d}
+                  className={`flex flex-col p-3 ${
+                    dayData ? 'border-primary/40 bg-primary/5' : 'opacity-60'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-semibold text-muted-foreground">
+                      第 {d} 天
+                    </span>
+                    {dayData && (
+                      <Badge variant="outline" className="text-[10px]">
+                        已規劃
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="flex-1 text-xs text-muted-foreground whitespace-pre-wrap break-words">
+                    {dayData ? dayData.text.slice(0, 80) + (dayData.text.length > 80 ? '…' : '') : '尚未設定'}
+                  </div>
+                  {dayData && (
+                    <Button
+                      size="xs"
+                      variant="outline"
+                      className="mt-2 w-full text-[11px]"
+                      onClick={() =>
+                        navigate('/mode3', {
+                          state: { fromPlanning: true, planningContent: dayData.text },
+                        })
+                      }
+                    >
+                      <Sparkles className="w-3 h-3 mr-1" />
+                      用此日生成腳本
+                    </Button>
+                  )}
+                </Card>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+
 export default function UserDB() {
   const navigate = useNavigate();
   const { logout, user, loading: authLoading } = useAuthStore();
@@ -125,6 +343,8 @@ export default function UserDB() {
   const [ipPlanningCategoryFilter, setIpPlanningCategoryFilter] = useState<string>('all'); // IP 人設規劃子分類篩選
   const [sortField, setSortField] = useState<SortField>('time');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+  // 14 天規劃檢視模式：列表 / 日曆
+  const [planningViewMode, setPlanningViewMode] = useState<'list' | 'calendar'>('list');
   
   // 标题编辑状态
   const [editingTitleId, setEditingTitleId] = useState<string | null>(null);
@@ -1522,6 +1742,36 @@ export default function UserDB() {
 
               {/* 14 天規劃 */}
               <TabsContent value="planning" className="mt-6">
+                {/* 視圖切換：列表 / 日曆 */}
+                <div className="flex items-center justify-between mb-4 gap-3">
+                  <p className="text-sm text-muted-foreground">
+                    檢視並管理你在 IP 人設規劃功能中產生的 14 天內容規劃。
+                  </p>
+                  <div className="inline-flex rounded-lg border bg-muted/40 p-1 text-xs md:text-sm">
+                    <Button
+                      variant={planningViewMode === 'list' ? 'default' : 'ghost'}
+                      size="sm"
+                      className="px-2 md:px-3"
+                      onClick={() => setPlanningViewMode('list')}
+                    >
+                      列表模式
+                    </Button>
+                    <Button
+                      variant={planningViewMode === 'calendar' ? 'default' : 'ghost'}
+                      size="sm"
+                      className="px-2 md:px-3"
+                      onClick={() => setPlanningViewMode('calendar')}
+                    >
+                      日曆視圖
+                    </Button>
+                  </div>
+                </div>
+
+                {planningViewMode === 'calendar' ? (
+                  <div className="h-[calc(100vh-520px)] md:h-[calc(100vh-580px)]">
+                    <PlanningCalendarView plans={filteredAndSortedData as IPPlanningResult[]} />
+                  </div>
+                ) : (
                 <ScrollArea className="h-[calc(100vh-500px)] md:h-[calc(100vh-550px)]">
                   {isLoading ? (
                     <div className="text-center py-12">
@@ -1662,7 +1912,20 @@ export default function UserDB() {
                                           }}
                                         >
                                           <Sparkles className="w-4 h-4 mr-2" />
-                                          基於此規劃生成腳本
+                                          一鍵生成腳本
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          onClick={() => {
+                                            navigate('/mode1', {
+                                              state: {
+                                                fromPlanning: true,
+                                                planningContent: result.content,
+                                              },
+                                            });
+                                          }}
+                                        >
+                                          <MessageSquare className="w-4 h-4 mr-2" />
+                                          在 IP 人設規劃中使用
                                         </DropdownMenuItem>
                                         <DropdownMenuSeparator />
                                         <DropdownMenuItem 
@@ -1784,7 +2047,20 @@ export default function UserDB() {
                                           }}
                                         >
                                           <Sparkles className="w-4 h-4 mr-2" />
-                                          生成腳本
+                                          一鍵生成腳本
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          onClick={() => {
+                                            navigate('/mode1', {
+                                              state: {
+                                                fromPlanning: true,
+                                                planningContent: result.content,
+                                              },
+                                            });
+                                          }}
+                                        >
+                                          <MessageSquare className="w-4 h-4 mr-2" />
+                                          在 IP 人設規劃中使用
                                         </DropdownMenuItem>
                                         <DropdownMenuItem 
                                           onClick={() => handleDelete(result.id, 'ip-planning')}
@@ -1805,6 +2081,7 @@ export default function UserDB() {
                     </>
                   )}
                 </ScrollArea>
+                )}
               </TabsContent>
             </Tabs>
           </CardContent>

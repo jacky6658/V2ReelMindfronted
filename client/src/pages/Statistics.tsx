@@ -375,7 +375,7 @@ export default function Statistics() {
 
               {/* 使用趨勢圖表 */}
               {chartData.length > 0 && (
-                <Card>
+                <Card className="overflow-hidden">
                   <CardHeader>
                     <div className="flex items-center gap-2">
                       <Activity className="w-5 h-5 text-primary" />
@@ -383,8 +383,8 @@ export default function Statistics() {
                     </div>
                     <CardDescription>過去一週的使用量趨勢</CardDescription>
                   </CardHeader>
-                  <CardContent>
-                    <ChartContainer config={chartConfig} className="h-[250px] sm:h-[300px]">
+                  <CardContent className="pt-4 sm:pt-6">
+                    <ChartContainer config={chartConfig} className="h-[220px] sm:h-[260px] md:h-[300px]">
                       <AreaChart data={chartData}>
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis dataKey="day" />
@@ -422,7 +422,7 @@ export default function Statistics() {
 
               {/* 功能使用分布 */}
               {pieData.length > 0 && (
-                <Card>
+                <Card className="overflow-hidden">
                   <CardHeader>
                     <div className="flex items-center gap-2">
                       <PieChart className="w-5 h-5 text-primary" />
@@ -430,8 +430,8 @@ export default function Statistics() {
                     </div>
                     <CardDescription>各功能的使用比例</CardDescription>
                   </CardHeader>
-                  <CardContent>
-                    <ChartContainer config={chartConfig} className="h-[250px] sm:h-[300px]">
+                  <CardContent className="pt-4 sm:pt-6">
+                    <ChartContainer config={chartConfig} className="h-[220px] sm:h-[260px] md:h-[300px]">
                       <ResponsiveContainer width="100%" height="100%">
                         <RechartsPieChart>
                           <ChartTooltip content={<ChartTooltipContent />} />

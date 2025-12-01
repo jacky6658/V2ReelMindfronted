@@ -36,7 +36,7 @@ import {
   Home
 } from 'lucide-react';
 import { apiPost, apiGet, apiDelete, apiStream } from '@/lib/api-client';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 import ThinkingAnimation from '@/components/ThinkingAnimation';
 
@@ -193,6 +193,7 @@ interface SavedResult {
 
 export default function Mode1() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, isLoggedIn, loading: authLoading } = useAuthStore();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -215,6 +216,8 @@ export default function Mode1() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);  // 用於監聽滾動
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);  // 是否顯示滾動到底部按鈕
+  const [hasConsumedPlanningState, setHasConsumedPlanningState] = useState(false);
+  const fromPlanningState = location.state as { fromPlanning?: boolean; planningContent?: string } | null;
 
   // 快速按鈕
   const quickButtons = [
@@ -330,6 +333,43 @@ export default function Mode1() {
       }
     }
   }, [user?.user_id]); // 只在 user_id 變化時執行
+
+  // 如果是從 UserDB 的 14 天規劃導入，自動把內容發送給 AI
+  useEffect(() => {
+    if (
+      !fromPlanningState?.fromPlanning ||
+      !fromPlanningState.planningContent ||
+      hasConsumedPlanningState
+    ) {
+      return;
+    }
+    // 需要已登入且權限檢查完成，並且目前沒有對話內容在畫面上，避免打亂使用者既有對話
+    if (!user || checkingPermission || hasPermission === false || messages.length > 0) {
+      return;
+    }
+
+    const content = fromPlanningState.planningContent;
+    if (!content.trim()) return;
+
+    // 將內容放入輸入框，接著在下一個事件迴圈送出
+    setInput(content);
+    setHasConsumedPlanningState(true);
+
+    setTimeout(() => {
+      handleSend();
+      // 清除路由 state，避免返回時重複觸發
+      navigate('/mode1', { replace: true, state: null });
+    }, 0);
+  }, [
+    fromPlanningState?.fromPlanning,
+    fromPlanningState?.planningContent,
+    hasConsumedPlanningState,
+    user,
+    checkingPermission,
+    hasPermission,
+    messages.length,
+    navigate,
+  ]);
   
   // 載入歷史記錄（僅在有權限時載入）
   useEffect(() => {
@@ -1168,7 +1208,7 @@ export default function Mode1() {
                         ? "正在檢查權限..." 
                         : hasPermission === false 
                         ? "試用期已過，請訂閱以繼續使用" 
-                        : "輸入你的問題或需求...（輸入「儲存」可自動保存結果）"
+                        : "輸入你的問題或需求...（或是直接點選快速按鈕）"
                     }
                     className="min-h-[60px] md:min-h-[70px] resize-none text-base"
                     disabled={isLoading || checkingPermission || hasPermission === false}
