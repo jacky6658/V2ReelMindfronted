@@ -934,8 +934,8 @@ export default function Mode1() {
             </Button>
           </div>
           
-          {/* 中间：ReelMind（手机版置中） */}
-          <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center gap-2">
+          {/* 中間：ReelMind（僅在桌面版置中顯示，避免手機寬度重疊） */}
+          <div className="hidden md:flex absolute left-1/2 transform -translate-x-1/2 items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center">
               <Sparkles className="w-5 h-5 text-white" />
             </div>

@@ -52,7 +52,7 @@ import {
   Home
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { apiGet, apiDelete, apiPost } from '@/lib/api-client';
+import { apiGet, apiDelete, apiPost, apiPut } from '@/lib/api-client';
 import { useAuthStore } from '@/stores/authStore';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -416,16 +416,12 @@ export default function UserDB() {
     }
 
     try {
-      let endpoint = '';
-      
       if ('platform' in item && item.platform) {
-        // Script 類型
-        endpoint = `/api/scripts/${item.id}/name`;
-        await apiPost(endpoint, { name: newTitle.trim() });
+        // Script 類型：使用 PUT /api/scripts/{script_id}/name
+        await apiPut(`/api/scripts/${item.id}/name`, { name: newTitle.trim() });
       } else if ('result_type' in item) {
-        // IP Planning 類型
-        endpoint = `/api/ip-planning/results/${item.id}/title`;
-        await apiPost(endpoint, { title: newTitle.trim() });
+        // IP Planning 類型：使用 PUT /api/ip-planning/results/{result_id}/title
+        await apiPut(`/api/ip-planning/results/${item.id}/title`, { title: newTitle.trim() });
       }
       
       toast.success('標題已更新');

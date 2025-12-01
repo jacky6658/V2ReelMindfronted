@@ -13,7 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { ArrowLeft, Sparkles, CheckCircle2, Loader2, Copy, Lock, Save, Key, Home, HelpCircle, Info } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { apiStream, apiPost, apiGet } from '@/lib/api-client';
 import ThinkingAnimation from '@/components/ThinkingAnimation';
 import { useAuthStore } from '@/stores/authStore';
@@ -96,6 +96,7 @@ const SCRIPT_STRUCTURES = [
 
 export default function Mode3() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, loading: authLoading, isLoggedIn } = useAuthStore();
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -202,8 +203,13 @@ export default function Mode3() {
     }
   };
 
-  // 頁面載入時恢復緩存（僅在用戶登入且沒有現有數據時）
+  // 判斷是否為「從 14 天規劃 / UserDB 規劃記錄跳轉而來」
+  const fromPlanningState = location.state as { fromPlanning?: boolean; planningContent?: string } | null;
+  const fromPlanning = !!fromPlanningState?.fromPlanning;
+
+  // 頁面載入時恢復緩存（僅在用戶登入且沒有現有數據時，且不是從 14 天規劃跳轉而來）
   useEffect(() => {
+    if (fromPlanning) return;
     if (user?.user_id && !formData.topic && !results.positioning && !results.topics && !results.script) {
       const cached = loadFromLocalStorage();
       if (cached) {
@@ -227,7 +233,27 @@ export default function Mode3() {
         }
       }
     }
-  }, [user?.user_id]); // 只在 user_id 變化時執行一次
+  }, [user?.user_id, fromPlanning]); // 只在 user_id 或來源狀態變化時執行
+
+  // 從 14 天規劃跳轉時，重置一鍵生成狀態並帶入規劃內容
+  useEffect(() => {
+    if (!fromPlanning || !fromPlanningState?.planningContent) return;
+
+    // 清掉舊的緩存與生成結果，避免看到之前的內容
+    clearLocalStorage();
+    setCurrentStep(1);
+    setResults({ positioning: '', topics: '', script: '' });
+    setGenerationStatus({ positioning: false, topics: false, script: false });
+
+    // 將 14 天規劃內容放入表單的補充說明欄位，方便用戶直接生成腳本
+    setFormData(prev => ({
+      ...prev,
+      additionalInfo: fromPlanningState.planningContent || prev.additionalInfo,
+    }));
+
+    // 移除 location.state，避免返回此頁時重複觸發
+    navigate('/mode3', { replace: true, state: null });
+  }, [fromPlanning, fromPlanningState?.planningContent, navigate]);
 
   // 用戶登出時清除緩存
   useEffect(() => {
