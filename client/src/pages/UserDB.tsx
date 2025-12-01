@@ -126,6 +126,7 @@ interface PlanningDayEntry {
   date: string;           // YYYY-MM-DD
   weekday?: string;
   topic: string;
+  account_positioning?: string | null; // IP 帳號定位
   script_content?: string | null;
   script_structure?: string | null;
   duration_seconds?: number | null;
@@ -143,7 +144,7 @@ interface PlanningDayEntry {
   ip_profile_content?: string | null;
 }
 
-// 14 天規劃日曆視圖元件（使用後端 planning_days）
+// 14 天規劃日曆視圖元件（自定義 Grid）
 function PlanningCalendarView({
   days,
   month,
@@ -155,41 +156,119 @@ function PlanningCalendarView({
   onMonthChange: (month: Date) => void;
   onDayClick: (day: PlanningDayEntry | null, date: Date) => void;
 }) {
+  const year = month.getFullYear();
+  const currentMonth = month.getMonth(); // 0-11
+
+  const firstDayOfMonth = new Date(year, currentMonth, 1);
+  const lastDayOfMonth = new Date(year, currentMonth + 1, 0);
+  
+  const daysInMonth = lastDayOfMonth.getDate();
+  const startDayOfWeek = firstDayOfMonth.getDay(); // 0 (Sun) - 6 (Sat)
+
+  // Generate calendar cells
+  const cells = [];
+  
+  // Padding for previous month
+  for (let i = 0; i < startDayOfWeek; i++) {
+    cells.push(<div key={`empty-${i}`} className="bg-muted/20 border-b border-r h-24 md:h-32 lg:h-40" />);
+  }
+
+  // Days
+  for (let d = 1; d <= daysInMonth; d++) {
+    const currentDate = new Date(year, currentMonth, d);
+    // Handle local date string issue by ensuring YYYY-MM-DD format matches backend
+    // Backend returns date string.
+    const dateStr = `${year}-${String(currentMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    
+    const entry = days.find(day => day.date === dateStr);
+    const isToday = new Date().toDateString() === currentDate.toDateString();
+
+    // Helper to get display title from topic (remove markdown and prefix)
+    const displayTitle = entry 
+        ? entry.topic.split('\n')[0]
+            .replace(/^(\*\*|##|\s)*(Day|第)\s*\d+.*?[：:]\s*/i, '') // Remove "Day X: " prefix
+            .replace(/^\*\*|\*\*$/g, '') // Remove wrapping bold
+            .trim()
+        : '';
+
+    cells.push(
+      <div 
+        key={d} 
+        className={cn(
+          "relative border-b border-r h-24 md:h-32 lg:h-40 p-1 md:p-2 flex flex-col gap-1 transition-colors hover:bg-muted/50 cursor-pointer group bg-background",
+          entry ? "bg-primary/5" : ""
+        )}
+        onClick={() => onDayClick(entry || null, currentDate)}
+      >
+        <div className="flex justify-between items-start">
+            <span className={cn(
+              "text-xs md:text-sm font-medium w-6 h-6 flex items-center justify-center rounded-full",
+              isToday ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+            )}>
+              {d}
+            </span>
+        </div>
+        
+        {entry && (
+          <div className="flex-1 overflow-hidden flex flex-col gap-1">
+            <div className="text-[10px] md:text-xs font-medium text-primary bg-primary/10 rounded px-1 py-0.5 line-clamp-3 md:line-clamp-4 leading-tight">
+               {displayTitle || '點擊查看詳情'}
+            </div>
+            {entry.script_content && (
+                <div className="mt-auto flex items-center gap-1 pt-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0" />
+                    <span className="text-[9px] md:text-[10px] text-muted-foreground truncate">已生成腳本</span>
+                </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+  
+  // Fill remaining cells to complete the week row
+  const totalCells = cells.length;
+  const remaining = 7 - (totalCells % 7);
+  if (remaining < 7) {
+    for (let i = 0; i < remaining; i++) {
+         cells.push(<div key={`empty-end-${i}`} className="bg-muted/20 border-b border-r h-24 md:h-32 lg:h-40" />);
+    }
+  }
+
+  const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
   return (
-    <div className="flex flex-col gap-4 h-full">
-      <div className="flex items-center justify-between">
-        <div className="text-sm text-muted-foreground">
-          選擇月份，查看此月的 14 天規劃排程
+    <div className="flex flex-col h-full bg-card rounded-xl border shadow-sm w-full">
+      {/* Header */}
+      <div className="flex items-center justify-between p-4 border-b">
+        <div className="flex items-center gap-2">
+            <Button variant="outline" size="icon" onClick={() => onMonthChange(new Date(year, currentMonth - 1, 1))}>
+                <ChevronLeftIcon className="h-4 w-4" />
+            </Button>
+            <h2 className="text-lg font-semibold min-w-[140px] text-center">
+                {month.toLocaleString('default', { month: 'long', year: 'numeric' })}
+            </h2>
+            <Button variant="outline" size="icon" onClick={() => onMonthChange(new Date(year, currentMonth + 1, 1))}>
+                <ChevronRightIcon className="h-4 w-4" />
+            </Button>
+        </div>
+        <div className="text-sm text-muted-foreground hidden md:block">
+            點擊日期查看/編輯 14 天規劃詳情
         </div>
       </div>
 
-      <div className="w-full max-w-3xl mx-auto rounded-xl border bg-card">
-        <UiCalendar
-          mode="single"
-          month={month}
-          onMonthChange={onMonthChange}
-          selected={month}
-          onSelect={(date) => {
-            if (!date) return;
-            const dateStr = date.toISOString().slice(0, 10);
-            const entry = days.find((d) => d.date === dateStr) || null;
-            onDayClick(entry, date);
-          }}
-          footer={
-            <div className="mt-2 text-xs text-muted-foreground text-center">
-              點擊有顏色標記的日期可查看 / 編輯當天選題與腳本
+      {/* Grid Header */}
+      <div className="grid grid-cols-7 border-b bg-muted/30">
+        {weekDays.map(day => (
+            <div key={day} className="py-2 text-center text-xs md:text-sm font-medium text-muted-foreground border-r last:border-r-0">
+                {day}
             </div>
-          }
-          modifiers={{
-            planned: (date) => {
-              const dateStr = date.toISOString().slice(0, 10);
-              return days.some((d) => d.date === dateStr);
-            },
-          }}
-          modifiersClassNames={{
-            planned: 'bg-primary/10 data-[selected-single=true]:bg-primary text-primary-foreground',
-          }}
-        />
+        ))}
+      </div>
+
+      {/* Grid Body */}
+      <div className="grid grid-cols-7 border-l border-t-0">
+        {cells}
       </div>
     </div>
   );
@@ -2439,11 +2518,11 @@ export default function UserDB() {
                   <div className="space-y-4">
                     <div className="bg-muted/30 p-4 rounded-lg border">
                       <h3 className="font-semibold text-lg mb-2">
-                        {selectedCalendarDay?.ip_profile_title || 'IP 人設定位'}
+                        IP 帳號定位
                       </h3>
-                      {selectedCalendarDay?.ip_profile_content ? (
+                      {selectedCalendarDay?.account_positioning ? (
                         <div className="prose prose-sm max-w-none dark:prose-invert">
-                          {renderCleanContent(selectedCalendarDay.ip_profile_content)}
+                           <div dangerouslySetInnerHTML={{ __html: cleanMarkdown(selectedCalendarDay.account_positioning) }} />
                         </div>
                       ) : (
                         <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
