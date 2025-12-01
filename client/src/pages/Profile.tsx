@@ -82,6 +82,14 @@ const Profile: React.FC = () => {
   // 推薦邀請碼相關狀態
   const [referralCode, setReferralCode] = useState<string>('');
   const [referralStats, setReferralStats] = useState<{ totalReferrals: number; rewards: number } | null>(null);
+  const [referralList, setReferralList] = useState<Array<{
+    id: number;
+    referred_user_id: string;
+    referred_user_name: string;
+    referred_user_email: string;
+    created_at: string;
+    reward_status: string;
+  }>>([]);
   const [copiedReferralCode, setCopiedReferralCode] = useState(false);
   const [copiedReferralLink, setCopiedReferralLink] = useState(false);
   const [loadingReferral, setLoadingReferral] = useState(false);
@@ -187,6 +195,28 @@ const Profile: React.FC = () => {
         // 如果 API 返回錯誤，使用預設值（避免顯示錯誤）
         console.error('載入推薦統計失敗:', error);
         setReferralStats({ totalReferrals: 0, rewards: 0 });
+      }
+      
+      // 獲取推薦邀請成功列表
+      try {
+        const listData = await apiGet<{
+          referrals: Array<{
+            id: number;
+            referred_user_id: string;
+            referred_user_name: string;
+            referred_user_email: string;
+            created_at: string;
+            reward_status: string;
+          }>;
+          total: number;
+        }>(`/api/user/referral/list/${user.user_id}`);
+        
+        if (listData?.referrals) {
+          setReferralList(listData.referrals);
+        }
+      } catch (error: any) {
+        console.error('載入推薦列表失敗:', error);
+        setReferralList([]);
       }
     } catch (error) {
       console.error('載入推薦碼失敗:', error);
@@ -960,6 +990,52 @@ const Profile: React.FC = () => {
                               <p className="text-2xl font-bold text-primary">{referralStats.rewards}</p>
                               <p className="text-sm text-muted-foreground">累積獎勵</p>
                             </div>
+                          </div>
+                        )}
+
+                        {/* 成功邀請的好友列表 */}
+                        {referralList.length > 0 && (
+                          <div className="pt-4 border-t space-y-4">
+                            <div className="flex items-center justify-between">
+                              <h3 className="text-lg font-semibold">成功邀請的好友</h3>
+                              <Badge variant="secondary">{referralList.length} 位</Badge>
+                            </div>
+                            <ScrollArea className="h-[300px]">
+                              <div className="space-y-2 pr-4">
+                                {referralList.map((referral) => (
+                                  <Card key={referral.id} className="p-4">
+                                    <div className="flex items-start justify-between gap-4">
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 mb-2">
+                                          <p className="font-medium truncate">{referral.referred_user_name}</p>
+                                          <Badge 
+                                            variant={referral.reward_status === 'completed' ? 'default' : 'secondary'}
+                                            className="text-xs"
+                                          >
+                                            {referral.reward_status === 'completed' ? '已發放獎勵' : '待發放'}
+                                          </Badge>
+                                        </div>
+                                        <p className="text-sm text-muted-foreground truncate">{referral.referred_user_email}</p>
+                                        <p className="text-xs text-muted-foreground mt-1 font-mono">
+                                          用戶ID: {referral.referred_user_id}
+                                        </p>
+                                      </div>
+                                      <div className="text-right shrink-0">
+                                        <p className="text-xs text-muted-foreground">
+                                          {referral.created_at 
+                                            ? new Date(referral.created_at).toLocaleDateString('zh-TW', {
+                                                year: 'numeric',
+                                                month: 'short',
+                                                day: 'numeric'
+                                              })
+                                            : '未知'}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </Card>
+                                ))}
+                              </div>
+                            </ScrollArea>
                           </div>
                         )}
 

@@ -303,6 +303,52 @@ export default function UserDB() {
     return cleaned;
   };
 
+  // 清理 Markdown 格式符號為純文字（用於編輯模式）
+  // 完全移除所有 Markdown 符號，返回純文字，不包含任何 HTML 標籤
+  const cleanMarkdownToPlainText = (text: string): string => {
+    if (!text) return '';
+    
+    let cleaned = text;
+    
+    // 先移除所有 HTML 標籤（如果有的話）
+    cleaned = cleaned.replace(/<[^>]+>/g, '');
+    
+    // 粗體：**text** 或 __text__ → text（移除符號）
+    cleaned = cleaned.replace(/\*\*(.+?)\*\*/g, '$1');
+    cleaned = cleaned.replace(/__(.+?)__/g, '$1');
+    
+    // 斜體：*text* → text（移除符號，注意不要匹配 **text**）
+    // 使用更精確的匹配，避免匹配 **text** 中的單個 *
+    cleaned = cleaned.replace(/(?<!\*)\*(?!\*)([^*\n]+?)\*(?!\*)/g, '$1');
+    
+    // 下劃線：_text_ → text（移除符號，注意不要匹配 __text__）
+    // 使用更精確的匹配，避免匹配 __text__ 中的單個 _
+    cleaned = cleaned.replace(/(?<!_)_(?!_)([^_\n]+?)_(?!_)/g, '$1');
+    
+    // 刪除線：~~text~~ → text
+    cleaned = cleaned.replace(/~~(.+?)~~/g, '$1');
+    
+    // 行內代碼：`text` → text
+    cleaned = cleaned.replace(/`([^`]+?)`/g, '$1');
+    
+    // 代碼塊：```...``` → 移除整個代碼塊
+    cleaned = cleaned.replace(/```[\s\S]*?```/g, '');
+    
+    // 標題：### text → text
+    cleaned = cleaned.replace(/#{1,6}\s+(.+)/gm, '$1');
+    
+    // 鏈接：[text](url) → text
+    cleaned = cleaned.replace(/\[([^\]]+?)\]\([^\)]+?\)/g, '$1');
+    
+    // 圖片：![alt](url) → alt
+    cleaned = cleaned.replace(/!\[([^\]]+?)\]\([^\)]+?\)/g, '$1');
+    
+    // 移除多餘的空白行（連續3個以上換行變成2個）
+    cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
+    
+    return cleaned.trim();
+  };
+
   // 渲染清理後的內容（支持粗體等格式）
   const renderCleanContent = (text: string, maxLength?: number): JSX.Element => {
     if (!text) return <span>無內容</span>;
@@ -1836,9 +1882,9 @@ export default function UserDB() {
             <ScriptEditor
                 content={
                   selectedItem && 'content' in selectedItem 
-                    ? cleanMarkdown(selectedItem.content).replace(/<strong>(.+?)<\/strong>/g, '$1').replace(/<[^>]+>/g, '') // 清理後轉為純文字供 Textarea 顯示
+                    ? cleanMarkdownToPlainText(selectedItem.content) // 使用專門的純文字清理函數，移除所有 Markdown 符號
                     : (selectedItem && 'summary' in selectedItem 
-                        ? `對話類型：${selectedItem.mode || '未知'}\n訊息數：${selectedItem.message_count || 0}\n\n摘要：\n${cleanMarkdown(selectedItem.summary || '').replace(/<strong>(.+?)<\/strong>/g, '$1').replace(/<[^>]+>/g, '')}` 
+                        ? `對話類型：${selectedItem.mode || '未知'}\n訊息數：${selectedItem.message_count || 0}\n\n摘要：\n${cleanMarkdownToPlainText(selectedItem.summary || '')}` 
                         : '')
                 }
                 title={

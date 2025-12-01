@@ -306,24 +306,37 @@ export default function Mode1() {
   };
 
   // 保存到 localStorage
-  const saveToLocalStorage = (results: SavedResult[]) => {
+  const saveToLocalStorage = (results: SavedResult[], saveAll: boolean = false) => {
     try {
       if (!user?.user_id) return;
       const storageKey = getStorageKey();
-      // 只保存未儲存到資料庫的結果
-      const localOnly = results.filter(r => !r.savedToDB);
-      localStorage.setItem(storageKey, JSON.stringify(localOnly));
+      // 如果 saveAll 為 true，保存所有結果（包括已保存到資料庫的，用於緩存）
+      // 否則只保存未儲存到資料庫的結果
+      const toSave = saveAll ? results : results.filter(r => !r.savedToDB);
+      localStorage.setItem(storageKey, JSON.stringify(toSave));
+      console.log('[Mode1] 已保存到 localStorage:', toSave.length, '個結果', saveAll ? '(包含已保存到資料庫的)' : '(僅未保存的)');
     } catch (error) {
       console.error('保存到 localStorage 失敗:', error);
     }
   };
 
+  // 頁面載入時立即載入 localStorage 緩存（不等待權限檢查）
+  useEffect(() => {
+    if (user?.user_id) {
+      const localResults = loadFromLocalStorage();
+      if (localResults.length > 0) {
+        setSavedResults(localResults);
+        console.log('[Mode1] 從 localStorage 載入緩存:', localResults.length, '個結果');
+      }
+    }
+  }, [user?.user_id]); // 只在 user_id 變化時執行
+  
   // 載入歷史記錄（僅在有權限時載入）
   useEffect(() => {
     if (hasPermission === true) {
       loadHistory();
       // 同時載入生成結果（從資料庫和 localStorage）
-      loadSavedResults();
+      loadSavedResults(true); // 先顯示緩存，然後異步更新資料庫數據
     } else if (user?.user_id) {
       // 即使沒有權限，也先載入 localStorage 緩存，讓 Dialog 打開時能立即顯示
       const localResults = loadFromLocalStorage();
@@ -382,8 +395,17 @@ export default function Mode1() {
     // 初始檢查
     checkIfAtBottom();
     
-    // 監聽滾動事件
-    viewport.addEventListener('scroll', checkIfAtBottom);
+    // 監聽滾動事件（使用節流優化性能）
+    let scrollTimeout: ReturnType<typeof setTimeout> | null = null;
+    const handleScroll = () => {
+      if (scrollTimeout) return;
+      scrollTimeout = setTimeout(() => {
+        checkIfAtBottom();
+        scrollTimeout = null;
+      }, 100); // 每 100ms 最多檢查一次
+    };
+    
+    viewport.addEventListener('scroll', handleScroll, { passive: true });
     
     // 監聽內容變化（當訊息更新時）
     const resizeObserver = new ResizeObserver(() => {
@@ -392,8 +414,11 @@ export default function Mode1() {
     resizeObserver.observe(viewport);
     
     return () => {
-      viewport.removeEventListener('scroll', checkIfAtBottom);
+      viewport.removeEventListener('scroll', handleScroll);
       resizeObserver.disconnect();
+      if (scrollTimeout) {
+        clearTimeout(scrollTimeout);
+      }
     };
   }, [messages]); // 當訊息更新時重新檢查
 
@@ -453,14 +478,27 @@ export default function Mode1() {
             category = item.metadata.category as 'positioning' | 'topics' | 'planning' | 'script';
           } else {
             // 如果沒有 metadata.category，使用 result_type 映射
+            // 重要：'plan' 類型需要進一步判斷是 'planning' 還是 'topics'
+            // 如果 title 或 content 中包含"14天"或"14 天"，則是 'planning'，否則可能是 'topics'
             const categoryMap: Record<string, 'positioning' | 'topics' | 'planning' | 'script'> = {
               'profile': 'positioning',
-              'plan': 'planning', // 14天規劃或選題方向都可能是 'plan'
-              'planning': 'planning', // 兼容新的 type 值
-              'topics': 'topics', // 選題方向
               'scripts': 'script'
             };
-            category = categoryMap[item.type] || 'positioning';
+            
+            if (item.type === 'plan' || item.type === 'planning') {
+              // 判斷是 14天規劃 還是 選題方向
+              const titleContent = ((item.title || '') + ' ' + (item.content || '')).toLowerCase();
+              if (titleContent.includes('14天') || titleContent.includes('14 天') || titleContent.includes('14天規劃') || titleContent.includes('14 天規劃')) {
+                category = 'planning';
+              } else {
+                // 預設為 topics（選題方向）
+                category = 'topics';
+              }
+            } else if (item.type === 'topics') {
+              category = 'topics';
+            } else {
+              category = categoryMap[item.type as keyof typeof categoryMap] || 'positioning';
+            }
           }
           
           return {
@@ -492,8 +530,8 @@ export default function Mode1() {
       // 更新狀態（包含資料庫和本地結果）
       setSavedResults(allResults);
       
-      // 4. 更新 localStorage（移除已經在資料庫中的項目）
-      saveToLocalStorage(allResults);
+      // 4. 更新 localStorage（保存所有結果，包括已保存到資料庫的，用於緩存）
+      saveToLocalStorage(allResults, true); // true 表示保存所有結果（包括已保存到資料庫的）
     } catch (error) {
       console.error('載入生成結果失敗:', error);
       // 即使出錯，也至少顯示 localStorage 的數據
