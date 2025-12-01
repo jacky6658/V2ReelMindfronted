@@ -28,7 +28,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { 
+import {
   FileText, 
   MessageSquare, 
   Sparkles,
@@ -49,9 +49,12 @@ import {
   Share2,
   FileDown,
   HelpCircle,
-  Home
+  Home,
+  Calendar as CalendarIcon,
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as UiCalendar } from '@/components/ui/calendar';
 import { apiGet, apiDelete, apiPost, apiPut } from '@/lib/api-client';
 import { useAuthStore } from '@/stores/authStore';
 import { useNavigate } from 'react-router-dom';
@@ -108,218 +111,76 @@ type SortOrder = 'asc' | 'desc';
 
 type SelectedItem = Script | IPPlanningResult | null;
 
-// 14 天規劃：解析內容成每日區塊
-interface PlanningDay {
-  day: number;
-  text: string;
+// 14 天規劃日曆：後端 planning_days 模型
+interface PlanningDayEntry {
+  id: string | number;
+  date: string;           // YYYY-MM-DD
+  weekday?: string;
+  topic: string;
+  script_content?: string | null;
+  script_structure?: string | null;
+  duration_seconds?: number | null;
+  platform?: string | null;
+  extra_notes?: string | null;
+  video_url?: string | null;
+  performance_notes?: string | null;
+  views?: number | null;
+  likes?: number | null;
+  comments?: number | null;
+  shares?: number | null;
+  posted_at?: string | null;
+  plan_result_id?: string | number;
+  ip_profile_title?: string | null;
+  ip_profile_content?: string | null;
 }
 
-const parsePlanningDays = (content: string): PlanningDay[] => {
-  const lines = content.split('\n');
-  const days: Record<number, string[]> = {};
-  let currentDay = 1;
-
-  const dayPatterns = [
-    /^第\s*(\d{1,2})\s*天/,             // 第 1 天
-    /^Day\s*(\d{1,2})/i,               // Day 1
-    /^(\d{1,2})[．\.、]/               // 1. / 1、
-  ];
-
-  for (const rawLine of lines) {
-    const line = rawLine.trim();
-    if (!line) continue;
-
-    let matchedDay: number | null = null;
-    for (const pattern of dayPatterns) {
-      const m = line.match(pattern);
-      if (m && m[1]) {
-        const d = parseInt(m[1], 10);
-        if (d >= 1 && d <= 31) {
-          matchedDay = d;
-          break;
-        }
-      }
-    }
-
-    if (matchedDay !== null) {
-      currentDay = matchedDay;
-      if (!days[currentDay]) days[currentDay] = [];
-      // 去掉前綴的「第 X 天」/「Day X」等標題文字
-      const cleaned = line.replace(dayPatterns[0], '')
-        .replace(dayPatterns[1], '')
-        .replace(dayPatterns[2], '')
-        .trim();
-      if (cleaned) days[currentDay].push(cleaned);
-    } else {
-      if (!days[currentDay]) days[currentDay] = [];
-      days[currentDay].push(line);
-    }
-  }
-
-  const result: PlanningDay[] = [];
-  for (let d = 1; d <= 14; d++) {
-    const text = (days[d] || []).join('\n').trim();
-    if (text) {
-      result.push({ day: d, text });
-    }
-  }
-  return result;
-};
-
-// 14 天規劃日曆視圖元件
-function PlanningCalendarView({ plans }: { plans: IPPlanningResult[] }) {
-  const navigate = useNavigate();
-  const [selectedPlanIndex, setSelectedPlanIndex] = useState(0);
-
-  if (!plans || plans.length === 0) {
-    return (
-      <div className="h-full flex items-center justify-center">
-        <div className="text-center text-muted-foreground">
-          <p>目前尚未有 14 天規劃記錄</p>
-        </div>
-      </div>
-    );
-  }
-
-  const safeIndex = Math.min(selectedPlanIndex, plans.length - 1);
-  const currentPlan = plans[safeIndex];
-  const days = parsePlanningDays(currentPlan.content || '');
-
+// 14 天規劃日曆視圖元件（使用後端 planning_days）
+function PlanningCalendarView({
+  days,
+  month,
+  onMonthChange,
+  onDayClick,
+}: {
+  days: PlanningDayEntry[];
+  month: Date;
+  onMonthChange: (month: Date) => void;
+  onDayClick: (day: PlanningDayEntry | null, date: Date) => void;
+}) {
   return (
-    <div className="flex flex-col h-full gap-4">
-      {/* 規劃切換 */}
-      {plans.length > 1 && (
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div className="text-xs sm:text-sm text-muted-foreground">
-            目前顯示的是第 <span className="font-semibold">{safeIndex + 1}</span> 筆 14 天規劃：
-            <span className="ml-1 font-medium">{currentPlan.title || '未命名規劃'}</span>
-          </div>
-          <Select
-            value={String(safeIndex)}
-            onValueChange={(v) => setSelectedPlanIndex(Number(v))}
-          >
-            <SelectTrigger className="w-full sm:w-[260px]">
-              <SelectValue placeholder="選擇要查看的規劃" />
-            </SelectTrigger>
-            <SelectContent>
-              {plans.map((p, idx) => (
-                <SelectItem key={p.id} value={String(idx)}>
-                  {`#${idx + 1} ${p.title || '未命名規劃'}`}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+    <div className="flex flex-col gap-4 h-full">
+      <div className="flex items-center justify-between">
+        <div className="text-sm text-muted-foreground">
+          選擇月份，查看此月的 14 天規劃排程
         </div>
-      )}
-
-      {/* 手機版：天數列 + 當日詳情 */}
-      <div className="md:hidden flex flex-col gap-3">
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          {Array.from({ length: 14 }, (_, i) => i + 1).map((d) => {
-            const hasContent = days.some((day) => day.day === d);
-            const isActive = days[0]?.day === d;
-            return (
-              <Button
-                key={d}
-                variant={isActive ? 'default' : 'outline'}
-                size="sm"
-                className="min-w-[3rem] px-2"
-                disabled={!hasContent}
-              >
-                D{d}
-              </Button>
-            );
-          })}
-        </div>
-
-        {days.length === 0 ? (
-          <div className="text-center text-muted-foreground text-sm mt-4">
-            無法自動解析此規劃的每日內容，請在列表模式中查看完整文字。
-          </div>
-        ) : (
-          <Card className="flex-1">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">
-                第 {days[0].day} 天
-              </CardTitle>
-              <CardDescription className="text-xs">
-                其餘天數可在桌面版日曆視圖中完整查看
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <p className="whitespace-pre-wrap text-sm text-muted-foreground">
-                {days[0].text}
-              </p>
-              <Button
-                size="sm"
-                className="w-full"
-                variant="outline"
-                onClick={() =>
-                  navigate('/mode3', {
-                    state: { fromPlanning: true, planningContent: days[0].text },
-                  })
-                }
-              >
-                <Sparkles className="w-4 h-4 mr-2" />
-                用這一天生成腳本
-              </Button>
-            </CardContent>
-          </Card>
-        )}
       </div>
 
-      {/* 桌面版：14 天網格 */}
-      <div className="hidden md:block flex-1">
-        {days.length === 0 ? (
-          <div className="h-full flex items-center justify-center">
-            <div className="text-center text-muted-foreground text-sm">
-              無法自動解析此規劃的每日內容，請切換回列表模式查看完整文字。
+      <div className="w-full max-w-3xl mx-auto rounded-xl border bg-card">
+        <UiCalendar
+          mode="single"
+          month={month}
+          onMonthChange={onMonthChange}
+          selected={month}
+          onSelect={(date) => {
+            if (!date) return;
+            const dateStr = date.toISOString().slice(0, 10);
+            const entry = days.find((d) => d.date === dateStr) || null;
+            onDayClick(entry, date);
+          }}
+          footer={
+            <div className="mt-2 text-xs text-muted-foreground text-center">
+              點擊有顏色標記的日期可查看 / 編輯當天選題與腳本
             </div>
-          </div>
-        ) : (
-          <div className="grid grid-cols-7 gap-3 auto-rows-fr">
-            {Array.from({ length: 14 }, (_, i) => i + 1).map((d) => {
-              const dayData = days.find((day) => day.day === d);
-              return (
-                <Card
-                  key={d}
-                  className={`flex flex-col p-3 ${
-                    dayData ? 'border-primary/40 bg-primary/5' : 'opacity-60'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-semibold text-muted-foreground">
-                      第 {d} 天
-                    </span>
-                    {dayData && (
-                      <Badge variant="outline" className="text-[10px]">
-                        已規劃
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="flex-1 text-xs text-muted-foreground whitespace-pre-wrap break-words">
-                    {dayData ? dayData.text.slice(0, 80) + (dayData.text.length > 80 ? '…' : '') : '尚未設定'}
-                  </div>
-                  {dayData && (
-                    <Button
-                      size="xs"
-                      variant="outline"
-                      className="mt-2 w-full text-[11px]"
-                      onClick={() =>
-                        navigate('/mode3', {
-                          state: { fromPlanning: true, planningContent: dayData.text },
-                        })
-                      }
-                    >
-                      <Sparkles className="w-3 h-3 mr-1" />
-                      用此日生成腳本
-                    </Button>
-                  )}
-                </Card>
-              );
-            })}
-          </div>
-        )}
+          }
+          modifiers={{
+            planned: (date) => {
+              const dateStr = date.toISOString().slice(0, 10);
+              return days.some((d) => d.date === dateStr);
+            },
+          }}
+          modifiersClassNames={{
+            planned: 'bg-primary/10 data-[selected-single=true]:bg-primary text-primary-foreground',
+          }}
+        />
       </div>
     </div>
   );
@@ -352,6 +213,50 @@ export default function UserDB() {
   // 详情对话框中的标题编辑状态
   const [isEditingDetailTitle, setIsEditingDetailTitle] = useState(false);
   const [detailTitleValue, setDetailTitleValue] = useState<string>('');
+
+  // 14 天規劃日曆相關狀態
+  const [calendarMonth, setCalendarMonth] = useState<Date>(new Date());
+  const [planningDays, setPlanningDays] = useState<PlanningDayEntry[]>([]);
+  const [calendarLoading, setCalendarLoading] = useState(false);
+  const [calendarDialogOpen, setCalendarDialogOpen] = useState(false);
+  const [selectedCalendarDay, setSelectedCalendarDay] = useState<PlanningDayEntry | null>(null);
+  const [selectedCalendarDate, setSelectedCalendarDate] = useState<Date | null>(null);
+  const [scriptGenerating, setScriptGenerating] = useState(false);
+  const [scriptSaving, setScriptSaving] = useState(false);
+  const [calendarScriptStructure, setCalendarScriptStructure] = useState<string>('hook-story-offer');
+  const [calendarDuration, setCalendarDuration] = useState<string>('60');
+  const [calendarPlatform, setCalendarPlatform] = useState<string>('tiktok');
+  const [calendarExtraNotes, setCalendarExtraNotes] = useState<string>('');
+  const [calendarScriptContent, setCalendarScriptContent] = useState<string>('');
+  const [calendarVideoUrl, setCalendarVideoUrl] = useState<string>('');
+  const [calendarPerformanceNotes, setCalendarPerformanceNotes] = useState<string>('');
+  const [calendarViews, setCalendarViews] = useState<string>('');
+  const [calendarLikes, setCalendarLikes] = useState<string>('');
+  const [calendarComments, setCalendarComments] = useState<string>('');
+  const [calendarShares, setCalendarShares] = useState<string>('');
+
+  // 載入指定月份的 planning_days
+  const loadPlanningDays = async (monthDate: Date) => {
+    try {
+      setCalendarLoading(true);
+      const year = monthDate.getFullYear();
+      const month = String(monthDate.getMonth() + 1).padStart(2, '0');
+      const resp = await apiGet<{ days: PlanningDayEntry[] }>(`/api/planning-days?month=${year}-${month}`);
+      setPlanningDays(resp.days || []);
+    } catch (e) {
+      console.error('載入日曆資料失敗:', e);
+    } finally {
+      setCalendarLoading(false);
+    }
+  };
+
+  // 當切換到日曆視圖時，自動載入一次當月資料
+  useEffect(() => {
+    if (planningViewMode === 'calendar') {
+      loadPlanningDays(calendarMonth);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [planningViewMode]);
 
   // 檢查登入狀態（已移除以便本地預覽）
   // useEffect(() => {
@@ -1768,8 +1673,64 @@ export default function UserDB() {
                 </div>
 
                 {planningViewMode === 'calendar' ? (
-                  <div className="h-[calc(100vh-520px)] md:h-[calc(100vh-580px)]">
-                    <PlanningCalendarView plans={filteredAndSortedData as IPPlanningResult[]} />
+                  <div className="h-[calc(100vh-520px)] md:h-[calc(100vh-580px)] space-y-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="text-xs text-muted-foreground">
+                        先在列表中對想要執行的 14 天規劃使用「排入日曆」，再在此查看與管理每天的選題與腳本。
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => loadPlanningDays(calendarMonth)}
+                        disabled={calendarLoading}
+                      >
+                        {calendarLoading ? (
+                          <span className="text-xs">載入中...</span>
+                        ) : (
+                          <>
+                            <RefreshCw className="w-3 h-3 mr-1" />
+                            <span className="text-xs">重新載入</span>
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                    <PlanningCalendarView
+                      days={planningDays}
+                      month={calendarMonth}
+                      onMonthChange={(m) => {
+                        setCalendarMonth(m);
+                        loadPlanningDays(m);
+                      }}
+                      onDayClick={(entry, date) => {
+                        setSelectedCalendarDay(entry);
+                        setSelectedCalendarDate(date);
+                        if (entry) {
+                          setCalendarScriptContent(entry.script_content || '');
+                          setCalendarScriptStructure(entry.script_structure || 'hook-story-offer');
+                          setCalendarDuration(
+                            entry.duration_seconds ? String(entry.duration_seconds) : '60'
+                          );
+                          setCalendarPlatform(entry.platform || 'tiktok');
+                          setCalendarExtraNotes(entry.extra_notes || '');
+                          setCalendarVideoUrl(entry.video_url || '');
+                          setCalendarPerformanceNotes(entry.performance_notes || '');
+                          setCalendarViews(entry.views != null ? String(entry.views) : '');
+                          setCalendarLikes(entry.likes != null ? String(entry.likes) : '');
+                          setCalendarComments(entry.comments != null ? String(entry.comments) : '');
+                          setCalendarShares(entry.shares != null ? String(entry.shares) : '');
+                        } else {
+                          setCalendarScriptContent('');
+                          setCalendarExtraNotes('');
+                          setCalendarVideoUrl('');
+                          setCalendarPerformanceNotes('');
+                          setCalendarViews('');
+                          setCalendarLikes('');
+                          setCalendarComments('');
+                          setCalendarShares('');
+                        }
+                        setCalendarDialogOpen(true);
+                      }}
+                    />
                   </div>
                 ) : (
                 <ScrollArea className="h-[calc(100vh-500px)] md:h-[calc(100vh-550px)]">
@@ -1926,6 +1887,36 @@ export default function UserDB() {
                                         >
                                           <MessageSquare className="w-4 h-4 mr-2" />
                                           在 IP 人設規劃中使用
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          onClick={async () => {
+                                            // 排入日曆：選擇開始日期後呼叫後端 schedule API
+                                            if (!user?.user_id) {
+                                              toast.error('請先登入');
+                                              navigate('/login');
+                                              return;
+                                            }
+                                            let startDate = new Date();
+                                            const confirmed = window.confirm('是否以今天為開始日期，將此 14 天規劃排入日曆？\n（之後可在日曆視圖中查看與編輯）');
+                                            if (!confirmed) return;
+                                            try {
+                                              await apiPost('/api/planning-days/schedule', {
+                                                plan_result_id: result.id,
+                                                start_date: startDate.toISOString().slice(0, 10),
+                                              });
+                                              toast.success('已排入日曆');
+                                              setPlanningViewMode('calendar');
+                                              setCalendarMonth(startDate);
+                                              // 重新載入當月日曆資料
+                                              loadPlanningDays(startDate);
+                                            } catch (e: any) {
+                                              console.error('排入日曆失敗:', e);
+                                              toast.error(e?.response?.data?.error || '排入日曆失敗');
+                                            }
+                                          }}
+                                        >
+                                          <CalendarIcon className="w-4 h-4 mr-2" />
+                                          排入日曆
                                         </DropdownMenuItem>
                                         <DropdownMenuSeparator />
                                         <DropdownMenuItem 
