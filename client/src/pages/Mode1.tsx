@@ -490,31 +490,41 @@ export default function Mode1() {
   const detectCategory = (userMessage: string, aiResponse: string): 'positioning' | 'topics' | 'planning' | 'script' => {
     const combinedText = (userMessage + ' ' + aiResponse).toLowerCase();
     
+    console.log('[Mode1] 分類檢測:', {
+      userMessage: userMessage.substring(0, 50),
+      combinedText: combinedText.substring(0, 100)
+    });
+    
     // 檢測腳本相關關鍵字（優先級最高，避免被"規劃"誤判）
     const scriptKeywords = ['今日腳本', '短影音腳本', '腳本', 'script', '台詞', '劇本', '腳本內容', '生成腳本'];
     if (scriptKeywords.some(keyword => combinedText.includes(keyword))) {
+      console.log('[Mode1] 分類結果: script');
       return 'script';
     }
     
     // 檢測 14天規劃相關關鍵字（需要明確包含14天，避免與腳本混淆）
-    const planningKeywords = ['14天', '14 天', '14天規劃', '14 天規劃', '14天內容', '14 天內容', 'planning'];
+    const planningKeywords = ['14天', '14 天', '14天規劃', '14 天規劃', '14天內容', '14 天內容', 'planning', '十四天', '十四 天'];
     if (planningKeywords.some(keyword => combinedText.includes(keyword))) {
+      console.log('[Mode1] 分類結果: planning (14天規劃)');
       return 'planning';
     }
     
     // 檢測選題方向相關關鍵字
     const topicsKeywords = ['選題', '選題方向', '主題', '內容方向', 'topics'];
     if (topicsKeywords.some(keyword => combinedText.includes(keyword))) {
+      console.log('[Mode1] 分類結果: topics');
       return 'topics';
     }
     
     // 檢測定位相關關鍵字
     const positioningKeywords = ['定位', '人設', 'ip profile', '帳號定位', '個人品牌', '品牌定位', 'positioning'];
     if (positioningKeywords.some(keyword => combinedText.includes(keyword))) {
+      console.log('[Mode1] 分類結果: positioning');
       return 'positioning';
     }
     
     // 預設為定位（向後兼容）
+    console.log('[Mode1] 分類結果: positioning (預設)');
     return 'positioning';
   };
 
@@ -543,7 +553,18 @@ export default function Mode1() {
       saveToLocalStorage(updated);
       return updated;
     });
-    toast.success('已自動儲存到生成結果');
+    
+    // 自動切換到對應的標籤頁
+    setResultTab(category);
+    
+    // 顯示提示並打開生成結果面板
+    toast.success('已自動儲存到生成結果', {
+      description: `已切換到「${categoryTitles[category]}」標籤頁，點擊「生成結果」查看`,
+      duration: 3000
+    });
+    
+    // 自動打開生成結果面板
+    setShowResults(true);
   };
 
   // 發送訊息
@@ -639,6 +660,11 @@ export default function Mode1() {
           // 如果檢測到儲存意圖，自動儲存結果
           if (shouldAutoSave && assistantMessage) {
             const category = detectCategory(userMessage.content, assistantMessage);
+            console.log('[Mode1] 自動儲存檢測:', {
+              userMessage: userMessage.content,
+              category: category,
+              hasContent: !!assistantMessage
+            });
             autoSaveResult(assistantMessage, category);
           }
           
@@ -692,6 +718,13 @@ export default function Mode1() {
   // 儲存到 UserDB
   const handleSaveToUserDB = async (result: SavedResult) => {
     try {
+      console.log('[Mode1 Save] 開始儲存:', {
+        category: result.category,
+        title: result.title,
+        hasUser: !!user,
+        userId: user?.user_id
+      });
+
       if (!user?.user_id) {
         toast.error('請先登入');
         return;
@@ -706,9 +739,14 @@ export default function Mode1() {
       };
 
       const result_type = resultTypeMap[result.category] || 'profile';
+      
+      console.log('[Mode1 Save] 映射結果:', {
+        category: result.category,
+        result_type: result_type
+      });
 
       // 調用 API 儲存到 UserDB
-      await apiPost('/api/ip-planning/save', {
+      const savePayload = {
         user_id: user.user_id,
         result_type: result_type,
         title: result.title,
@@ -718,7 +756,13 @@ export default function Mode1() {
           category: result.category,  // 保存原始 category 用於區分
           timestamp: result.timestamp.toISOString()
         }
-      });
+      };
+      
+      console.log('[Mode1 Save] 發送儲存請求:', savePayload);
+      
+      await apiPost('/api/ip-planning/save', savePayload);
+      
+      console.log('[Mode1 Save] 儲存成功');
 
       // 根據 category 告訴用戶存在哪裡（使用 category 而不是 result_type 來區分）
       let locationHint = '';
@@ -757,7 +801,29 @@ export default function Mode1() {
       }));
     } catch (error: any) {
       console.error('儲存到 UserDB 失敗:', error);
-      toast.error(error?.response?.data?.error || error.message || '儲存失敗');
+      
+      // 處理 403 錯誤 (權限不足/試用期已過)
+      if (error?.response?.status === 403 || (error && typeof error === 'object' && 'status' in error && error.status === 403)) {
+        const errorMessage = error?.response?.data?.error || error?.message || '試用期已過，請訂閱以繼續使用';
+        setHasPermission(false);
+        setShowSubscriptionDialog(true);
+        toast.error(errorMessage, {
+          action: {
+            label: '去訂閱',
+            onClick: () => navigate('/pricing')
+          },
+          duration: 5000
+        });
+      } else if (error?.response?.status === 401) {
+        toast.error('登入已過期，請重新登入', {
+          action: {
+            label: '去登入',
+            onClick: () => navigate('/login')
+          }
+        });
+      } else {
+        toast.error(error?.response?.data?.error || error.message || '儲存失敗');
+      }
     }
   };
 

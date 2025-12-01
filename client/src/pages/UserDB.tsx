@@ -129,6 +129,9 @@ export default function UserDB() {
   // 标题编辑状态
   const [editingTitleId, setEditingTitleId] = useState<string | null>(null);
   const [editingTitleValue, setEditingTitleValue] = useState<string>('');
+  // 详情对话框中的标题编辑状态
+  const [isEditingDetailTitle, setIsEditingDetailTitle] = useState(false);
+  const [detailTitleValue, setDetailTitleValue] = useState<string>('');
 
   // 檢查登入狀態（已移除以便本地預覽）
   // useEffect(() => {
@@ -264,6 +267,58 @@ export default function UserDB() {
     setShowDetail(true);
   };
 
+  // 清理 Markdown 格式符號，移除所有格式符號但保留文字內容
+  // 粗體、斜體、下劃線等格式符號都會被移除，只保留純文字
+  const cleanMarkdown = (text: string): string => {
+    if (!text) return '';
+    
+    let cleaned = text;
+    
+    // 粗體：**text** 或 __text__ → text（保留粗體效果但不顯示符號）
+    cleaned = cleaned.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    cleaned = cleaned.replace(/__(.+?)__/g, '<strong>$1</strong>');
+    
+    // 斜體：*text* 或 _text_ → text（移除符號，不保留斜體效果）
+    cleaned = cleaned.replace(/(?<!<[^>]*)\*(?!\*)([^*\n]+?)\*(?![*<])/g, '$1');
+    cleaned = cleaned.replace(/(?<!<[^>]*)_(?!_)([^_\n]+?)_(?![_<])/g, '$1');
+    
+    // 刪除線：~~text~~ → text
+    cleaned = cleaned.replace(/~~(.+?)~~/g, '$1');
+    
+    // 行內代碼：`text` → text
+    cleaned = cleaned.replace(/`([^`]+?)`/g, '$1');
+    
+    // 代碼塊：```...``` → 移除整個代碼塊
+    cleaned = cleaned.replace(/```[\s\S]*?```/g, '');
+    
+    // 標題：### text → text
+    cleaned = cleaned.replace(/#{1,6}\s+(.+)/gm, '$1');
+    
+    // 鏈接：[text](url) → text
+    cleaned = cleaned.replace(/\[([^\]]+?)\]\([^\)]+?\)/g, '$1');
+    
+    // 圖片：![alt](url) → alt
+    cleaned = cleaned.replace(/!\[([^\]]+?)\]\([^\)]+?\)/g, '$1');
+    
+    return cleaned;
+  };
+
+  // 渲染清理後的內容（支持粗體等格式）
+  const renderCleanContent = (text: string, maxLength?: number): JSX.Element => {
+    if (!text) return <span>無內容</span>;
+    
+    let displayText = text;
+    if (maxLength && text.length > maxLength) {
+      displayText = text.substring(0, maxLength) + '...';
+    }
+    
+    const cleanedText = cleanMarkdown(displayText);
+    
+    return (
+      <span dangerouslySetInnerHTML={{ __html: cleanedText }} />
+    );
+  };
+
   // 獲取 IP 規劃結果的類型標籤（基於 metadata.category）
   const getIPPlanningTypeLabel = (result: IPPlanningResult): string => {
     const category = result.metadata?.category;
@@ -293,6 +348,7 @@ export default function UserDB() {
     if (!newTitle.trim()) {
       toast.error('標題不能為空');
       setEditingTitleId(null);
+      setIsEditingDetailTitle(false);
       return;
     }
 
@@ -311,11 +367,23 @@ export default function UserDB() {
       
       toast.success('標題已更新');
       setEditingTitleId(null);
+      setIsEditingDetailTitle(false);
+      
+      // 更新 selectedItem 的標題（如果正在查看詳情）
+      if (selectedItem && 'id' in selectedItem && selectedItem.id === item.id) {
+        if ('title' in item) {
+          setSelectedItem({ ...selectedItem, title: newTitle.trim() } as SelectedItem);
+        } else if ('topic' in item) {
+          setSelectedItem({ ...selectedItem, topic: newTitle.trim() } as SelectedItem);
+        }
+      }
+      
       loadData(); // 重新載入資料
     } catch (error: any) {
       console.error('更新標題失敗:', error);
       toast.error(error?.response?.data?.error || '更新標題失敗');
       setEditingTitleId(null);
+      setIsEditingDetailTitle(false);
     }
   };
 
@@ -557,8 +625,8 @@ export default function UserDB() {
     
     return {
       scripts: scripts.length,
-      ipPlanning: ipPlanningResults_filtered.length,
-      planning: planningResults.length,
+      ipPlanning: ipPlanningResults_filtered.length,  // IP 人設規劃
+      planning: planningResults.length,  // 14 天規劃
       total: scripts.length + ipPlanningResults.length
     };
   }, [scripts, ipPlanningResults]);
@@ -729,10 +797,21 @@ export default function UserDB() {
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">IP 規劃</p>
+                  <p className="text-sm text-muted-foreground">IP人設規劃</p>
                   <p className="text-2xl font-bold">{stats.ipPlanning}</p>
                 </div>
                 <Sparkles className="w-8 h-8 text-orange-500 opacity-70" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="hover:shadow-md transition-shadow">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">14 天規劃</p>
+                  <p className="text-2xl font-bold">{stats.planning}</p>
+                </div>
+                <Sparkles className="w-8 h-8 text-purple-500 opacity-70" />
               </div>
             </CardContent>
           </Card>
@@ -1044,7 +1123,7 @@ export default function UserDB() {
                                 </p>
                                 <div className="bg-muted/50 rounded-lg p-2">
                                   <p className="text-xs text-muted-foreground line-clamp-2">
-                                    {script.content ? script.content.substring(0, 100) + '...' : '無內容'}
+                                    {script.content ? renderCleanContent(script.content, 100) : <span>無內容</span>}
                                   </p>
                                 </div>
                                 <div className="flex gap-2 pt-2 border-t">
@@ -1321,7 +1400,7 @@ export default function UserDB() {
                                   </div>
                                   <div className="bg-muted/50 rounded-lg p-2">
                                     <p className="text-xs text-muted-foreground line-clamp-2">
-                                      {result.content ? result.content.substring(0, 100) + '...' : '無內容'}
+                                      {result.content ? renderCleanContent(result.content, 100) : <span>無內容</span>}
                                     </p>
                                   </div>
                                   <p className="text-xs text-muted-foreground">
@@ -1595,7 +1674,7 @@ export default function UserDB() {
                                   </div>
                                   <div className="bg-muted/50 rounded-lg p-2">
                                     <p className="text-xs text-muted-foreground line-clamp-2">
-                                      {result.content ? result.content.substring(0, 100) + '...' : '無內容'}
+                                      {result.content ? renderCleanContent(result.content, 100) : <span>無內容</span>}
                                     </p>
                                   </div>
                                   <p className="text-xs text-muted-foreground">
@@ -1674,14 +1753,78 @@ export default function UserDB() {
       </div>
 
       {/* 詳情 Dialog */}
-      <Dialog open={showDetail} onOpenChange={setShowDetail}>
+      <Dialog open={showDetail} onOpenChange={(open) => {
+        setShowDetail(open);
+        if (!open) {
+          setIsEditingDetailTitle(false);
+          setDetailTitleValue('');
+        } else if (selectedItem) {
+          // 當打開對話框時，初始化標題值
+          const currentTitle = selectedItem && 'title' in selectedItem ? selectedItem.title : 
+                               (selectedItem && 'topic' in selectedItem ? selectedItem.topic : 
+                                (selectedItem && 'mode' in selectedItem ? `${selectedItem.mode} - 對話記錄` : '詳情'));
+          setDetailTitleValue(currentTitle);
+        }
+      }}>
         <DialogContent className="max-w-[95vw] md:max-w-[90vw] max-h-[95vh] overflow-hidden flex flex-col w-[95vw] md:w-[90vw]">
           <DialogHeader className="shrink-0">
-            <DialogTitle>
-              {selectedItem && 'title' in selectedItem ? selectedItem.title : 
-               (selectedItem && 'topic' in selectedItem ? selectedItem.topic : 
-                (selectedItem && 'mode' in selectedItem ? `${selectedItem.mode} - 對話記錄` : '詳情'))}
-            </DialogTitle>
+            {isEditingDetailTitle && selectedItem && (('title' in selectedItem) || ('topic' in selectedItem)) ? (
+              <div className="flex items-center gap-2">
+                <Input
+                  value={detailTitleValue}
+                  onChange={(e) => setDetailTitleValue(e.target.value)}
+                  onBlur={() => {
+                    if (detailTitleValue.trim() && selectedItem) {
+                      handleSaveTitle(selectedItem, detailTitleValue);
+                      setIsEditingDetailTitle(false);
+                    } else {
+                      setIsEditingDetailTitle(false);
+                      // 恢復原值
+                      const currentTitle = selectedItem && 'title' in selectedItem ? selectedItem.title : 
+                                         (selectedItem && 'topic' in selectedItem ? selectedItem.topic : '');
+                      setDetailTitleValue(currentTitle);
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      if (detailTitleValue.trim() && selectedItem) {
+                        handleSaveTitle(selectedItem, detailTitleValue);
+                        setIsEditingDetailTitle(false);
+                      }
+                    } else if (e.key === 'Escape') {
+                      setIsEditingDetailTitle(false);
+                      // 恢復原值
+                      const currentTitle = selectedItem && 'title' in selectedItem ? selectedItem.title : 
+                                         (selectedItem && 'topic' in selectedItem ? selectedItem.topic : '');
+                      setDetailTitleValue(currentTitle);
+                    }
+                  }}
+                  className="flex-1"
+                  autoFocus
+                />
+              </div>
+            ) : (
+              <DialogTitle 
+                className="flex items-center gap-2 group cursor-pointer hover:text-primary"
+                onClick={() => {
+                  if (selectedItem && (('title' in selectedItem) || ('topic' in selectedItem))) {
+                    const currentTitle = selectedItem && 'title' in selectedItem ? selectedItem.title : 
+                                       (selectedItem && 'topic' in selectedItem ? selectedItem.topic : '');
+                    setDetailTitleValue(currentTitle);
+                    setIsEditingDetailTitle(true);
+                  }
+                }}
+              >
+                <span>
+                  {selectedItem && 'title' in selectedItem ? selectedItem.title : 
+                   (selectedItem && 'topic' in selectedItem ? selectedItem.topic : 
+                    (selectedItem && 'mode' in selectedItem ? `${selectedItem.mode} - 對話記錄` : '詳情'))}
+                </span>
+                {selectedItem && (('title' in selectedItem) || ('topic' in selectedItem)) && (
+                  <Edit className="w-4 h-4 opacity-0 group-hover:opacity-50 transition-opacity" />
+                )}
+              </DialogTitle>
+            )}
             <DialogDescription>
               {selectedItem && 'created_at' in selectedItem && selectedItem.created_at ? `建立時間：${formatDate(selectedItem.created_at)}` : ''}
             </DialogDescription>
@@ -1693,9 +1836,9 @@ export default function UserDB() {
             <ScriptEditor
                 content={
                   selectedItem && 'content' in selectedItem 
-                    ? selectedItem.content 
+                    ? cleanMarkdown(selectedItem.content).replace(/<strong>(.+?)<\/strong>/g, '$1').replace(/<[^>]+>/g, '') // 清理後轉為純文字供 Textarea 顯示
                     : (selectedItem && 'summary' in selectedItem 
-                        ? `對話類型：${selectedItem.mode || '未知'}\n訊息數：${selectedItem.message_count || 0}\n\n摘要：\n${selectedItem.summary}` 
+                        ? `對話類型：${selectedItem.mode || '未知'}\n訊息數：${selectedItem.message_count || 0}\n\n摘要：\n${cleanMarkdown(selectedItem.summary || '').replace(/<strong>(.+?)<\/strong>/g, '$1').replace(/<[^>]+>/g, '')}` 
                         : '')
                 }
                 title={
