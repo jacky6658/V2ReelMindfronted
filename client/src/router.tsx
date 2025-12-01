@@ -246,6 +246,7 @@ export const router = createHashRouter([
         </PrivateRoute>
       </Suspense>
     ),
+    errorElement: <RouteErrorBoundary />,
   },
   {
     path: '/userdb',
