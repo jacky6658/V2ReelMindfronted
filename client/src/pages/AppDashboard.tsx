@@ -57,17 +57,6 @@ const AppDashboard: React.FC = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [showNotifications, setShowNotifications] = useState(false);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
-  const [notifications, setNotifications] = useState<Array<{
-    id: number;
-    type: string;
-    title: string;
-    message: string;
-    is_read: boolean;
-    created_at: string;
-  }>>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [showNotifications, setShowNotifications] = useState(false);
-  const [loadingNotifications, setLoadingNotifications] = useState(false);
 
   // 登出處理
   const handleLogout = async () => {
