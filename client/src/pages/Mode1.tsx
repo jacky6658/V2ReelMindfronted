@@ -844,9 +844,11 @@ export default function Mode1() {
       console.log('[Mode1 Save] 開始儲存:', {
         category: result.category,
         title: result.title,
+        isLoggedIn: isLoggedIn,
         hasUser: !!user,
         userId: user?.user_id,
-        authLoading: authLoading
+        authLoading: authLoading,
+        token: !!useAuthStore.getState().token
       });
 
       // 如果正在載入認證狀態，等待載入完成
@@ -855,10 +857,45 @@ export default function Mode1() {
         return;
       }
 
-      if (!user?.user_id) {
-        toast.error('請先登入');
-        navigate('/login');
-        return;
+      // 更嚴格的檢查：同時檢查 isLoggedIn 和 user?.user_id
+      // 如果檢查失敗，嘗試從 store 獲取最新的用戶狀態（可能閉包中的 user 已過時）
+      let finalUser = user;
+      if (!isLoggedIn || !user?.user_id) {
+        console.warn('[Mode1 Save] 登入狀態檢查失敗，嘗試從 store 獲取最新狀態:', {
+          isLoggedIn,
+          hasUser: !!user,
+          userId: user?.user_id,
+          token: !!useAuthStore.getState().token
+        });
+        
+        // 從 store 獲取最新的用戶狀態
+        const storeState = useAuthStore.getState();
+        finalUser = storeState.user;
+        
+        // 如果 store 中也沒有用戶資訊，但 token 存在，嘗試重新獲取
+        if (!finalUser?.user_id && storeState.token) {
+          console.log('[Mode1 Save] Token 存在但用戶資訊缺失，嘗試重新獲取...');
+          try {
+            await storeState.fetchCurrentUser();
+            finalUser = useAuthStore.getState().user;
+            if (!finalUser?.user_id) {
+              toast.error('無法獲取用戶資訊，請重新登入');
+              navigate('/login');
+              return;
+            }
+            console.log('[Mode1 Save] 用戶資訊已重新獲取，繼續儲存...');
+          } catch (error) {
+            console.error('[Mode1 Save] 重新獲取用戶資訊失敗:', error);
+            toast.error('登入已過期，請重新登入');
+            navigate('/login');
+            return;
+          }
+        } else if (!finalUser?.user_id) {
+          // 既沒有用戶資訊也沒有 token，需要登入
+          toast.error('請先登入');
+          navigate('/login');
+          return;
+        }
       }
 
       // 將 category 映射到 result_type
@@ -877,8 +914,15 @@ export default function Mode1() {
       });
 
       // 調用 API 儲存到 UserDB
+      // 使用 finalUser（已經過檢查和可能的重新獲取）
+      if (!finalUser?.user_id) {
+        toast.error('無法獲取用戶資訊，請重新登入');
+        navigate('/login');
+        return;
+      }
+
       const savePayload = {
-        user_id: user.user_id,
+        user_id: finalUser.user_id,
         result_type: result_type,
         title: result.title,
         content: result.content,
