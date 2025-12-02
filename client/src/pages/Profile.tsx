@@ -316,15 +316,43 @@ const Profile: React.FC = () => {
 
     try {
       setBindingReferrer(true);
-      // 將推薦碼暫存到 localStorage，讓下一次登入時後端可以綁定
-      localStorage.setItem('referral_code', code);
-      toast.success('推薦碼已儲存，請重新登入以完成綁定');
-      // 登出並導向登入頁，使用者重新登入後會完成綁定
-      await logout();
-      navigate('/login', { replace: true });
-    } catch (error) {
+      
+      // ✅ 直接調用後端 API 綁定，不需要重新登入
+      await apiPost('/api/user/referral/bind', {
+        referral_code: code
+      });
+      
+      toast.success('推薦碼綁定成功！');
+      
+      // ✅ 重新載入推薦人資訊，更新 UI
+      try {
+        const info = await apiGet<{
+          referrer?: { user_id: string; name?: string; email?: string; bound_at?: string | null };
+          can_bind?: boolean;
+          referral_code_used?: string | null;
+        }>(`/api/user/referral/me/${user.user_id}`);
+        
+        if (info?.referrer) {
+          setReferrerInfo({
+            userId: info.referrer.user_id,
+            name: info.referrer.name || '',
+            email: info.referrer.email || '',
+            boundAt: info.referrer.bound_at || null,
+            referralCode: info.referral_code_used || undefined,
+          });
+        } else {
+          setReferrerInfo(null);
+        }
+        setCanBindReferrer(!!info?.can_bind);
+      } catch (error) {
+        console.error('重新載入推薦人資訊失敗:', error);
+      }
+      
+      // ✅ 清空輸入框
+      setReferrerCodeInput('');
+    } catch (error: any) {
       console.error('綁定推薦人失敗:', error);
-      toast.error('綁定推薦人時發生錯誤，請稍後再試');
+      toast.error(error?.response?.data?.error || '綁定推薦人時發生錯誤，請稍後再試');
     } finally {
       setBindingReferrer(false);
     }
