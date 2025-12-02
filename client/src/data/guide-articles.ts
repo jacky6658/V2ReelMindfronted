@@ -485,7 +485,8 @@ export const guideArticles: Record<string, GuideArticle> = {
         ]
     }
   ]
-  },
+  }
+};
 
 // 繼續補充其他文章...
 
