@@ -1072,34 +1072,76 @@ export default function UserDB() {
       return;
     }
 
+    // 樂觀更新：立即更新本地狀態，不等待後端響應
+    const oldTitle = item.title || ('topic' in item ? item.topic : '') || '';
+    const trimmedTitle = newTitle.trim();
+    
+    // 立即更新本地狀態
+    if ('platform' in item && item.platform) {
+      // Script 類型
+      setScripts(prevScripts => 
+        prevScripts.map(s => 
+          s.id === item.id ? { ...s, title: trimmedTitle } : s
+        )
+      );
+    } else if ('result_type' in item) {
+      // IP Planning 類型
+      setIpPlanningResults(prevResults => 
+        prevResults.map(r => 
+          r.id === item.id ? { ...r, title: trimmedTitle } : r
+        )
+      );
+    }
+    
+    // 更新 selectedItem（如果正在查看詳情）
+    if (selectedItem && 'id' in selectedItem && selectedItem.id === item.id) {
+      if ('title' in item) {
+        setSelectedItem({ ...selectedItem, title: trimmedTitle } as SelectedItem);
+      } else if ('topic' in item) {
+        setSelectedItem({ ...selectedItem, topic: trimmedTitle } as SelectedItem);
+      }
+    }
+    
+    // 關閉編輯狀態（立即，不等待後端）
+    setEditingTitleId(null);
+    setIsEditingDetailTitle(false);
+    
+    // 後端請求在背景進行（不阻塞 UI）
     try {
       if ('platform' in item && item.platform) {
-        // Script 類型：使用 PUT /api/scripts/{script_id}/name
-        await apiPut(`/api/scripts/${item.id}/name`, { name: newTitle.trim() });
+        await apiPut(`/api/scripts/${item.id}/name`, { name: trimmedTitle });
       } else if ('result_type' in item) {
-        // IP Planning 類型：使用 PUT /api/ip-planning/results/{result_id}/title
-        await apiPut(`/api/ip-planning/results/${item.id}/title`, { title: newTitle.trim() });
+        await apiPut(`/api/ip-planning/results/${item.id}/title`, { title: trimmedTitle });
+      }
+      // 成功時不顯示 toast（已經樂觀更新了，避免打擾用戶）
+    } catch (error: any) {
+      console.error('更新標題失敗:', error);
+      
+      // 自動回滾：失敗時恢復舊標題
+      if ('platform' in item && item.platform) {
+        setScripts(prevScripts => 
+          prevScripts.map(s => 
+            s.id === item.id ? { ...s, title: oldTitle } : s
+          )
+        );
+      } else if ('result_type' in item) {
+        setIpPlanningResults(prevResults => 
+          prevResults.map(r => 
+            r.id === item.id ? { ...r, title: oldTitle } : r
+          )
+        );
       }
       
-      toast.success('標題已更新');
-      setEditingTitleId(null);
-      setIsEditingDetailTitle(false);
-      
-      // 更新 selectedItem 的標題（如果正在查看詳情）
+      // 恢復 selectedItem
       if (selectedItem && 'id' in selectedItem && selectedItem.id === item.id) {
         if ('title' in item) {
-          setSelectedItem({ ...selectedItem, title: newTitle.trim() } as SelectedItem);
+          setSelectedItem({ ...selectedItem, title: oldTitle } as SelectedItem);
         } else if ('topic' in item) {
-          setSelectedItem({ ...selectedItem, topic: newTitle.trim() } as SelectedItem);
+          setSelectedItem({ ...selectedItem, topic: oldTitle } as SelectedItem);
         }
       }
       
-      loadData(); // 重新載入資料
-    } catch (error: any) {
-      console.error('更新標題失敗:', error);
-      toast.error(error?.response?.data?.error || '更新標題失敗');
-      setEditingTitleId(null);
-      setIsEditingDetailTitle(false);
+      toast.error(error?.response?.data?.error || '更新標題失敗，已恢復原標題');
     }
   };
 
@@ -1324,15 +1366,60 @@ export default function UserDB() {
 
   // 格式化日期
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('zh-TW', {
-      timeZone: 'Asia/Taipei',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false
-    });
+    if (!dateString) return '';
+    
+    try {
+      let dateStr = dateString.trim();
+      
+      // 如果已經是完整的 ISO 格式（包含時區），直接使用
+      if (dateStr.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$/)) {
+        return new Date(dateStr).toLocaleString('zh-TW', {
+          timeZone: 'Asia/Taipei',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false
+        });
+      }
+      
+      // 如果是 UTC 格式（結尾是 Z）
+      if (dateStr.endsWith('Z')) {
+        return new Date(dateStr).toLocaleString('zh-TW', {
+          timeZone: 'Asia/Taipei',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false
+        });
+      }
+      
+      // 如果沒有時區資訊（例如：2024-01-01T12:00:00），假設是台灣時區
+      let date = new Date(dateStr);
+      
+      // 檢查解析是否成功
+      if (isNaN(date.getTime())) {
+        console.warn('無法解析日期:', dateStr);
+        return dateStr;
+      }
+      
+      // 使用台灣時區格式化
+      return date.toLocaleString('zh-TW', {
+        timeZone: 'Asia/Taipei',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      });
+    } catch (error) {
+      console.error('日期格式化失敗:', error, dateString);
+      return dateString;
+    }
   };
 
   // 获取所有平台列表（用于筛选）

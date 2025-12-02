@@ -613,32 +613,57 @@ export default function Mode1() {
       combinedText: combinedText.substring(0, 100)
     });
     
-    // 檢測腳本相關關鍵字（優先級最高，避免被"規劃"誤判）
-    const scriptKeywords = ['今日腳本', '短影音腳本', '腳本', 'script', '台詞', '劇本', '腳本內容', '生成腳本'];
+    // 1. 檢測腳本相關關鍵字（優先級最高）
+    const scriptKeywords = [
+      '今日腳本', '短影音腳本', '腳本', 'script', '台詞', '劇本', 
+      '腳本內容', '生成腳本', '幫我寫', '幫我生成腳本'
+    ];
     if (scriptKeywords.some(keyword => combinedText.includes(keyword))) {
       console.log('[Mode1] 分類結果: script');
       return 'script';
     }
     
-    // 檢測 14天規劃相關關鍵字（需要明確包含14天，避免與腳本混淆）
-    const planningKeywords = ['14天', '14 天', '14天規劃', '14 天規劃', '14天內容', '14 天內容', 'planning', '十四天', '十四 天'];
+    // 2. 檢測 14天規劃相關關鍵字（需要明確包含14天）
+    const planningKeywords = [
+      '14天', '14 天', '14天規劃', '14 天規劃', '14天內容', '14 天內容',
+      'planning', '十四天', '十四 天', '兩週', '兩周', '14日', '14 日'
+    ];
     if (planningKeywords.some(keyword => combinedText.includes(keyword))) {
       console.log('[Mode1] 分類結果: planning (14天規劃)');
       return 'planning';
     }
     
-    // 檢測選題方向相關關鍵字
-    const topicsKeywords = ['選題', '選題方向', '主題', '內容方向', 'topics'];
+    // 3. 檢測選題方向相關關鍵字
+    const topicsKeywords = [
+      '選題', '選題方向', '主題', '內容方向', 'topics', 
+      '推薦主題', '主題推薦', '內容主題'
+    ];
     if (topicsKeywords.some(keyword => combinedText.includes(keyword))) {
       console.log('[Mode1] 分類結果: topics');
       return 'topics';
     }
     
-    // 檢測定位相關關鍵字
-    const positioningKeywords = ['定位', '人設', 'ip profile', '帳號定位', '個人品牌', '品牌定位', 'positioning'];
+    // 4. 檢測定位相關關鍵字
+    const positioningKeywords = [
+      '定位', '人設', 'ip profile', '帳號定位', '個人品牌', 
+      '品牌定位', 'positioning', '帳號設定', '帳號規劃'
+    ];
     if (positioningKeywords.some(keyword => combinedText.includes(keyword))) {
       console.log('[Mode1] 分類結果: positioning');
       return 'positioning';
+    }
+    
+    // 5. 改進預設值邏輯：根據 AI 回應的結構判斷
+    // 如果 AI 回應包含「第 X 天」或「Day X」，可能是規劃
+    if (/\d+[天日]|day\s*\d+/i.test(aiResponse)) {
+      console.log('[Mode1] 分類結果: planning (根據 AI 回應結構)');
+      return 'planning';
+    }
+    
+    // 如果 AI 回應包含「腳本」或「台詞」，可能是腳本
+    if (/腳本|台詞|劇本/i.test(aiResponse)) {
+      console.log('[Mode1] 分類結果: script (根據 AI 回應結構)');
+      return 'script';
     }
     
     // 預設為定位（向後兼容）
@@ -879,6 +904,12 @@ export default function Mode1() {
             await storeState.fetchCurrentUser();
             finalUser = useAuthStore.getState().user;
             if (!finalUser?.user_id) {
+              // 如果是已訂閱用戶，不應該跳轉到登入頁，可能是狀態同步問題
+              if (finalUser?.is_subscribed || user?.is_subscribed) {
+                console.warn('[Mode1 Save] 已訂閱用戶但狀態檢查失敗，可能是狀態同步問題');
+                toast.error('無法獲取用戶資訊，請重新整理頁面');
+                return;
+              }
               toast.error('無法獲取用戶資訊，請重新登入');
               navigate('/login');
               return;
@@ -886,12 +917,24 @@ export default function Mode1() {
             console.log('[Mode1 Save] 用戶資訊已重新獲取，繼續儲存...');
           } catch (error) {
             console.error('[Mode1 Save] 重新獲取用戶資訊失敗:', error);
+            // 如果是已訂閱用戶，不應該跳轉到登入頁
+            if (finalUser?.is_subscribed || user?.is_subscribed) {
+              console.warn('[Mode1 Save] 已訂閱用戶但重新獲取失敗，可能是狀態同步問題');
+              toast.error('無法獲取用戶資訊，請重新整理頁面');
+              return;
+            }
             toast.error('登入已過期，請重新登入');
             navigate('/login');
             return;
           }
         } else if (!finalUser?.user_id) {
           // 既沒有用戶資訊也沒有 token，需要登入
+          // 但如果是已訂閱用戶，可能是狀態同步問題
+          if (user?.is_subscribed || finalUser?.is_subscribed) {
+            console.warn('[Mode1 Save] 已訂閱用戶但狀態檢查失敗，可能是狀態同步問題');
+            toast.error('無法獲取用戶資訊，請重新整理頁面');
+            return;
+          }
           toast.error('請先登入');
           navigate('/login');
           return;
