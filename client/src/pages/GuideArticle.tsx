@@ -12,6 +12,14 @@ import { Moon, Sun, ArrowLeft, Clock, BookOpen } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { guideArticles, type GuideArticle as ArticleType } from '@/data/guide-articles';
 import { cn } from '@/lib/utils';
+import {
+  generateArticleSchema,
+  generateBreadcrumbSchema,
+  extractFAQSchema,
+  extractHowToSchema,
+  injectSchema,
+  removeSchema
+} from '@/lib/schema-generator';
 
 export default function GuideArticle() {
   const { theme, toggleTheme } = useTheme();
@@ -30,6 +38,41 @@ export default function GuideArticle() {
       }
     }
   }, [slug, navigate]);
+
+  // 動態注入 Schema Markup
+  useEffect(() => {
+    if (!article || !slug) return;
+
+    // 生成並注入 Article Schema
+    const articleSchema = generateArticleSchema(slug, article);
+    const articleScriptId = injectSchema(articleSchema, `schema-article-${slug}`);
+
+    // 生成並注入 BreadcrumbList Schema
+    const breadcrumbSchema = generateBreadcrumbSchema(slug, article);
+    const breadcrumbScriptId = injectSchema(breadcrumbSchema, `schema-breadcrumb-${slug}`);
+
+    // 提取並注入 FAQ Schema（如果有）
+    const faqSchema = extractFAQSchema(article);
+    let faqScriptId: string | null = null;
+    if (faqSchema) {
+      faqScriptId = injectSchema(faqSchema, `schema-faq-${slug}`);
+    }
+
+    // 提取並注入 HowTo Schema（如果是教學類文章）
+    const howToSchema = extractHowToSchema(article);
+    let howToScriptId: string | null = null;
+    if (howToSchema) {
+      howToScriptId = injectSchema(howToSchema, `schema-howto-${slug}`);
+    }
+
+    // 清理函數：當組件卸載或文章改變時移除舊的 Schema
+    return () => {
+      removeSchema(articleScriptId);
+      removeSchema(breadcrumbScriptId);
+      if (faqScriptId) removeSchema(faqScriptId);
+      if (howToScriptId) removeSchema(howToScriptId);
+    };
+  }, [article, slug]);
 
   if (!article) {
     return (

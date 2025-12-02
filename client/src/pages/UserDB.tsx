@@ -2604,6 +2604,7 @@ export default function UserDB() {
                                 onChange={(e) => setEditingTopicValue(e.target.value)}
                                 className="min-h-[120px] text-base"
                                 placeholder="輸入選題內容..."
+                                autoFocus
                               />
                               <div className="flex gap-2 justify-end">
                                 <Button
@@ -2620,21 +2621,24 @@ export default function UserDB() {
                                   size="sm"
                                   onClick={async () => {
                                     if (!selectedCalendarDay?.id) return;
+                                    if (!editingTopicValue.trim()) {
+                                      toast.error('選題內容不能為空');
+                                      return;
+                                    }
                                     try {
                                       await apiPut(`/api/planning-days/${selectedCalendarDay.id}/topic`, {
-                                        topic: editingTopicValue
+                                        topic: editingTopicValue.trim()
                                       });
                                       toast.success('選題已更新');
                                       setIsEditingTopic(false);
-                                      setEditingTopicValue('');
                                       // 更新本地狀態
                                       setSelectedCalendarDay({
                                         ...selectedCalendarDay,
-                                        topic: editingTopicValue
+                                        topic: editingTopicValue.trim()
                                       });
                                       setPlanningDays(prev => prev.map(day => 
                                         day.id === selectedCalendarDay.id 
-                                          ? { ...day, topic: editingTopicValue }
+                                          ? { ...day, topic: editingTopicValue.trim() }
                                           : day
                                       ));
                                       // 重新載入日曆資料
@@ -2650,7 +2654,14 @@ export default function UserDB() {
                               </div>
                             </div>
                           ) : (
-                            <p className="text-xl font-medium leading-relaxed max-w-2xl" dangerouslySetInnerHTML={{ __html: cleanMarkdown(selectedCalendarDay?.topic || '無選題') }} />
+                            <div className="w-full max-w-2xl">
+                              <p className="text-xl font-medium leading-relaxed" dangerouslySetInnerHTML={{ __html: cleanMarkdown(selectedCalendarDay?.topic || '無選題') }} />
+                              {selectedCalendarDay?.topic && (
+                                <p className="text-sm text-muted-foreground mt-2">
+                                  此選題來自 14 天規劃的第 {selectedCalendarDay.day_index} 天
+                                </p>
+                              )}
+                            </div>
                           )}
                         </div>
                         <div className="bg-muted/30 p-4 rounded-lg border flex-shrink-0">
