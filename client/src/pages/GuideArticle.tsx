@@ -12,6 +12,9 @@ import { Moon, Sun, ArrowLeft, Clock, BookOpen } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { guideArticles, type GuideArticle as ArticleType } from '@/data/guide-articles';
 import { cn } from '@/lib/utils';
+import { apiGet } from '@/lib/api-client';
+import { toast } from 'sonner';
+import { useAuthStore } from '@/stores/authStore';
 import {
   generateArticleSchema,
   generateBreadcrumbSchema,
@@ -20,12 +23,26 @@ import {
   injectSchema,
   removeSchema
 } from '@/lib/schema-generator';
+import { useMetaTags } from '@/hooks/useMetaTags';
 
 export default function GuideArticle() {
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const { slug } = useParams<{ slug: string }>();
   const [article, setArticle] = useState<ArticleType | null>(null);
+  const { isLoggedIn } = useAuthStore();
+
+  const handleGoogleLogin = async () => {
+    try {
+      // 直接調用 Google 登入 API，不經過登入頁面
+      const { auth_url } = await apiGet<{ auth_url: string }>('/api/auth/google-new');
+      // 重定向到 Google 登入頁面
+      window.location.href = auth_url;
+    } catch (error) {
+      console.error('登入失敗:', error);
+      toast.error('登入失敗，請稍後再試');
+    }
+  };
 
   useEffect(() => {
     if (slug) {
@@ -38,6 +55,24 @@ export default function GuideArticle() {
       }
     }
   }, [slug, navigate]);
+
+  // 動態更新 Meta Tags
+  useMetaTags({
+    title: article?.title,
+    description: article?.description || article?.sections
+      .flatMap(s => s.content)
+      .join(' ')
+      .replace(/\*\*/g, '')
+      .substring(0, 160) + '...',
+    keywords: article?.keywords?.join(', '),
+    url: `https://reelmind.aijob.com.tw/#/guide/${slug}`,
+    type: 'article',
+    author: 'ReelMind AI',
+    publishedTime: article?.datePublished ? new Date(article.datePublished).toISOString() : undefined,
+    modifiedTime: article?.dateModified ? new Date(article.dateModified).toISOString() : undefined,
+    section: article?.category,
+    tags: article?.keywords || []
+  });
 
   // 動態注入 Schema Markup
   useEffect(() => {
@@ -283,10 +318,10 @@ export default function GuideArticle() {
               使用 ReelMind 立即開始你的短影音創作之旅
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" onClick={() => navigate('/mode1')}>
+              <Button size="lg" onClick={isLoggedIn ? () => navigate('/app') : handleGoogleLogin}>
                 立即開始創作
               </Button>
-              <Button size="lg" variant="outline" onClick={() => navigate('/experience')}>
+              <Button size="lg" variant="outline" onClick={isLoggedIn ? () => navigate('/app') : handleGoogleLogin}>
                 免費體驗
               </Button>
             </div>

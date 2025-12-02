@@ -128,6 +128,7 @@ interface PlanningDayEntry {
   id: string | number;
   date: string;           // YYYY-MM-DD
   weekday?: string;
+  day_index?: number;     // 第幾天（1-14）
   topic: string;
   account_positioning?: string | null; // IP 帳號定位
   script_content?: string | null;
@@ -171,9 +172,32 @@ function PlanningCalendarView({
   // Generate calendar cells
   const cells = [];
   
+  // 計算這個月需要多少行（用於動態調整手機版單元格高度）
+  const totalDaysForCalendar = daysInMonth + startDayOfWeek;
+  const calendarRowCount = Math.ceil(totalDaysForCalendar / 7);
+  
+  // 手機版單元格高度：根據行數動態調整，確保完整顯示一個月
+  // 4行：每行約75px，5行：每行約60px，6行：每行約50px
+  const getCellHeightForMobile = () => {
+    if (calendarRowCount <= 4) return 'h-[75px]';
+    if (calendarRowCount === 5) return 'h-[60px]';
+    return 'h-[50px]';
+  };
+  
+  const cellHeightMobile = getCellHeightForMobile();
+  
   // Padding for previous month
   for (let i = 0; i < startDayOfWeek; i++) {
-    cells.push(<div key={`empty-${i}`} className="bg-muted/20 border-b border-r min-h-[6rem] md:min-h-[8rem] lg:min-h-[10rem]" />);
+    cells.push(
+      <div 
+        key={`empty-${i}`} 
+        className={cn(
+          "bg-muted/20 border-b border-r",
+          cellHeightMobile,
+          "md:min-h-[8rem] lg:min-h-[10rem]"
+        )} 
+      />
+    );
   }
 
   // Days
@@ -196,14 +220,20 @@ function PlanningCalendarView({
       <div 
         key={d} 
         className={cn(
-          "relative border-b border-r min-h-[6rem] md:min-h-[8rem] lg:min-h-[10rem] p-1 md:p-2 flex flex-col gap-1 transition-colors hover:bg-muted/50 cursor-pointer group bg-background",
+          "relative border-b border-r",
+          cellHeightMobile,
+          "md:min-h-[8rem] lg:min-h-[10rem]",
+          "p-1 md:p-2",
+          "flex flex-col gap-0.5 md:gap-1",
+          "transition-colors hover:bg-muted/50 active:bg-muted/70",
+          "cursor-pointer group bg-background",
           entry ? "bg-primary/5" : ""
         )}
         onClick={() => onDayClick(entry || null, currentDate)}
       >
-        <div className="flex justify-between items-start">
+        <div className="flex justify-between items-start shrink-0">
             <span className={cn(
-              "text-xs md:text-sm font-medium w-6 h-6 flex items-center justify-center rounded-full",
+              "text-[11px] md:text-xs lg:text-sm font-medium w-5 h-5 md:w-6 md:h-6 flex items-center justify-center rounded-full shrink-0",
               isToday ? "bg-primary text-primary-foreground" : "text-muted-foreground"
             )}>
               {d}
@@ -211,14 +241,14 @@ function PlanningCalendarView({
         </div>
         
         {entry && (
-          <div className="flex-1 overflow-hidden flex flex-col gap-1">
-            <div className="text-[10px] md:text-xs font-medium text-primary bg-primary/10 rounded px-1 py-0.5 line-clamp-3 md:line-clamp-4 leading-tight">
+          <div className="flex-1 overflow-hidden flex flex-col gap-0.5 md:gap-1 min-h-0">
+            <div className="text-[9px] md:text-[10px] lg:text-xs font-medium text-primary bg-primary/10 rounded px-0.5 md:px-1 py-0.5 line-clamp-2 md:line-clamp-3 lg:line-clamp-4 leading-tight">
                {displayTitle || '點擊查看詳情'}
             </div>
             {entry.script_content && (
-                <div className="mt-auto flex items-center gap-1 pt-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0" />
-                    <span className="text-[9px] md:text-[10px] text-muted-foreground truncate">已生成腳本</span>
+                <div className="mt-auto flex items-center gap-0.5 md:gap-1 pt-0.5 md:pt-1 shrink-0">
+                    <span className="w-1 h-1 md:w-1.5 md:h-1.5 rounded-full bg-green-500 shrink-0" />
+                    <span className="text-[8px] md:text-[9px] lg:text-[10px] text-muted-foreground truncate">已生成</span>
                 </div>
             )}
           </div>
@@ -228,32 +258,41 @@ function PlanningCalendarView({
   }
   
   // Fill remaining cells to complete the week row
-  const totalCells = cells.length;
-  const remaining = 7 - (totalCells % 7);
-  if (remaining < 7) {
-    for (let i = 0; i < remaining; i++) {
-         cells.push(<div key={`empty-end-${i}`} className="bg-muted/20 border-b border-r min-h-[6rem] md:min-h-[8rem] lg:min-h-[10rem]" />);
+  const cellsCount = cells.length;
+  const remainingCells = 7 - (cellsCount % 7);
+  if (remainingCells < 7) {
+    for (let i = 0; i < remainingCells; i++) {
+         cells.push(
+           <div 
+             key={`empty-end-${i}`} 
+             className={cn(
+               "bg-muted/20 border-b border-r",
+               cellHeightMobile,
+               "md:min-h-[8rem] lg:min-h-[10rem]"
+             )} 
+           />
+         );
     }
   }
 
   const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   return (
-    <div className="flex flex-col h-full bg-card rounded-xl border shadow-sm w-full overflow-hidden">
+    <div className="flex flex-col bg-card rounded-xl border shadow-sm w-full overflow-visible">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b shrink-0">
-        <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" onClick={() => onMonthChange(new Date(year, currentMonth - 1, 1))}>
-                <ChevronLeftIcon className="h-4 w-4" />
+      <div className="flex items-center justify-between p-3 md:p-4 border-b shrink-0">
+        <div className="flex items-center gap-1 md:gap-2 flex-1">
+            <Button variant="outline" size="icon" className="h-8 w-8 md:h-10 md:w-10" onClick={() => onMonthChange(new Date(year, currentMonth - 1, 1))}>
+                <ChevronLeftIcon className="h-3 w-3 md:h-4 md:w-4" />
             </Button>
-            <h2 className="text-lg font-semibold min-w-[140px] text-center">
+            <h2 className="text-base md:text-lg font-semibold min-w-[120px] md:min-w-[140px] text-center">
                 {month.toLocaleString('default', { month: 'long', year: 'numeric' })}
             </h2>
-            <Button variant="outline" size="icon" onClick={() => onMonthChange(new Date(year, currentMonth + 1, 1))}>
-                <ChevronRightIcon className="h-4 w-4" />
+            <Button variant="outline" size="icon" className="h-8 w-8 md:h-10 md:w-10" onClick={() => onMonthChange(new Date(year, currentMonth + 1, 1))}>
+                <ChevronRightIcon className="h-3 w-3 md:h-4 md:w-4" />
             </Button>
         </div>
-        <div className="text-sm text-muted-foreground hidden md:block">
+        <div className="text-xs md:text-sm text-muted-foreground hidden md:block ml-4">
             點擊日期查看/編輯 14 天規劃詳情
         </div>
       </div>
@@ -261,14 +300,21 @@ function PlanningCalendarView({
       {/* Grid Header */}
       <div className="grid grid-cols-7 border-b bg-muted/30 shrink-0">
         {weekDays.map(day => (
-            <div key={day} className="py-2 text-center text-xs md:text-sm font-medium text-muted-foreground border-r last:border-r-0">
+            <div key={day} className="py-1.5 md:py-2 text-center text-[10px] md:text-xs lg:text-sm font-medium text-muted-foreground border-r last:border-r-0">
                 {day}
             </div>
         ))}
       </div>
 
-      {/* Grid Body - 手機版使用滾動，電腦版完整顯示整個月份 */}
-      <div className="grid grid-cols-7 border-l border-t-0 overflow-y-auto md:overflow-visible flex-1 min-h-0 md:min-h-[700px] md:max-h-none">
+      {/* Grid Body - 手機版完整顯示一個月（無滾動），電腦版完整顯示整個月份 */}
+      <div className={cn(
+        "grid grid-cols-7 border-l border-t-0",
+        "overflow-visible", // 手機版和電腦版都不滾動
+        // 手機版：根據行數動態設置高度，確保完整顯示
+        calendarRowCount <= 4 ? "min-h-[300px]" : calendarRowCount === 5 ? "min-h-[300px]" : "min-h-[300px]",
+        // 電腦版：固定最小高度
+        "md:min-h-[700px]"
+      )}>
         {cells}
       </div>
     </div>
@@ -411,6 +457,254 @@ export default function UserDB() {
       toast.error(error.message || '儲存失敗');
     } finally {
       setScriptSaving(false);
+    }
+  };
+
+  // 處理下載日曆腳本為 PDF
+  const handleDownloadCalendarScriptPDF = () => {
+    if (!selectedCalendarDay || !calendarScriptContent) {
+      toast.error('請先生成腳本內容');
+      return;
+    }
+
+    const dateStr = selectedCalendarDate?.toLocaleDateString('zh-TW', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric',
+      weekday: 'long'
+    }) || '';
+    
+    const structureMap: Record<string, string> = {
+      'hook-story-offer': 'Hook-Story-Offer (標準)',
+      'problem-agitate-solve': 'Problem-Agitate-Solve (痛點)',
+      'before-after-bridge': 'Before-After-Bridge (對比)',
+      'listicle': 'Listicle (清單式)',
+      'educational': 'Educational (教學式)'
+    };
+
+    const platformMap: Record<string, string> = {
+      'tiktok': 'TikTok',
+      'instagram': 'Instagram Reels',
+      'youtube': 'YouTube Shorts',
+      'facebook': 'Facebook Reels'
+    };
+
+    const title = `短影音腳本 - ${dateStr}`;
+    
+    // 構建完整的 PDF 內容
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <title>${title}</title>
+          <style>
+            @page {
+              margin: 2cm;
+            }
+            body {
+              font-family: 'Microsoft JhengHei', 'PingFang TC', Arial, sans-serif;
+              line-height: 1.8;
+              color: #333;
+              max-width: 800px;
+              margin: 0 auto;
+              padding: 20px;
+            }
+            .header {
+              border-bottom: 3px solid #3b82f6;
+              padding-bottom: 15px;
+              margin-bottom: 30px;
+            }
+            h1 {
+              color: #1e40af;
+              font-size: 24px;
+              margin: 0 0 10px 0;
+            }
+            .meta-info {
+              background: #f3f4f6;
+              padding: 15px;
+              border-radius: 8px;
+              margin-bottom: 25px;
+            }
+            .meta-row {
+              display: flex;
+              margin-bottom: 8px;
+            }
+            .meta-label {
+              font-weight: bold;
+              min-width: 120px;
+              color: #4b5563;
+            }
+            .meta-value {
+              color: #1f2937;
+            }
+            .section {
+              margin-bottom: 30px;
+            }
+            .section-title {
+              font-size: 18px;
+              font-weight: bold;
+              color: #3b82f6;
+              margin-bottom: 15px;
+              padding-bottom: 8px;
+              border-bottom: 2px solid #e5e7eb;
+            }
+            .script-content {
+              background: #f9fafb;
+              padding: 20px;
+              border-radius: 8px;
+              border-left: 4px solid #3b82f6;
+              white-space: pre-wrap;
+              font-size: 14px;
+              line-height: 1.8;
+            }
+            .performance-section {
+              margin-top: 30px;
+              padding-top: 20px;
+              border-top: 2px solid #e5e7eb;
+            }
+            .performance-grid {
+              display: grid;
+              grid-template-columns: repeat(2, 1fr);
+              gap: 15px;
+              margin-top: 15px;
+            }
+            .performance-item {
+              background: #f3f4f6;
+              padding: 12px;
+              border-radius: 6px;
+            }
+            .performance-label {
+              font-size: 12px;
+              color: #6b7280;
+              margin-bottom: 5px;
+            }
+            .performance-value {
+              font-size: 18px;
+              font-weight: bold;
+              color: #1f2937;
+            }
+            .footer {
+              margin-top: 40px;
+              padding-top: 20px;
+              border-top: 1px solid #e5e7eb;
+              text-align: center;
+              color: #6b7280;
+              font-size: 12px;
+            }
+            @media print {
+              body {
+                padding: 0;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>${title}</h1>
+          </div>
+          
+          <div class="meta-info">
+            <div class="meta-row">
+              <span class="meta-label">日期：</span>
+              <span class="meta-value">${dateStr}</span>
+            </div>
+            ${selectedCalendarDay.topic ? `
+            <div class="meta-row">
+              <span class="meta-label">當天選題：</span>
+              <span class="meta-value">${selectedCalendarDay.topic.replace(/\*\*/g, '').replace(/\*/g, '')}</span>
+            </div>
+            ` : ''}
+            <div class="meta-row">
+              <span class="meta-label">腳本結構：</span>
+              <span class="meta-value">${structureMap[calendarScriptStructure] || calendarScriptStructure}</span>
+            </div>
+            <div class="meta-row">
+              <span class="meta-label">預計秒數：</span>
+              <span class="meta-value">${calendarDuration} 秒</span>
+            </div>
+            <div class="meta-row">
+              <span class="meta-label">發佈平台：</span>
+              <span class="meta-value">${platformMap[calendarPlatform] || calendarPlatform}</span>
+            </div>
+            ${calendarExtraNotes ? `
+            <div class="meta-row">
+              <span class="meta-label">補充說明：</span>
+              <span class="meta-value">${calendarExtraNotes}</span>
+            </div>
+            ` : ''}
+          </div>
+          
+          <div class="section">
+            <div class="section-title">📝 腳本內容</div>
+            <div class="script-content">${calendarScriptContent.replace(/\*\*/g, '').replace(/\*/g, '').replace(/\n/g, '<br>')}</div>
+          </div>
+          
+          ${(calendarVideoUrl || calendarViews || calendarLikes || calendarComments || calendarShares || calendarPerformanceNotes) ? `
+          <div class="section performance-section">
+            <div class="section-title">📊 成效追蹤</div>
+            ${calendarVideoUrl ? `
+            <div class="meta-row" style="margin-bottom: 15px;">
+              <span class="meta-label">影片連結：</span>
+              <span class="meta-value">${calendarVideoUrl}</span>
+            </div>
+            ` : ''}
+            ${(calendarViews || calendarLikes || calendarComments || calendarShares) ? `
+            <div class="performance-grid">
+              ${calendarViews ? `
+              <div class="performance-item">
+                <div class="performance-label">觀看次數</div>
+                <div class="performance-value">${calendarViews}</div>
+              </div>
+              ` : ''}
+              ${calendarLikes ? `
+              <div class="performance-item">
+                <div class="performance-label">按讚數</div>
+                <div class="performance-value">${calendarLikes}</div>
+              </div>
+              ` : ''}
+              ${calendarComments ? `
+              <div class="performance-item">
+                <div class="performance-label">留言數</div>
+                <div class="performance-value">${calendarComments}</div>
+              </div>
+              ` : ''}
+              ${calendarShares ? `
+              <div class="performance-item">
+                <div class="performance-label">分享數</div>
+                <div class="performance-value">${calendarShares}</div>
+              </div>
+              ` : ''}
+            </div>
+            ` : ''}
+            ${calendarPerformanceNotes ? `
+            <div style="margin-top: 15px; padding: 15px; background: #f9fafb; border-radius: 6px;">
+              <div class="meta-label" style="margin-bottom: 8px;">成效備註：</div>
+              <div style="white-space: pre-wrap; color: #1f2937;">${calendarPerformanceNotes.replace(/\n/g, '<br>')}</div>
+            </div>
+            ` : ''}
+          </div>
+          ` : ''}
+          
+          <div class="footer">
+            <p>由 ReelMind 短影音智能體生成</p>
+            <p>生成時間：${new Date().toLocaleString('zh-TW')}</p>
+          </div>
+        </body>
+      </html>
+    `;
+
+    // 使用瀏覽器列印功能生成 PDF
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+      setTimeout(() => {
+        printWindow.print();
+      }, 250);
+      toast.success('正在準備 PDF 下載...');
+    } else {
+      toast.error('無法開啟新視窗，請允許彈出視窗');
     }
   };
 
@@ -629,13 +923,27 @@ export default function UserDB() {
     
     let cleaned = text;
     
-    // 粗體：**text** 或 __text__ → text（保留粗體效果但不顯示符號）
-    cleaned = cleaned.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-    cleaned = cleaned.replace(/__(.+?)__/g, '<strong>$1</strong>');
+    // 先處理換行：\n → <br>（但保留在代碼塊中的換行）
+    // 先標記代碼塊
+    const codeBlockPlaceholders: string[] = [];
+    let codeBlockIndex = 0;
+    cleaned = cleaned.replace(/```[\s\S]*?```/g, (match) => {
+      const placeholder = `__CODEBLOCK_${codeBlockIndex}__`;
+      codeBlockPlaceholders.push(match);
+      codeBlockIndex++;
+      return placeholder;
+    });
     
-    // 斜體：*text* 或 _text_ → text（移除符號，不保留斜體效果）
-    cleaned = cleaned.replace(/(?<!<[^>]*)\*(?!\*)([^*\n]+?)\*(?![*<])/g, '$1');
-    cleaned = cleaned.replace(/(?<!<[^>]*)_(?!_)([^_\n]+?)_(?![_<])/g, '$1');
+    // 粗體：**text** 或 __text__ → <strong>text</strong>（優先處理，避免與單個*混淆）
+    // 使用非貪婪匹配，並確保不會匹配到已經處理過的
+    cleaned = cleaned.replace(/\*\*([^*\n]+?)\*\*/g, '<strong>$1</strong>');
+    cleaned = cleaned.replace(/__(?!_)([^_\n]+?)(?<!_)__/g, '<strong>$1</strong>');
+    
+    // 處理單個*（斜體，但我們移除符號）
+    cleaned = cleaned.replace(/(?<!\*)\*(?!\*)([^*\n]+?)\*(?!\*)/g, '$1');
+    
+    // 處理單個_（斜體，但我們移除符號，但要避免匹配__）
+    cleaned = cleaned.replace(/(?<!_)_(?!_)([^_\n]+?)(?<!_)_(?!_)/g, '$1');
     
     // 刪除線：~~text~~ → text
     cleaned = cleaned.replace(/~~(.+?)~~/g, '$1');
@@ -643,7 +951,12 @@ export default function UserDB() {
     // 行內代碼：`text` → text
     cleaned = cleaned.replace(/`([^`]+?)`/g, '$1');
     
-    // 代碼塊：```...``` → 移除整個代碼塊
+    // 恢復代碼塊（不移除）
+    codeBlockPlaceholders.forEach((placeholder, index) => {
+      cleaned = cleaned.replace(`__CODEBLOCK_${index}__`, placeholder);
+    });
+    
+    // 代碼塊：```...``` → 移除整個代碼塊（現在處理）
     cleaned = cleaned.replace(/```[\s\S]*?```/g, '');
     
     // 標題：### text → text
@@ -654,6 +967,12 @@ export default function UserDB() {
     
     // 圖片：![alt](url) → alt
     cleaned = cleaned.replace(/!\[([^\]]+?)\]\([^\)]+?\)/g, '$1');
+    
+    // 處理換行：\n → <br>（在處理完所有其他格式後）
+    cleaned = cleaned.replace(/\n/g, '<br>');
+    
+    // 處理多個連續的<br>，保留最多2個
+    cleaned = cleaned.replace(/(<br>\s*){3,}/g, '<br><br>');
     
     return cleaned;
   };
@@ -1340,7 +1659,7 @@ export default function UserDB() {
 
               {/* 我的腳本 */}
               <TabsContent value="scripts" className="mt-6">
-                <ScrollArea className="h-[calc(100vh-500px)] md:h-[calc(100vh-550px)]">
+                <ScrollArea className="h-[calc(100vh-380px)] md:h-[calc(100vh-550px)]">
                   {isLoading ? (
                     <div className="text-center py-12">
                       <RefreshCw className="w-8 h-8 mx-auto mb-4 animate-spin text-muted-foreground" />
@@ -1492,14 +1811,14 @@ export default function UserDB() {
                         </Table>
                       </div>
                       {/* 移動版：卡片布局 */}
-                      <div className="md:hidden space-y-4">
+                      <div className="md:hidden space-y-2">
                         {filteredAndSortedData.map((script: Script) => {
                           const titleId = `script-${script.id}`;
                           const isEditing = editingTitleId === titleId;
                           return (
                           <Card key={script.id} className="hover:shadow-md transition-shadow">
-                            <CardContent className="p-4">
-                              <div className="space-y-3">
+                            <CardContent className="p-2.5">
+                              <div className="space-y-1.5">
                                 <div className="flex items-start justify-between gap-2">
                                   {isEditing ? (
                                     <Input
@@ -1519,56 +1838,52 @@ export default function UserDB() {
                                           setEditingTitleId(null);
                                         }
                                       }}
-                                      className="flex-1 h-8"
+                                      className="flex-1 h-7 text-sm"
                                       autoFocus
                                     />
                                   ) : (
                                     <h3 
-                                      className="font-medium text-sm flex-1 cursor-pointer hover:text-primary group flex items-center gap-1"
+                                      className="font-medium text-xs flex-1 cursor-pointer hover:text-primary group flex items-center gap-1 leading-tight"
                                       onClick={() => {
                                         setEditingTitleId(titleId);
                                         setEditingTitleValue(script.title);
                                       }}
                                     >
-                                      <span>{script.title}</span>
-                                      <Edit className="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity" />
+                                      <span className="line-clamp-1">{script.title}</span>
+                                      <Edit className="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity shrink-0" />
                                     </h3>
                                   )}
-                                  <Badge variant="outline" className="text-xs">{script.platform}</Badge>
+                                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0">{script.platform}</Badge>
                                 </div>
-                                <p className="text-xs text-muted-foreground">
-                                  {formatDate(script.created_at)}
-                                </p>
-                                <div className="bg-muted/50 rounded-lg p-2">
-                                  <p className="text-xs text-muted-foreground line-clamp-2">
-                                    {script.content ? renderCleanContent(script.content, 100) : <span>無內容</span>}
+                                <div className="flex items-center justify-between gap-2">
+                                  <p className="text-[10px] text-muted-foreground">
+                                    {formatDate(script.created_at)}
                                   </p>
-                                </div>
-                                <div className="flex gap-2 pt-2 border-t">
-                                <Button
-                                  variant="ghost"
-                                    size="sm"
-                                    className="flex-1"
-                                  onClick={() => handleView(script)}
-                                >
-                                    <Eye className="w-4 h-4 mr-1" />
-                                    查看
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                    size="sm"
-                                    className="flex-1"
-                                  onClick={() => handleCopy(script.content)}
-                                >
-                                    <Copy className="w-4 h-4 mr-1" />
-                                    複製
-                                </Button>
-                                  <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                      <Button variant="ghost" size="sm">
-                                        <MoreVertical className="w-4 h-4" />
-                                      </Button>
-                                    </DropdownMenuTrigger>
+                                  <div className="flex gap-1">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-7 px-2 text-[10px]"
+                                      onClick={() => handleView(script)}
+                                    >
+                                      <Eye className="w-3 h-3 mr-0.5" />
+                                      查看
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-7 px-2 text-[10px]"
+                                      onClick={() => handleCopy(script.content)}
+                                    >
+                                      <Copy className="w-3 h-3 mr-0.5" />
+                                      複製
+                                    </Button>
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                                          <MoreVertical className="w-3 h-3" />
+                                        </Button>
+                                      </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
                                       <DropdownMenuItem onClick={() => {
                                         setSelectedItem(script);
@@ -1587,7 +1902,8 @@ export default function UserDB() {
                                       </DropdownMenuItem>
                                     </DropdownMenuContent>
                                   </DropdownMenu>
-                              </div>
+                                  </div>
+                                </div>
                               </div>
                             </CardContent>
                           </Card>
@@ -1602,7 +1918,7 @@ export default function UserDB() {
 
               {/* IP 人設規劃結果 */}
               <TabsContent value="ip-planning" className="mt-6">
-                <ScrollArea className="h-[calc(100vh-500px)] md:h-[calc(100vh-550px)]">
+                <ScrollArea className="h-[calc(100vh-380px)] md:h-[calc(100vh-550px)]">
                   {isLoading ? (
                     <div className="text-center py-12">
                       <RefreshCw className="w-8 h-8 mx-auto mb-4 animate-spin text-muted-foreground" />
@@ -1780,7 +2096,7 @@ export default function UserDB() {
                         </Table>
                       </div>
                       {/* 移動版：卡片布局 */}
-                      <div className="md:hidden space-y-4">
+                      <div className="md:hidden space-y-2">
                         {filteredAndSortedData.map((result: IPPlanningResult) => {
                           const typeLabel = getIPPlanningTypeLabel(result);
                           const sourceLabel = getSourceLabel(result);
@@ -1788,8 +2104,8 @@ export default function UserDB() {
                           const isEditing = editingTitleId === titleId;
                           return (
                             <Card key={result.id} className="hover:shadow-md transition-shadow">
-                              <CardContent className="p-4">
-                                <div className="space-y-3">
+                              <CardContent className="p-2.5">
+                                <div className="space-y-1.5">
                                   <div className="flex items-start justify-between gap-2">
                                     {isEditing ? (
                                       <Input
@@ -1809,63 +2125,64 @@ export default function UserDB() {
                                             setEditingTitleId(null);
                                           }
                                         }}
-                                        className="flex-1 h-8"
+                                        className="flex-1 h-7 text-sm"
                                         autoFocus
                                       />
                                     ) : (
                                       <h3 
-                                        className="font-medium text-sm flex-1 cursor-pointer hover:text-primary group flex items-center gap-1"
+                                        className="font-medium text-xs flex-1 cursor-pointer hover:text-primary group flex items-center gap-1 leading-tight"
                                         onClick={() => {
                                           setEditingTitleId(titleId);
                                           setEditingTitleValue(result.title || '未命名');
                                         }}
                                       >
-                                        <span>{result.title || '未命名'}</span>
-                                        <Edit className="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity" />
+                                        <span className="line-clamp-1">{result.title || '未命名'}</span>
+                                        <Edit className="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity shrink-0" />
                                       </h3>
                                     )}
-                                    <div className="flex flex-col gap-1 items-end">
-                                      <Badge variant="outline" className="text-xs">{typeLabel}</Badge>
+                                    <div className="flex flex-col gap-0.5 items-end shrink-0">
+                                      <Badge variant="outline" className="text-[10px] px-1.5 py-0">{typeLabel}</Badge>
                                       {sourceLabel && (
-                                        <Badge variant="secondary" className="text-xs">
+                                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
                                           {sourceLabel}
                                         </Badge>
                                       )}
                                     </div>
                                   </div>
-                                  <div className="bg-muted/50 rounded-lg p-2">
-                                    <p className="text-xs text-muted-foreground line-clamp-2">
-                                      {result.content ? renderCleanContent(result.content, 100) : <span>無內容</span>}
+                                  <div className="bg-muted/50 rounded p-1.5">
+                                    <p className="text-[10px] text-muted-foreground line-clamp-1 leading-tight">
+                                      {result.content ? renderCleanContent(result.content, 80) : <span>無內容</span>}
                                     </p>
                                   </div>
-                                  <p className="text-xs text-muted-foreground">
-                                    {formatDate(result.created_at)}
-                                  </p>
-                                  <div className="flex gap-2 pt-2 border-t">
-                                  <Button
-                                    variant="ghost"
-                                      size="sm"
-                                      className="flex-1"
-                                    onClick={() => handleView(result)}
-                                  >
-                                      <Eye className="w-4 h-4 mr-1" />
-                                      查看
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                      size="sm"
-                                      className="flex-1"
-                                    onClick={() => handleCopy(result.content)}
-                                  >
-                                      <Copy className="w-4 h-4 mr-1" />
-                                      複製
-                                  </Button>
-                                    <DropdownMenu>
-                                      <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" size="sm">
-                                          <MoreVertical className="w-4 h-4" />
-                                        </Button>
-                                      </DropdownMenuTrigger>
+                                  <div className="flex items-center justify-between gap-2">
+                                    <p className="text-[10px] text-muted-foreground">
+                                      {formatDate(result.created_at)}
+                                    </p>
+                                    <div className="flex gap-1">
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-7 px-2 text-[10px]"
+                                        onClick={() => handleView(result)}
+                                      >
+                                        <Eye className="w-3 h-3 mr-0.5" />
+                                        查看
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-7 px-2 text-[10px]"
+                                        onClick={() => handleCopy(result.content)}
+                                      >
+                                        <Copy className="w-3 h-3 mr-0.5" />
+                                        複製
+                                      </Button>
+                                      <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                                            <MoreVertical className="w-3 h-3" />
+                                          </Button>
+                                        </DropdownMenuTrigger>
                                       <DropdownMenuContent align="end">
                                         <DropdownMenuItem onClick={() => {
                                           setSelectedItem(result);
@@ -1900,10 +2217,11 @@ export default function UserDB() {
                                         </DropdownMenuItem>
                                       </DropdownMenuContent>
                                     </DropdownMenu>
+                                  </div>
                                 </div>
-                                </div>
-                              </CardContent>
-                            </Card>
+                              </div>
+                            </CardContent>
+                          </Card>
                           );
                         })}
                       </div>
@@ -1940,28 +2258,29 @@ export default function UserDB() {
                 </div>
 
                 {planningViewMode === 'calendar' ? (
-                  <div className="flex flex-col h-[calc(100vh-520px)] md:h-auto md:min-h-[850px] space-y-3 overflow-hidden">
+                  <div className="flex flex-col space-y-3 overflow-visible">
                     <div className="flex items-center justify-between gap-2 shrink-0">
-                      <div className="text-xs text-muted-foreground">
+                      <div className="text-[10px] md:text-xs text-muted-foreground">
                         先在列表中對想要執行的 14 天規劃使用「排入日曆」，再在此查看與管理每天的選題與腳本。
                       </div>
                       <Button
                         variant="outline"
                         size="sm"
+                        className="h-7 md:h-9"
                         onClick={() => loadPlanningDays(calendarMonth)}
                         disabled={calendarLoading}
                       >
                         {calendarLoading ? (
-                          <span className="text-xs">載入中...</span>
+                          <span className="text-[10px] md:text-xs">載入中...</span>
                         ) : (
                           <>
                             <RefreshCw className="w-3 h-3 mr-1" />
-                            <span className="text-xs">重新載入</span>
+                            <span className="text-[10px] md:text-xs">重新載入</span>
                           </>
                         )}
                       </Button>
                     </div>
-                    <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+                    <div className="w-full overflow-visible">
                       <PlanningCalendarView
                         days={planningDays}
                         month={calendarMonth}
@@ -2007,7 +2326,7 @@ export default function UserDB() {
                     </div>
                   </div>
                 ) : (
-                <ScrollArea className="h-[calc(100vh-500px)] md:h-[calc(100vh-550px)]">
+                <ScrollArea className="h-[calc(100vh-380px)] md:h-[calc(100vh-550px)]">
                   {isLoading ? (
                     <div className="text-center py-12">
                       <RefreshCw className="w-8 h-8 mx-auto mb-4 animate-spin text-muted-foreground" />
@@ -2195,15 +2514,15 @@ export default function UserDB() {
                         </Table>
                       </div>
                       {/* 移動版：卡片布局 */}
-                      <div className="md:hidden space-y-4">
+                      <div className="md:hidden space-y-2">
                         {filteredAndSortedData.map((result: IPPlanningResult) => {
                           const sourceLabel = getSourceLabel(result);
                           const titleId = `planning-${result.id}`;
                           const isEditing = editingTitleId === titleId;
                           return (
                             <Card key={result.id} className="hover:shadow-md transition-shadow">
-                              <CardContent className="p-4">
-                                <div className="space-y-3">
+                              <CardContent className="p-2.5">
+                                <div className="space-y-1.5">
                                   <div className="flex items-start justify-between gap-2">
                                     {isEditing ? (
                                       <Input
@@ -2223,58 +2542,59 @@ export default function UserDB() {
                                             setEditingTitleId(null);
                                           }
                                         }}
-                                        className="flex-1 h-8"
+                                        className="flex-1 h-7 text-sm"
                                         autoFocus
                                       />
                                     ) : (
                                       <h3 
-                                        className="font-medium text-sm flex-1 cursor-pointer hover:text-primary group flex items-center gap-1"
+                                        className="font-medium text-xs flex-1 cursor-pointer hover:text-primary group flex items-center gap-1 leading-tight"
                                         onClick={() => {
                                           setEditingTitleId(titleId);
                                           setEditingTitleValue(result.title || '未命名');
                                         }}
                                       >
-                                        <span>{result.title || '未命名'}</span>
-                                        <Edit className="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity" />
+                                        <span className="line-clamp-1">{result.title || '未命名'}</span>
+                                        <Edit className="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity shrink-0" />
                                       </h3>
                                     )}
                                     {sourceLabel && (
-                                      <Badge variant="secondary" className="text-xs">
+                                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0 shrink-0">
                                         {sourceLabel}
                                       </Badge>
                                     )}
                                   </div>
-                                  <div className="bg-muted/50 rounded-lg p-2">
-                                    <p className="text-xs text-muted-foreground line-clamp-2">
-                                      {result.content ? renderCleanContent(result.content, 100) : <span>無內容</span>}
+                                  <div className="bg-muted/50 rounded p-1.5">
+                                    <p className="text-[10px] text-muted-foreground line-clamp-1 leading-tight">
+                                      {result.content ? renderCleanContent(result.content, 80) : <span>無內容</span>}
                                     </p>
                                   </div>
-                                  <p className="text-xs text-muted-foreground">
-                                    {formatDate(result.created_at)}
-                                  </p>
-                                  <div className="flex gap-2 pt-2 border-t">
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="flex-1"
-                                      onClick={() => handleView(result)}
-                                    >
-                                      <Eye className="w-4 h-4 mr-1" />
-                                      查看
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="flex-1"
-                                      onClick={() => handleCopy(result.content)}
-                                    >
-                                      <Copy className="w-4 h-4 mr-1" />
-                                      複製
-                                    </Button>
+                                  <div className="flex items-center justify-between gap-2">
+                                    <p className="text-[10px] text-muted-foreground">
+                                      {formatDate(result.created_at)}
+                                    </p>
+                                    <div className="flex gap-1">
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-7 px-2 text-[10px]"
+                                        onClick={() => handleView(result)}
+                                      >
+                                        <Eye className="w-3 h-3 mr-0.5" />
+                                        查看
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-7 px-2 text-[10px]"
+                                        onClick={() => handleCopy(result.content)}
+                                      >
+                                        <Copy className="w-3 h-3 mr-0.5" />
+                                        複製
+                                      </Button>
                                     <DropdownMenu>
                                       <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" size="sm">
-                                          <MoreVertical className="w-4 h-4" />
+                                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                                          <MoreVertical className="w-3 h-3" />
                                         </Button>
                                       </DropdownMenuTrigger>
                                       <DropdownMenuContent align="end">
@@ -2323,8 +2643,9 @@ export default function UserDB() {
                                     </DropdownMenu>
                                   </div>
                                 </div>
-                              </CardContent>
-                            </Card>
+                              </div>
+                            </CardContent>
+                          </Card>
                           );
                         })}
                       </div>
@@ -2502,15 +2823,34 @@ export default function UserDB() {
         <DialogContent className="max-w-4xl w-full max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
           <div className="p-6 pb-2 shrink-0 border-b">
             <DialogHeader>
-              <div className="flex items-center justify-between gap-2">
-                <DialogTitle className="flex items-center gap-2 text-xl flex-1">
-                  <CalendarIcon className="w-5 h-5 text-primary" />
-                  {selectedCalendarDate?.toLocaleDateString()} ({selectedCalendarDay?.weekday || selectedCalendarDate?.toLocaleDateString('zh-TW', { weekday: 'long' })})
-                </DialogTitle>
+              <DialogTitle className="flex items-center gap-2 text-xl">
+                <CalendarIcon className="w-5 h-5 text-primary" />
+                {selectedCalendarDate?.toLocaleDateString()} ({selectedCalendarDay?.weekday || selectedCalendarDate?.toLocaleDateString('zh-TW', { weekday: 'long' })})
+              </DialogTitle>
+              <DialogDescription className="text-base mt-1">
+                {selectedCalendarDay ? (
+                   // Clean markdown here as well if topic contains it
+                  <span className="font-medium text-foreground" dangerouslySetInnerHTML={{ __html: cleanMarkdown(selectedCalendarDay.topic) }} />
+                ) : (
+                  <span className="text-muted-foreground italic">當天尚未有規劃</span>
+                )}
+              </DialogDescription>
+            </DialogHeader>
+          </div>
+
+          <div className="flex-1 min-h-0 px-6 pb-6 flex flex-col overflow-hidden">
+            <Tabs defaultValue="topic" className="h-full flex flex-col min-h-0">
+              <div className="flex items-center justify-between mb-4">
+                <TabsList className="grid w-full grid-cols-3 shrink-0">
+                  <TabsTrigger value="profile">帳號定位</TabsTrigger>
+                  <TabsTrigger value="topic">當天選題</TabsTrigger>
+                  <TabsTrigger value="script">短影音腳本</TabsTrigger>
+                </TabsList>
                 {selectedCalendarDay && (
                   <Button
                     variant="destructive"
                     size="sm"
+                    className="ml-4 shrink-0"
                     onClick={async () => {
                       if (!selectedCalendarDay?.id) return;
                       if (!confirm('確定要刪除這一天的規劃嗎？此操作無法復原。')) return;
@@ -2534,24 +2874,6 @@ export default function UserDB() {
                   </Button>
                 )}
               </div>
-              <DialogDescription className="text-base mt-1">
-                {selectedCalendarDay ? (
-                   // Clean markdown here as well if topic contains it
-                  <span className="font-medium text-foreground" dangerouslySetInnerHTML={{ __html: cleanMarkdown(selectedCalendarDay.topic) }} />
-                ) : (
-                  <span className="text-muted-foreground italic">當天尚未有規劃</span>
-                )}
-              </DialogDescription>
-            </DialogHeader>
-          </div>
-
-          <div className="flex-1 min-h-0 px-6 pb-6 flex flex-col overflow-hidden">
-            <Tabs defaultValue="topic" className="h-full flex flex-col min-h-0">
-              <TabsList className="grid w-full grid-cols-3 mb-4 shrink-0">
-                <TabsTrigger value="profile">帳號定位</TabsTrigger>
-                <TabsTrigger value="topic">當天選題</TabsTrigger>
-                <TabsTrigger value="script">短影音腳本</TabsTrigger>
-              </TabsList>
               
               {/* 帳號定位 Tab */}
               <TabsContent value="profile" className="flex-1 overflow-hidden mt-0 data-[state=active]:flex flex-col min-h-0">
@@ -2656,7 +2978,7 @@ export default function UserDB() {
                           ) : (
                             <div className="w-full max-w-2xl">
                               <p className="text-xl font-medium leading-relaxed" dangerouslySetInnerHTML={{ __html: cleanMarkdown(selectedCalendarDay?.topic || '無選題') }} />
-                              {selectedCalendarDay?.topic && (
+                              {selectedCalendarDay?.topic && selectedCalendarDay.day_index && (
                                 <p className="text-sm text-muted-foreground mt-2">
                                   此選題來自 14 天規劃的第 {selectedCalendarDay.day_index} 天
                                 </p>
@@ -2772,6 +3094,18 @@ export default function UserDB() {
                               </>
                             )}
                           </Button>
+                          {calendarScriptContent && (
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={handleDownloadCalendarScriptPDF}
+                              disabled={!selectedCalendarDay}
+                              className="flex-1 md:flex-none"
+                            >
+                              <FileDown className="w-3 h-3 mr-1" />
+                              下載 PDF
+                            </Button>
+                          )}
                           <Button 
                             size="sm"
                             onClick={handleSaveCalendarScript}
