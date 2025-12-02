@@ -377,14 +377,12 @@ export default function Mode1() {
       loadHistory();
       // 同時載入生成結果（從資料庫和 localStorage）
       loadSavedResults(true); // 先顯示緩存，然後異步更新資料庫數據
-    } else if (user?.user_id) {
-      // 即使沒有權限，也先載入 localStorage 緩存，讓 Dialog 打開時能立即顯示
-      const localResults = loadFromLocalStorage();
-      if (localResults.length > 0) {
-        setSavedResults(localResults);
-      }
+    } else if (user?.user_id && !checkingPermission) {
+      // 即使權限檢查未完成或沒有權限，也嘗試從資料庫載入（可能之前有保存的資料）
+      // 如果 API 失敗（如 403），至少顯示 localStorage 緩存
+      loadSavedResults(true); // 先顯示緩存，然後異步嘗試從資料庫更新
     }
-  }, [activeTab, hasPermission, user?.user_id]);
+  }, [activeTab, hasPermission, user?.user_id, checkingPermission]);
 
   // 自動滾動到底部
   useEffect(() => {
@@ -551,8 +549,17 @@ export default function Mode1() {
             savedToDB: true // 標記為已儲存到資料庫
           };
         });
-      } catch (error) {
+      } catch (error: any) {
         console.error('從資料庫載入失敗:', error);
+        // 如果是 403 錯誤（權限不足），這是正常的，不顯示錯誤
+        // 但如果是其他錯誤（如網絡錯誤、超時），記錄詳細信息
+        if (error?.response?.status !== 403 && error?.response?.status !== 401) {
+          console.warn('[Mode1] 資料庫載入失敗，將僅顯示 localStorage 緩存:', {
+            status: error?.response?.status,
+            message: error?.message,
+            timeout: error?.code === 'ECONNABORTED'
+          });
+        }
       }
       
       // 3. 合併結果（避免重複）
@@ -572,6 +579,13 @@ export default function Mode1() {
       
       // 4. 更新 localStorage（保存所有結果，包括已保存到資料庫的，用於緩存）
       saveToLocalStorage(allResults, true); // true 表示保存所有結果（包括已保存到資料庫的）
+      
+      console.log('[Mode1] 生成結果載入完成:', {
+        資料庫結果: dbResults.length,
+        localStorage結果: localResults.length,
+        合併後總數: allResults.length,
+        已保存到資料庫: allResults.filter(r => r.savedToDB).length
+      });
     } catch (error) {
       console.error('載入生成結果失敗:', error);
       // 即使出錯，也至少顯示 localStorage 的數據
