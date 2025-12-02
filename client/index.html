@@ -41,6 +41,8 @@
     <meta name="theme-color" content="#0ea5e9" />
     
     <!-- Structured Data (JSON-LD) -->
+    
+    <!-- 1. WebApplication Schema (優化版) -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -48,20 +50,26 @@
       "name": "ReelMind",
       "alternateName": "ReelMind AI 短影音智能體",
       "url": "https://reelmind.aijob.com.tw/",
-      "description": "AI 驅動的短影音創作平台，提供一鍵生成爆款腳本、IP 人設規劃、創作者資料庫和實戰指南。",
+      "description": "AI 驅動的短影音創作平台，提供一鍵生成爆款腳本、IP 人設規劃、創作者資料庫和實戰指南。專為 IG、TikTok、Shorts 打造，效率提升 70%。",
       "applicationCategory": "BusinessApplication",
       "operatingSystem": "Web",
+      "browserRequirements": "Requires JavaScript. Requires HTML5.",
+      "softwareVersion": "2.0",
+      "releaseNotes": "提供 AI 腳本生成、IP 人設規劃、創作者資料庫等功能",
       "offers": {
         "@type": "Offer",
         "price": "19800",
         "priceCurrency": "TWD",
         "priceValidUntil": "2025-12-31",
-        "availability": "https://schema.org/InStock"
+        "availability": "https://schema.org/InStock",
+        "url": "https://reelmind.aijob.com.tw/subscription.html"
       },
       "aggregateRating": {
         "@type": "AggregateRating",
         "ratingValue": "4.8",
-        "ratingCount": "156"
+        "ratingCount": "156",
+        "bestRating": "5",
+        "worstRating": "1"
       },
       "publisher": {
         "@type": "Organization",
@@ -69,14 +77,9 @@
         "url": "https://reelmind.aijob.com.tw/",
         "logo": {
           "@type": "ImageObject",
-          "url": "https://reelmind.aijob.com.tw/logo.png"
-        },
-        "contactPoint": {
-          "@type": "ContactPoint",
-          "email": "aiagent168168@gmail.com",
-          "contactType": "customer service",
-          "areaServed": "TW",
-          "availableLanguage": ["zh-Hant", "zh-Hans"]
+          "url": "https://reelmind.aijob.com.tw/logo.png",
+          "width": 512,
+          "height": 512
         }
       },
       "featureList": [
@@ -84,9 +87,113 @@
         "IP 人設規劃",
         "一鍵生成",
         "創作者資料庫",
-        "實戰指南"
+        "實戰指南",
+        "多平台優化（IG Reels、TikTok、YouTube Shorts）"
       ],
-      "screenshot": "https://reelmind.aijob.com.tw/screenshot.jpg"
+      "screenshot": "https://reelmind.aijob.com.tw/screenshot.jpg",
+      "keywords": "AI短影音,短影音腳本生成,AI腳本生成,短影音工具,AI短影音平台,短影音創作,IG Reels,TikTok,YouTube Shorts,帳號定位,IP人設規劃,短影音智能體"
+    }
+    </script>
+    
+    <!-- 2. Organization Schema (完整組織資訊) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "ReelMind AI",
+      "alternateName": "ReelMind 短影音智能體",
+      "url": "https://reelmind.aijob.com.tw/",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://reelmind.aijob.com.tw/logo.png",
+        "width": 512,
+        "height": 512
+      },
+      "description": "AI 驅動的短影音創作平台，提供一鍵生成爆款腳本、IP 人設規劃、創作者資料庫和實戰指南",
+      "foundingDate": "2024",
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "email": "aiagent168168@gmail.com",
+        "contactType": "customer service",
+        "areaServed": "TW",
+        "availableLanguage": ["zh-Hant", "zh-Hans"]
+      },
+      "sameAs": [
+        "https://reelmind.aijob.com.tw/"
+      ],
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.8",
+        "ratingCount": "156",
+        "bestRating": "5",
+        "worstRating": "1"
+      }
+    }
+    </script>
+    
+    <!-- 3. FAQPage Schema (常見問題) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "ReelMind 是什麼？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "ReelMind 是 AI 驅動的短影音創作平台，提供一鍵生成爆款腳本、IP 人設規劃、創作者資料庫和實戰指南。專為 IG Reels、TikTok、YouTube Shorts 打造，效率提升 70%。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "如何使用 ReelMind 生成短影音腳本？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "在 ReelMind 中，你只需要：1. 選擇「一鍵生成」模式；2. 輸入你的主題（例如：「減重技巧」）；3. AI 會自動生成包含 Hook、橋段和 CTA 的完整腳本。系統會根據你選擇的平台（IG Reels、TikTok、YouTube Shorts）自動優化腳本結構和節奏。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "ReelMind 支援哪些平台？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "ReelMind 專為 IG Reels、TikTok、YouTube Shorts 打造，可以針對不同平台的特性自動優化腳本結構、節奏和語氣。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "需要自己的 API Key 嗎？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "是的，ReelMind 採用 BYOK（Bring Your Own Key）模式，所有用戶都需要綁定自己的 LLM API Key（如 Google Gemini 或 OpenAI）。使用自己的 API Key 可以完全掌控生成品質、選擇更高階的 AI 模型，且不受系統配額限制。"
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "ReelMind 的價格是多少？",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "ReelMind 訂閱價格為 NT$ 19,800/年，平均每天不到 NT$66，全年 AI 幫你生成靈感與爆款腳本。"
+          }
+        }
+      ]
+    }
+    </script>
+    
+    <!-- 4. BreadcrumbList Schema (首頁麵包屑) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "首頁",
+          "item": "https://reelmind.aijob.com.tw/"
+        }
+      ]
     }
     </script>
     
