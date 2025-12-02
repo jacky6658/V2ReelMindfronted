@@ -7,6 +7,7 @@ import { Sparkles, Target, Zap, TrendingUp, CheckCircle2, Play, Check, Mail, Shi
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useAuthStore } from "@/stores/authStore";
+import SiteFooterContacts from "@/components/SiteFooterContacts";
 
 export default function Home() {
   const navigate = useNavigate();
@@ -909,14 +910,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 頁尾 */}
-      <footer className="py-12 border-t">
-        <div className="container">
-          <div className="text-center text-sm text-muted-foreground">
-            <p>© 2024 ReelMind AI. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
+      {/* 頁尾：全站聯繫方式與社群 */}
+      <SiteFooterContacts />
     </div>
   );
 }
