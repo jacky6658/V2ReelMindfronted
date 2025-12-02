@@ -48,7 +48,7 @@ export function generateArticleSchema(slug: string, article: GuideArticle) {
     "description": description,
     "image": {
       "@type": "ImageObject",
-      "url": `${BASE_URL}/og-image.jpg`,
+      "url": `${BASE_URL}/assets/images/ReelMind.png`,
       "width": 1200,
       "height": 630
     },
@@ -283,7 +283,7 @@ export function extractHowToSchema(article: GuideArticle) {
     "totalTime": article.readTime,
     "image": {
       "@type": "ImageObject",
-      "url": `${BASE_URL}/og-image.jpg`
+      "url": `${BASE_URL}/assets/images/ReelMind.png`
     }
   };
 }

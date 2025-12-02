@@ -22,7 +22,7 @@ interface MetaTagsOptions {
 const BASE_URL = 'https://reelmind.aijob.com.tw';
 const DEFAULT_TITLE = 'ReelMind - AI 短影音智能體 | 從靈感枯竭到內容量產';
 const DEFAULT_DESCRIPTION = 'ReelMind 是 AI 驅動的短影音創作平台，提供一鍵生成爆款腳本、IP 人設規劃、創作者資料庫和實戰指南。專為 IG、TikTok、Shorts 打造，效率提升 70%。';
-const DEFAULT_IMAGE = `${BASE_URL}/og-image.jpg`;
+const DEFAULT_IMAGE = `${BASE_URL}/assets/images/ReelMind.png`;
 
 /**
  * 動態更新頁面 Meta Tags
