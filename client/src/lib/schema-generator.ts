@@ -62,7 +62,7 @@ export function generateArticleSchema(slug: string, article: GuideArticle) {
       "name": "ReelMind AI",
       "logo": {
         "@type": "ImageObject",
-        "url": `${BASE_URL}/logo.png`,
+        "url": `${BASE_URL}/assets/images/android-chrome-512x512.png`,
         "width": 512,
         "height": 512
       }
