@@ -17,6 +17,46 @@ import { toast } from 'sonner';
 // 指南文章列表
 const guides = [
   {
+    id: 13,
+    title: 'AI 腳本生成完整教學：一鍵生成爆款短影音腳本',
+    description: '完整教學如何使用 AI 生成短影音腳本，包含一鍵生成腳本的操作流程、AI 腳本生成技巧與實際範例',
+    category: 'AI 腳本生成',
+    readTime: '12 分鐘',
+    slug: 'ai-script-generation-complete-guide'
+  },
+  {
+    id: 14,
+    title: 'AI 短影音腳本生成器推薦：5 款免費工具比較',
+    description: '完整比較 5 款免費 AI 短影音腳本生成器，包含功能特色、優缺點分析與使用建議',
+    category: 'AI 腳本生成',
+    readTime: '10 分鐘',
+    slug: 'ai-short-video-script-generator-recommendation'
+  },
+  {
+    id: 15,
+    title: '如何使用 AI 生成短影音腳本？3 步驟完整教學',
+    description: '3 步驟學會如何使用 AI 生成短影音腳本。從選擇工具到優化腳本，完整教學快速產出高品質腳本',
+    category: 'AI 腳本生成',
+    readTime: '8 分鐘',
+    slug: 'how-to-use-ai-generate-short-video-script'
+  },
+  {
+    id: 16,
+    title: 'AI 腳本 vs 手寫腳本：哪個更有效？',
+    description: '完整比較 AI 腳本和手寫腳本的優缺點，包含時間成本、品質、創意、成本等面向',
+    category: 'AI 腳本生成',
+    readTime: '10 分鐘',
+    slug: 'ai-script-vs-handwritten-script'
+  },
+  {
+    id: 17,
+    title: '一鍵生成腳本工具完整評測：ReelMind vs 其他平台',
+    description: '完整評測 ReelMind 與其他一鍵生成腳本工具，包含功能比較、優缺點分析、價格對比與使用建議',
+    category: 'AI 腳本生成',
+    readTime: '12 分鐘',
+    slug: 'one-click-script-generator-comparison'
+  },
+  {
     id: 1,
     title: '三步驟生成 30 秒腳本',
     description: '快速掌握腳本生成技巧，從零到一完成你的第一支短影音腳本',
@@ -126,7 +166,8 @@ const categories = [
   '進階技巧',
   '變現策略',
   'AI 應用',
-  '提示詞庫'
+  '提示詞庫',
+  'AI 腳本生成'
 ];
 
 export default function Guide() {
