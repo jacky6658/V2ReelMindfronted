@@ -173,14 +173,12 @@ function PlanningCalendarView({
   
   // Padding for previous month
   for (let i = 0; i < startDayOfWeek; i++) {
-    cells.push(<div key={`empty-${i}`} className="bg-muted/20 border-b border-r h-24 md:h-32 lg:h-40" />);
+    cells.push(<div key={`empty-${i}`} className="bg-muted/20 border-b border-r min-h-[6rem] md:min-h-[8rem] lg:min-h-[10rem]" />);
   }
 
   // Days
   for (let d = 1; d <= daysInMonth; d++) {
     const currentDate = new Date(year, currentMonth, d);
-    // Handle local date string issue by ensuring YYYY-MM-DD format matches backend
-    // Backend returns date string.
     const dateStr = `${year}-${String(currentMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
     
     const entry = days.find(day => day.date === dateStr);
@@ -198,7 +196,7 @@ function PlanningCalendarView({
       <div 
         key={d} 
         className={cn(
-          "relative border-b border-r h-24 md:h-32 lg:h-40 p-1 md:p-2 flex flex-col gap-1 transition-colors hover:bg-muted/50 cursor-pointer group bg-background",
+          "relative border-b border-r min-h-[6rem] md:min-h-[8rem] lg:min-h-[10rem] p-1 md:p-2 flex flex-col gap-1 transition-colors hover:bg-muted/50 cursor-pointer group bg-background",
           entry ? "bg-primary/5" : ""
         )}
         onClick={() => onDayClick(entry || null, currentDate)}
@@ -234,21 +232,16 @@ function PlanningCalendarView({
   const remaining = 7 - (totalCells % 7);
   if (remaining < 7) {
     for (let i = 0; i < remaining; i++) {
-         cells.push(<div key={`empty-end-${i}`} className="bg-muted/20 border-b border-r h-24 md:h-32 lg:h-40" />);
+         cells.push(<div key={`empty-end-${i}`} className="bg-muted/20 border-b border-r min-h-[6rem] md:min-h-[8rem] lg:min-h-[10rem]" />);
     }
   }
 
   const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-  // RWD: On mobile, use a different layout or just simple stacking.
-  // For now, let's adjust the grid columns for mobile if needed, 
-  // but standard calendar usually keeps 7 columns even on mobile (just smaller).
-  // We can use overflow-x-auto for a scrollable calendar on very small screens if needed.
-  
   return (
     <div className="flex flex-col h-full bg-card rounded-xl border shadow-sm w-full overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b">
+      <div className="flex items-center justify-between p-4 border-b shrink-0">
         <div className="flex items-center gap-2">
             <Button variant="outline" size="icon" onClick={() => onMonthChange(new Date(year, currentMonth - 1, 1))}>
                 <ChevronLeftIcon className="h-4 w-4" />
@@ -266,7 +259,7 @@ function PlanningCalendarView({
       </div>
 
       {/* Grid Header */}
-      <div className="grid grid-cols-7 border-b bg-muted/30">
+      <div className="grid grid-cols-7 border-b bg-muted/30 shrink-0">
         {weekDays.map(day => (
             <div key={day} className="py-2 text-center text-xs md:text-sm font-medium text-muted-foreground border-r last:border-r-0">
                 {day}
@@ -274,8 +267,8 @@ function PlanningCalendarView({
         ))}
       </div>
 
-      {/* Grid Body */}
-      <div className="grid grid-cols-7 border-l border-t-0 overflow-y-auto">
+      {/* Grid Body - 手機版使用滾動，電腦版完整顯示整個月份 */}
+      <div className="grid grid-cols-7 border-l border-t-0 overflow-y-auto md:overflow-visible flex-1 min-h-0 md:min-h-[700px] md:max-h-none">
         {cells}
       </div>
     </div>
@@ -1944,8 +1937,8 @@ export default function UserDB() {
                 </div>
 
                 {planningViewMode === 'calendar' ? (
-                  <div className="h-[calc(100vh-520px)] md:h-[calc(100vh-580px)] space-y-3">
-                    <div className="flex items-center justify-between gap-2">
+                  <div className="flex flex-col h-[calc(100vh-520px)] md:h-auto md:min-h-[850px] space-y-3 overflow-hidden">
+                    <div className="flex items-center justify-between gap-2 shrink-0">
                       <div className="text-xs text-muted-foreground">
                         先在列表中對想要執行的 14 天規劃使用「排入日曆」，再在此查看與管理每天的選題與腳本。
                       </div>
@@ -1965,48 +1958,50 @@ export default function UserDB() {
                         )}
                       </Button>
                     </div>
-                    <PlanningCalendarView
-                      days={planningDays}
-                      month={calendarMonth}
-                      onMonthChange={(m) => {
-                        setCalendarMonth(m);
-                        loadPlanningDays(m);
-                      }}
-                      onDayClick={(entry, date) => {
-                        setSelectedCalendarDay(entry);
-                        setSelectedCalendarDate(date);
-                        if (entry) {
-                          setCalendarScriptContent(entry.script_content || '');
-                          setCalendarScriptStructure(entry.script_structure || 'hook-story-offer');
-                          setCalendarDuration(
-                            entry.duration_seconds ? String(entry.duration_seconds) : '60'
-                          );
-                          setCalendarPlatform(entry.platform || 'tiktok');
-                          setCalendarExtraNotes(entry.extra_notes || '');
-                          setCalendarVideoUrl(entry.video_url || '');
-                          setCalendarPerformanceNotes(entry.performance_notes || '');
-                          setCalendarViews(entry.views != null ? String(entry.views) : '');
-                          setCalendarLikes(entry.likes != null ? String(entry.likes) : '');
-                          setCalendarComments(entry.comments != null ? String(entry.comments) : '');
-                          setCalendarShares(entry.shares != null ? String(entry.shares) : '');
-                        } else {
-                          setCalendarScriptContent('');
-                          setCalendarExtraNotes('');
-                          setCalendarVideoUrl('');
-                          setCalendarPerformanceNotes('');
-                          setCalendarViews('');
-                          setCalendarLikes('');
-                          setCalendarComments('');
-                          setCalendarShares('');
-                        }
-                        
-                        // 重置生成和儲存狀態
-                        setScriptGenerating(false);
-                        setScriptSaving(false);
-                        
-                        setCalendarDialogOpen(true);
-                      }}
-                    />
+                    <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+                      <PlanningCalendarView
+                        days={planningDays}
+                        month={calendarMonth}
+                        onMonthChange={(m) => {
+                          setCalendarMonth(m);
+                          loadPlanningDays(m);
+                        }}
+                        onDayClick={(entry, date) => {
+                          setSelectedCalendarDay(entry);
+                          setSelectedCalendarDate(date);
+                          if (entry) {
+                            setCalendarScriptContent(entry.script_content || '');
+                            setCalendarScriptStructure(entry.script_structure || 'hook-story-offer');
+                            setCalendarDuration(
+                              entry.duration_seconds ? String(entry.duration_seconds) : '60'
+                            );
+                            setCalendarPlatform(entry.platform || 'tiktok');
+                            setCalendarExtraNotes(entry.extra_notes || '');
+                            setCalendarVideoUrl(entry.video_url || '');
+                            setCalendarPerformanceNotes(entry.performance_notes || '');
+                            setCalendarViews(entry.views != null ? String(entry.views) : '');
+                            setCalendarLikes(entry.likes != null ? String(entry.likes) : '');
+                            setCalendarComments(entry.comments != null ? String(entry.comments) : '');
+                            setCalendarShares(entry.shares != null ? String(entry.shares) : '');
+                          } else {
+                            setCalendarScriptContent('');
+                            setCalendarExtraNotes('');
+                            setCalendarVideoUrl('');
+                            setCalendarPerformanceNotes('');
+                            setCalendarViews('');
+                            setCalendarLikes('');
+                            setCalendarComments('');
+                            setCalendarShares('');
+                          }
+                          
+                          // 重置生成和儲存狀態
+                          setScriptGenerating(false);
+                          setScriptSaving(false);
+                          
+                          setCalendarDialogOpen(true);
+                        }}
+                      />
+                    </div>
                   </div>
                 ) : (
                 <ScrollArea className="h-[calc(100vh-500px)] md:h-[calc(100vh-550px)]">
@@ -2501,7 +2496,7 @@ export default function UserDB() {
           setSelectedCalendarDate(null);
         }
       }}>
-        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col h-[90vh] p-0 gap-0">
+        <DialogContent className="max-w-4xl w-full max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
           <div className="p-6 pb-2 shrink-0">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-xl">
@@ -2519,8 +2514,8 @@ export default function UserDB() {
             </DialogHeader>
           </div>
 
-          <div className="flex-1 overflow-hidden px-6 pb-6">
-            <Tabs defaultValue="topic" className="h-full flex flex-col">
+          <div className="flex-1 min-h-0 px-6 pb-6 flex flex-col overflow-hidden">
+            <Tabs defaultValue="topic" className="h-full flex flex-col min-h-0">
               <TabsList className="grid w-full grid-cols-3 mb-4 shrink-0">
                 <TabsTrigger value="profile">帳號定位</TabsTrigger>
                 <TabsTrigger value="topic">當天選題</TabsTrigger>
@@ -2528,8 +2523,8 @@ export default function UserDB() {
               </TabsList>
               
               {/* 帳號定位 Tab */}
-              <TabsContent value="profile" className="flex-1 overflow-hidden mt-0">
-                <ScrollArea className="h-full pr-4">
+              <TabsContent value="profile" className="flex-1 overflow-hidden mt-0 data-[state=active]:flex flex-col min-h-0">
+                <ScrollArea className="flex-1 h-full pr-4">
                   <div className="space-y-4 pb-4">
                     <div className="bg-muted/30 p-4 rounded-lg border">
                       <h3 className="font-semibold text-lg mb-2">
@@ -2551,14 +2546,14 @@ export default function UserDB() {
               </TabsContent>
               
               {/* 當天選題 Tab */}
-              <TabsContent value="topic" className="flex-1 overflow-hidden mt-0">
-                 <ScrollArea className="h-full">
-                    <div className="h-full flex flex-col">
-                        <div className="bg-primary/5 p-6 rounded-xl border border-primary/10 mb-4 flex-1 flex flex-col justify-center items-center text-center min-h-[200px]">
+              <TabsContent value="topic" className="flex-1 overflow-hidden mt-0 data-[state=active]:flex flex-col min-h-0">
+                 <ScrollArea className="flex-1 h-full">
+                    <div className="flex flex-col min-h-full pb-4">
+                        <div className="bg-primary/5 p-6 rounded-xl border border-primary/10 mb-4 flex-shrink-0 flex flex-col justify-center items-center text-center min-h-[200px]">
                           <h3 className="text-2xl font-bold text-primary mb-4">今日選題</h3>
                           <p className="text-xl font-medium leading-relaxed max-w-2xl" dangerouslySetInnerHTML={{ __html: cleanMarkdown(selectedCalendarDay?.topic || '無選題') }} />
                         </div>
-                        <div className="bg-muted/30 p-4 rounded-lg border">
+                        <div className="bg-muted/30 p-4 rounded-lg border flex-shrink-0">
                           <h4 className="font-medium mb-2 flex items-center gap-2">
                             <Info className="w-4 h-4" />
                             創作提示
@@ -2572,8 +2567,8 @@ export default function UserDB() {
               </TabsContent>
               
               {/* 短影音腳本 Tab */}
-              <TabsContent value="script" className="flex-1 overflow-hidden mt-0 flex flex-col">
-                <ScrollArea className="flex-1 pr-4">
+              <TabsContent value="script" className="flex-1 overflow-hidden mt-0 data-[state=active]:flex flex-col min-h-0">
+                <ScrollArea className="flex-1 h-full pr-4">
                   <div className="space-y-6 pb-4">
                     {/* 腳本設定區塊 */}
                     <div className="grid gap-4 md:grid-cols-2 p-4 bg-muted/30 rounded-lg border">
@@ -2789,7 +2784,7 @@ export default function UserDB() {
                         />
                       </div>
                       
-                      <div className="flex justify-end">
+                      <div className="flex justify-end pb-4">
                          <Button 
                             onClick={handleSaveCalendarScript}
                             disabled={scriptSaving || !selectedCalendarDay}
@@ -2798,7 +2793,7 @@ export default function UserDB() {
                              {scriptSaving ? (
                               <>
                                 <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                                儲存所有變更
+                                儲存中...
                               </>
                             ) : (
                               <>
