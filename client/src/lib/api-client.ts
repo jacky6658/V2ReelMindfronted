@@ -2,16 +2,89 @@
  * API 客戶端
  * 處理所有與後端的 HTTP 請求
  * 使用 axios 並整合 Zustand authStore
+ * 添加請求隊列和重試機制以支持高並發
  */
 
-import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
+import axios, { AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
 import { API_BASE_URL } from './api-config';
 import { useAuthStore } from '../stores/authStore';
+
+// ===== 請求隊列（限制並發請求數，避免前端過載） =====
+class RequestQueue {
+  private queue: Array<{ fn: () => Promise<any>; resolve: (value: any) => void; reject: (error: any) => void }> = [];
+  private running = 0;
+  private maxConcurrent: number;
+
+  constructor(maxConcurrent = 15) {
+    this.maxConcurrent = maxConcurrent;
+  }
+
+  async add<T>(fn: () => Promise<T>): Promise<T> {
+    return new Promise((resolve, reject) => {
+      this.queue.push({ fn, resolve, reject });
+      this.process();
+    });
+  }
+
+  private async process() {
+    if (this.running >= this.maxConcurrent || this.queue.length === 0) {
+      return;
+    }
+
+    this.running++;
+    const item = this.queue.shift();
+    if (item) {
+      try {
+        const result = await item.fn();
+        item.resolve(result);
+      } catch (error) {
+        item.reject(error);
+      } finally {
+        this.running--;
+        // 繼續處理下一個請求
+        setTimeout(() => this.process(), 0);
+      }
+    }
+  }
+}
+
+const requestQueue = new RequestQueue(15); // 最多 15 個並發請求
+
+// ===== 重試邏輯 =====
+async function retryRequest<T>(
+  fn: () => Promise<T>,
+  maxRetries = 2,
+  delay = 1000
+): Promise<T> {
+  let lastError: any;
+  
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await fn();
+    } catch (error: any) {
+      lastError = error;
+      
+      // 如果是 4xx 錯誤（客戶端錯誤），不重試
+      if (error?.response?.status >= 400 && error?.response?.status < 500) {
+        throw error;
+      }
+      
+      // 如果是網絡錯誤或超時，重試
+      if (i < maxRetries - 1) {
+        const waitTime = delay * (i + 1);
+        console.log(`請求失敗，${waitTime}ms 後重試 (${i + 1}/${maxRetries})...`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+      }
+    }
+  }
+  
+  throw lastError;
+}
 
 // 創建 axios 實例
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 60000, // 60 秒超時，適應 AI 生成
+  timeout: 30000, // 降低到 30 秒（原本 60 秒）
   headers: {
     'Content-Type': 'application/json',
   },
@@ -139,49 +212,53 @@ export function clearCsrfToken() {
 }
 
 /**
- * GET 請求
+ * GET 請求（使用隊列和重試）
  */
 export async function apiGet<T = any>(
   endpoint: string,
   config?: AxiosRequestConfig
 ): Promise<T> {
-  const response = await apiClient.get<T>(endpoint, config);
-  return response.data;
+  return requestQueue.add(() =>
+    retryRequest(() => apiClient.get<T>(endpoint, config).then(res => res.data))
+  );
 }
 
 /**
- * POST 請求
+ * POST 請求（使用隊列和重試）
  */
 export async function apiPost<T = any>(
   endpoint: string,
   data?: any,
   config?: AxiosRequestConfig
 ): Promise<T> {
-  const response = await apiClient.post<T>(endpoint, data, config);
-  return response.data;
+  return requestQueue.add(() =>
+    retryRequest(() => apiClient.post<T>(endpoint, data, config).then(res => res.data))
+  );
 }
 
 /**
- * PUT 請求
+ * PUT 請求（使用隊列和重試）
  */
 export async function apiPut<T = any>(
   endpoint: string,
   data?: any,
   config?: AxiosRequestConfig
 ): Promise<T> {
-  const response = await apiClient.put<T>(endpoint, data, config);
-  return response.data;
+  return requestQueue.add(() =>
+    retryRequest(() => apiClient.put<T>(endpoint, data, config).then(res => res.data))
+  );
 }
 
 /**
- * DELETE 請求
+ * DELETE 請求（使用隊列和重試）
  */
 export async function apiDelete<T = any>(
   endpoint: string,
   config?: AxiosRequestConfig
 ): Promise<T> {
-  const response = await apiClient.delete<T>(endpoint, config);
-  return response.data;
+  return requestQueue.add(() =>
+    retryRequest(() => apiClient.delete<T>(endpoint, config).then(res => res.data))
+  );
 }
 
 /**
