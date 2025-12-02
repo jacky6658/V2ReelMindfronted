@@ -338,25 +338,113 @@ export default function ScriptEditor({
             )}
             dangerouslySetInnerHTML={{ 
               __html: (() => {
-                // 先轉義 HTML 特殊字符（但保留已轉義的內容）
-                let html = content
-                  .replace(/&/g, '&amp;')
-                  .replace(/</g, '&lt;')
-                  .replace(/>/g, '&gt;');
+                let html = content;
+                
+                // 處理表格 Markdown（必須在轉義 HTML 之前處理）
+                const lines = html.split('\n');
+                let inTable = false;
+                let processedLines: string[] = [];
+                let tableRows: string[] = [];
+                
+                for (let i = 0; i < lines.length; i++) {
+                  const line = lines[i];
+                  const trimmedLine = line.trim();
+                  const isTableRow = /^\|.+\|$/.test(trimmedLine);
+                  const isTableSeparator = /^\|[\s\-:]+\|$/.test(trimmedLine);
+                  
+                  if (isTableRow && !isTableSeparator) {
+                    if (!inTable) {
+                      // 開始新表格
+                      inTable = true;
+                      tableRows = [];
+                      processedLines.push('<table class="border-collapse border border-gray-300 w-full my-4">');
+                    }
+                    
+                    // 解析表格行
+                    const cells = trimmedLine.split('|').map(cell => cell.trim()).filter(cell => cell);
+                    const isHeader = i > 0 && /^\|[\s\-:]+\|$/.test(lines[i - 1]?.trim() || '');
+                    const tag = isHeader ? 'th' : 'td';
+                    
+                    processedLines.push(`<tr>`);
+                    cells.forEach(cell => {
+                      // 轉義 HTML 特殊字符
+                      const escapedCell = cell
+                        .replace(/&/g, '&amp;')
+                        .replace(/</g, '&lt;')
+                        .replace(/>/g, '&gt;');
+                      processedLines.push(`<${tag} class="border border-gray-300 px-4 py-2">${escapedCell}</${tag}>`);
+                    });
+                    processedLines.push(`</tr>`);
+                    tableRows.push(trimmedLine);
+                  } else if (isTableSeparator && inTable) {
+                    // 表格分隔符，轉換為表頭（如果之前有行）
+                    if (tableRows.length > 0) {
+                      // 將最後幾行轉換為表頭
+                      const headerCount = tableRows.length;
+                      const lastIndex = processedLines.length - 1;
+                      // 找到最後一個 <tr> 的位置
+                      let trStartIndex = -1;
+                      for (let j = lastIndex; j >= 0; j--) {
+                        if (processedLines[j] === '<tr>') {
+                          trStartIndex = j;
+                          break;
+                        }
+                      }
+                      if (trStartIndex >= 0) {
+                        // 將最後的 <tr>...</tr> 包裝在 <thead> 中
+                        processedLines.splice(trStartIndex, 0, '<thead>');
+                        // 找到對應的 </tr>
+                        let trEndIndex = -1;
+                        for (let j = trStartIndex + 1; j < processedLines.length; j++) {
+                          if (processedLines[j] === '</tr>') {
+                            trEndIndex = j;
+                            break;
+                          }
+                        }
+                        if (trEndIndex >= 0) {
+                          processedLines[trEndIndex] = '</tr></thead><tbody>';
+                        }
+                      }
+                    }
+                    tableRows = [];
+                  } else {
+                    if (inTable) {
+                      processedLines.push('</tbody></table>');
+                      inTable = false;
+                      tableRows = [];
+                    }
+                    processedLines.push(line);
+                  }
+                }
+                
+                if (inTable) {
+                  processedLines.push('</tbody></table>');
+                }
+                
+                html = processedLines.join('\n');
+                
+                // 先轉義 HTML 特殊字符（但保留已轉義的內容和表格）
+                // 只轉義不在表格標籤內的內容
+                html = html.replace(/&amp;/g, '___AMP___');
+                html = html.replace(/&lt;/g, '___LT___');
+                html = html.replace(/&gt;/g, '___GT___');
+                html = html.replace(/&/g, '&amp;');
+                html = html.replace(/</g, '&lt;');
+                html = html.replace(/>/g, '&gt;');
+                html = html.replace(/___AMP___/g, '&amp;');
+                html = html.replace(/___LT___/g, '&lt;');
+                html = html.replace(/___GT___/g, '&gt;');
                 
                 // 處理粗體：**text** 或 __text__（支援跨行和多個）
-                // 使用 [\s\S] 來匹配包括換行符在內的所有字符，*? 允許空內容
-                // 添加內聯樣式確保粗體正確顯示
                 html = html.replace(/\*\*([\s\S]*?)\*\*/g, '<strong style="font-weight: bold;">$1</strong>');
                 html = html.replace(/__([\s\S]*?)__/g, '<strong style="font-weight: bold;">$1</strong>');
                 
                 // 處理斜體：*text* 或 _text_（但不在 ** 或 __ 內）
-                // 使用負向前後查找確保不是粗體標記的一部分
                 html = html.replace(/(?<!\*)\*(?!\*)([^\n*]+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>');
                 html = html.replace(/(?<!_)_(?!_)([^\n_]+?)(?<!_)_(?!_)/g, '<em>$1</em>');
                 
-                // 處理換行
-                html = html.replace(/\n/g, '<br />');
+                // 處理換行（但不在表格內）
+                html = html.replace(/(?<!<\/t[dh]>)\n(?!<t[dh])/g, '<br />');
                 
                 return html;
               })()
