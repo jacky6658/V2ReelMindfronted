@@ -12,23 +12,22 @@ const BASE_URL = 'https://reelmind.aijob.com.tw';
  */
 export function generateArticleSchema(slug: string, article: GuideArticle) {
   const articleUrl = `${BASE_URL}/#/guide/${slug}`;
-  
+
+  // 先整合全文：用於計算字數與在缺少 description 時當作摘要來源
+  const fullText = article.sections
+    .flatMap(s => s.content)
+    .join(' ')
+    .replace(/\*\*/g, '') // 移除 Markdown 粗體標記
+    .replace(/VIDEO:.*/g, '') // 移除影片標記
+    .trim();
+
   // 優先使用文章提供的 description，否則從內容提取
   let description: string;
   if (article.description) {
     description = article.description;
   } else {
-    // 提取文章摘要（前 200 字）
-    const fullText = article.sections
-      .flatMap(s => s.content)
-      .join(' ')
-      .replace(/\*\*/g, '') // 移除 Markdown 粗體標記
-      .replace(/VIDEO:.*/g, '') // 移除影片標記
-      .trim();
-    
-    description = fullText.length > 200 
-      ? fullText.substring(0, 200) + '...'
-      : fullText;
+    description =
+      fullText.length > 200 ? fullText.substring(0, 200) + '...' : fullText;
   }
 
   // 使用真實的發布日期和修改日期
