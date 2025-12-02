@@ -2840,39 +2840,12 @@ export default function UserDB() {
 
           <div className="flex-1 min-h-0 px-6 pb-6 flex flex-col overflow-hidden">
             <Tabs defaultValue="topic" className="h-full flex flex-col min-h-0">
-              <div className="flex items-center justify-between mb-4">
+              <div className="mb-4">
                 <TabsList className="grid w-full grid-cols-3 shrink-0">
                   <TabsTrigger value="profile">帳號定位</TabsTrigger>
                   <TabsTrigger value="topic">當天選題</TabsTrigger>
                   <TabsTrigger value="script">短影音腳本</TabsTrigger>
                 </TabsList>
-                {selectedCalendarDay && (
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    className="ml-4 shrink-0"
-                    onClick={async () => {
-                      if (!selectedCalendarDay?.id) return;
-                      if (!confirm('確定要刪除這一天的規劃嗎？此操作無法復原。')) return;
-                      
-                      try {
-                        await apiDelete(`/api/planning-days/${selectedCalendarDay.id}`);
-                        toast.success('已刪除當天的規劃');
-                        setCalendarDialogOpen(false);
-                        setSelectedCalendarDay(null);
-                        setSelectedCalendarDate(null);
-                        // 重新載入日曆資料
-                        loadPlanningDays(calendarMonth);
-                      } catch (error: any) {
-                        console.error('刪除失敗:', error);
-                        toast.error(error.message || '刪除失敗');
-                      }
-                    }}
-                  >
-                    <Trash2 className="w-4 h-4 mr-1" />
-                    刪除
-                  </Button>
-                )}
               </div>
               
               {/* 帳號定位 Tab */}
@@ -2995,6 +2968,34 @@ export default function UserDB() {
                             這個選題是根據您的 IP 人設定位與 14 天規劃策略生成的。建議您在創作時，保持與人設的一致性，並嘗試在影片前 3 秒抓住觀眾注意力。
                           </p>
                         </div>
+                        {selectedCalendarDay && (
+                          <div className="mt-4 flex justify-end">
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={async () => {
+                                if (!selectedCalendarDay?.id) return;
+                                if (!confirm('確定要刪除這一天的規劃嗎？此操作無法復原。')) return;
+                                
+                                try {
+                                  await apiDelete(`/api/planning-days/${selectedCalendarDay.id}`);
+                                  toast.success('已刪除當天的規劃');
+                                  setCalendarDialogOpen(false);
+                                  setSelectedCalendarDay(null);
+                                  setSelectedCalendarDate(null);
+                                  // 重新載入日曆資料
+                                  loadPlanningDays(calendarMonth);
+                                } catch (error: any) {
+                                  console.error('刪除失敗:', error);
+                                  toast.error(error.message || '刪除失敗');
+                                }
+                              }}
+                            >
+                              <Trash2 className="w-4 h-4 mr-1" />
+                              刪除這一天的規劃
+                            </Button>
+                          </div>
+                        )}
                      </div>
                  </div>
               </TabsContent>
