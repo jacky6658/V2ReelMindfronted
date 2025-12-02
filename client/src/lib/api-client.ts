@@ -109,6 +109,13 @@ apiClient.interceptors.request.use(
         '/api/auth/google/callback',
         '/api/memory/long-term',
         '/api/ip-planning/',
+        '/api/scripts/',                // 我的腳本相關端點：與後端 CSRF 排除規則一致
+        '/api/planning-days/',          // 14 天規劃日曆相關端點
+        '/api/user/notifications/',     // 通知標記已讀
+        '/api/user/subscription/auto-renew', // 自動續費開關
+        '/api/user/usage-event',        // 使用事件記錄
+        '/api/generations',             // 生成記錄新增 / 刪除
+        '/api/user/referral/bind',      // 手動綁定推薦碼
         '/api/admin/',
         '/api/mode3/',
         '/api/chat/stream',
