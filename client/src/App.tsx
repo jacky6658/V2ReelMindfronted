@@ -23,6 +23,25 @@ function App() {
   const checkIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
+    // 檢查 URL 參數中的推薦碼
+    const urlParams = new URLSearchParams(window.location.search);
+    const refCode = urlParams.get('ref');
+    
+    if (refCode) {
+      // 立即保存推薦碼到 localStorage（不阻塞 UI）
+      localStorage.setItem('referral_code', refCode.toUpperCase());
+      console.log('[推薦碼] 已從 URL 參數保存推薦碼:', refCode);
+      
+      // 顯示提示訊息
+      toast.info('推薦碼已自動保存，登入後將自動綁定', {
+        duration: 5000
+      });
+      
+      // 清除 URL 參數（避免重複處理）
+      const newUrl = window.location.pathname + window.location.hash;
+      window.history.replaceState({}, '', newUrl);
+    }
+    
     // 在應用程式啟動時，嘗試從 localStorage 獲取 token 並驗證登入狀態
     // 使用 setTimeout 确保不会阻塞初始渲染
     const timer = setTimeout(() => {
