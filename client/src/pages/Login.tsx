@@ -23,13 +23,33 @@ const Login: React.FC = () => {
 
   const handleGoogleLogin = async () => {
     try {
-      // 直接調用 Google 登入 API
-      const { auth_url } = await apiGet<{ auth_url: string }>('/api/auth/google-new');
+      // 顯示載入提示
+      const loadingToast = toast.loading('正在連接登入服務...');
+      
+      // 直接調用 Google 登入 API，設置較短的超時時間（10秒）
+      const { auth_url } = await apiGet<{ auth_url: string }>('/api/auth/google-new', {
+        timeout: 10000 // 10 秒超時
+      });
+      
+      toast.dismiss(loadingToast);
+      
       // 重定向到 Google 登入頁面
       window.location.href = auth_url;
-    } catch (error) {
+    } catch (error: any) {
       console.error('登入失敗:', error);
-      toast.error('登入失敗，請稍後再試');
+      
+      // 根據錯誤類型提供不同的錯誤訊息
+      if (error?.code === 'ECONNABORTED' || error?.message?.includes('timeout')) {
+        toast.error('連接超時，請檢查網絡連接或稍後再試');
+      } else if (error?.response?.status === 500) {
+        toast.error('後端服務錯誤，請聯繫管理員');
+      } else if (error?.response?.status === 404) {
+        toast.error('登入服務不可用，請檢查後端服務是否運行');
+      } else if (error?.message?.includes('Network Error') || error?.code === 'ERR_NETWORK') {
+        toast.error('網絡連接失敗，請檢查網絡連接');
+      } else {
+        toast.error('登入失敗，請稍後再試');
+      }
     }
   };
 
