@@ -323,6 +323,9 @@ export default function UserDB() {
   const [calendarLikes, setCalendarLikes] = useState<string>('');
   const [calendarComments, setCalendarComments] = useState<string>('');
   const [calendarShares, setCalendarShares] = useState<string>('');
+  // 選題編輯狀態
+  const [isEditingTopic, setIsEditingTopic] = useState(false);
+  const [editingTopicValue, setEditingTopicValue] = useState<string>('');
   // 14 天規劃排入日曆 Dialog
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
   const [scheduleTargetPlan, setScheduleTargetPlan] = useState<IPPlanningResult | null>(null);
@@ -338,18 +341,18 @@ export default function UserDB() {
       // 呼叫後端 API 生成腳本
       // 使用 apiPost，超時設定已在 api-client.ts 中統一調整為 60s，這裡不需要額外處理
       // 為了保險起見，如果需要更長，可以直接使用 axios config (apiPost 第三個參數)
-      const response = await apiPost<{ script: string }>(
+      const response = await apiPost<{ script_content: string }>(
         `/api/planning-days/${selectedCalendarDay.id}/generate-script`, 
         {
-          structure: calendarScriptStructure,
-          duration: calendarDuration,
+          script_structure: calendarScriptStructure,
+          duration_seconds: parseInt(calendarDuration),
           platform: calendarPlatform,
-          notes: calendarExtraNotes
+          extra_notes: calendarExtraNotes
         },
         { timeout: 60000 } // 顯式設置 60s 超時，以防萬一
       );
       
-      setCalendarScriptContent(response.script);
+      setCalendarScriptContent(response.script_content);
       toast.success('腳本生成成功');
     } catch (error: any) {
       console.error('生成腳本失敗:', error);
@@ -2497,12 +2500,40 @@ export default function UserDB() {
         }
       }}>
         <DialogContent className="max-w-4xl w-full max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
-          <div className="p-6 pb-2 shrink-0">
+          <div className="p-6 pb-2 shrink-0 border-b">
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-xl">
-                <CalendarIcon className="w-5 h-5 text-primary" />
-                {selectedCalendarDate?.toLocaleDateString()} ({selectedCalendarDay?.weekday || selectedCalendarDate?.toLocaleDateString('zh-TW', { weekday: 'long' })})
-              </DialogTitle>
+              <div className="flex items-center justify-between gap-2">
+                <DialogTitle className="flex items-center gap-2 text-xl flex-1">
+                  <CalendarIcon className="w-5 h-5 text-primary" />
+                  {selectedCalendarDate?.toLocaleDateString()} ({selectedCalendarDay?.weekday || selectedCalendarDate?.toLocaleDateString('zh-TW', { weekday: 'long' })})
+                </DialogTitle>
+                {selectedCalendarDay && (
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={async () => {
+                      if (!selectedCalendarDay?.id) return;
+                      if (!confirm('確定要刪除這一天的規劃嗎？此操作無法復原。')) return;
+                      
+                      try {
+                        await apiDelete(`/api/planning-days/${selectedCalendarDay.id}`);
+                        toast.success('已刪除當天的規劃');
+                        setCalendarDialogOpen(false);
+                        setSelectedCalendarDay(null);
+                        setSelectedCalendarDate(null);
+                        // 重新載入日曆資料
+                        loadPlanningDays(calendarMonth);
+                      } catch (error: any) {
+                        console.error('刪除失敗:', error);
+                        toast.error(error.message || '刪除失敗');
+                      }
+                    }}
+                  >
+                    <Trash2 className="w-4 h-4 mr-1" />
+                    刪除
+                  </Button>
+                )}
+              </div>
               <DialogDescription className="text-base mt-1">
                 {selectedCalendarDay ? (
                    // Clean markdown here as well if topic contains it
@@ -2524,7 +2555,7 @@ export default function UserDB() {
               
               {/* 帳號定位 Tab */}
               <TabsContent value="profile" className="flex-1 overflow-hidden mt-0 data-[state=active]:flex flex-col min-h-0">
-                <ScrollArea className="flex-1 h-full pr-4">
+                <div className="flex-1 overflow-y-auto pr-2">
                   <div className="space-y-4 pb-4">
                     <div className="bg-muted/30 p-4 rounded-lg border">
                       <h3 className="font-semibold text-lg mb-2">
@@ -2542,16 +2573,85 @@ export default function UserDB() {
                       )}
                     </div>
                   </div>
-                </ScrollArea>
+                </div>
               </TabsContent>
               
               {/* 當天選題 Tab */}
               <TabsContent value="topic" className="flex-1 overflow-hidden mt-0 data-[state=active]:flex flex-col min-h-0">
-                 <ScrollArea className="flex-1 h-full">
-                    <div className="flex flex-col min-h-full pb-4">
+                 <div className="flex-1 overflow-y-auto pr-2">
+                    <div className="flex flex-col pb-4">
                         <div className="bg-primary/5 p-6 rounded-xl border border-primary/10 mb-4 flex-shrink-0 flex flex-col justify-center items-center text-center min-h-[200px]">
-                          <h3 className="text-2xl font-bold text-primary mb-4">今日選題</h3>
-                          <p className="text-xl font-medium leading-relaxed max-w-2xl" dangerouslySetInnerHTML={{ __html: cleanMarkdown(selectedCalendarDay?.topic || '無選題') }} />
+                          <div className="flex items-center gap-2 mb-4 w-full justify-center">
+                            <h3 className="text-2xl font-bold text-primary">今日選題</h3>
+                            {selectedCalendarDay && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6"
+                                onClick={() => {
+                                  setIsEditingTopic(true);
+                                  setEditingTopicValue(selectedCalendarDay.topic || '');
+                                }}
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                            )}
+                          </div>
+                          {isEditingTopic && selectedCalendarDay ? (
+                            <div className="w-full max-w-2xl space-y-2">
+                              <Textarea
+                                value={editingTopicValue}
+                                onChange={(e) => setEditingTopicValue(e.target.value)}
+                                className="min-h-[120px] text-base"
+                                placeholder="輸入選題內容..."
+                              />
+                              <div className="flex gap-2 justify-end">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setIsEditingTopic(false);
+                                    setEditingTopicValue('');
+                                  }}
+                                >
+                                  取消
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  onClick={async () => {
+                                    if (!selectedCalendarDay?.id) return;
+                                    try {
+                                      await apiPut(`/api/planning-days/${selectedCalendarDay.id}/topic`, {
+                                        topic: editingTopicValue
+                                      });
+                                      toast.success('選題已更新');
+                                      setIsEditingTopic(false);
+                                      setEditingTopicValue('');
+                                      // 更新本地狀態
+                                      setSelectedCalendarDay({
+                                        ...selectedCalendarDay,
+                                        topic: editingTopicValue
+                                      });
+                                      setPlanningDays(prev => prev.map(day => 
+                                        day.id === selectedCalendarDay.id 
+                                          ? { ...day, topic: editingTopicValue }
+                                          : day
+                                      ));
+                                      // 重新載入日曆資料
+                                      loadPlanningDays(calendarMonth);
+                                    } catch (error: any) {
+                                      console.error('更新選題失敗:', error);
+                                      toast.error(error.message || '更新選題失敗');
+                                    }
+                                  }}
+                                >
+                                  儲存
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="text-xl font-medium leading-relaxed max-w-2xl" dangerouslySetInnerHTML={{ __html: cleanMarkdown(selectedCalendarDay?.topic || '無選題') }} />
+                          )}
                         </div>
                         <div className="bg-muted/30 p-4 rounded-lg border flex-shrink-0">
                           <h4 className="font-medium mb-2 flex items-center gap-2">
@@ -2563,12 +2663,12 @@ export default function UserDB() {
                           </p>
                         </div>
                      </div>
-                 </ScrollArea>
+                 </div>
               </TabsContent>
               
               {/* 短影音腳本 Tab */}
               <TabsContent value="script" className="flex-1 overflow-hidden mt-0 data-[state=active]:flex flex-col min-h-0">
-                <ScrollArea className="flex-1 h-full pr-4">
+                <div className="flex-1 overflow-y-auto pr-2">
                   <div className="space-y-6 pb-4">
                     {/* 腳本設定區塊 */}
                     <div className="grid gap-4 md:grid-cols-2 p-4 bg-muted/30 rounded-lg border">
@@ -2805,7 +2905,7 @@ export default function UserDB() {
                       </div>
                     </div>
                   </div>
-                </ScrollArea>
+                </div>
               </TabsContent>
             </Tabs>
           </div>
