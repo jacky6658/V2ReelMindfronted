@@ -55,6 +55,14 @@
     <meta name="msapplication-TileImage" content="/assets/images/android-chrome-512x512.png" />
     <meta name="msapplication-TileColor" content="#0ea5e9" />
     
+    <!-- 預載入 Hero 影片（首頁）- 最高優先級 -->
+    <link rel="preload" href="/assets/videos/hero-bg.mp4" as="video" type="video/mp4" fetchpriority="high" />
+    <link rel="preload" href="/hero-bg.webm" as="video" type="video/webm" fetchpriority="high" />
+    
+    <!-- 預載入主控台影片 -->
+    <link rel="preload" href="/assets/videos/reelmind.mp4" as="video" type="video/mp4" />
+    <link rel="preload" href="/reelmind.webm" as="video" type="video/webm" />
+    
     <!-- Structured Data (JSON-LD) -->
     
     <!-- 1. WebApplication Schema (優化版) -->
