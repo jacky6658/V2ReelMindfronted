@@ -109,6 +109,86 @@ export default function GuideArticle() {
     };
   }, [article, slug]);
 
+  // 處理 Markdown 連結格式 [text](url)
+  const parseMarkdownLinks = (text: string): (string | JSX.Element)[] => {
+    const linkRegex = /\[([^\]]+)\]\(([^\)]+)\)/g;
+    const parts: (string | JSX.Element)[] = [];
+    let lastIndex = 0;
+    let match;
+    let key = 0;
+
+    while ((match = linkRegex.exec(text)) !== null) {
+      // 添加連結前的文字
+      if (match.index > lastIndex) {
+        parts.push(text.substring(lastIndex, match.index));
+      }
+      
+      // 添加連結
+      const linkText = match[1];
+      const linkUrl = match[2];
+      const isExternal = linkUrl.startsWith('http');
+      
+      parts.push(
+        <a
+          key={`link-${key++}`}
+          href={linkUrl}
+          target={isExternal ? "_blank" : undefined}
+          rel={isExternal ? "noopener noreferrer" : undefined}
+          className="text-primary hover:underline font-medium"
+        >
+          {linkText}
+        </a>
+      );
+      
+      lastIndex = match.index + match[0].length;
+    }
+    
+    // 添加剩餘文字
+    if (lastIndex < text.length) {
+      parts.push(text.substring(lastIndex));
+    }
+    
+    return parts.length > 0 ? parts : [text];
+  };
+
+  // 處理延伸閱讀：將文章標題轉換為連結
+  const parseRelatedArticles = (text: string): (string | JSX.Element)[] => {
+    // 匹配格式：• **文章標題** - 描述
+    const relatedRegex = /\*\*([^*]+)\*\*\s*-\s*(.+)/;
+    const match = text.match(relatedRegex);
+    
+    if (match) {
+      const articleTitle = match[1];
+      const description = match[2];
+      
+      // 查找對應的文章 slug
+      const articleSlug = Object.entries(guideArticles).find(
+        ([_, article]) => article.title === articleTitle
+      )?.[0];
+      
+      if (articleSlug) {
+        return [
+          '• ',
+          <a
+            key="related-link"
+            href={`#/guide/${articleSlug}`}
+            onClick={(e) => {
+              e.preventDefault();
+              navigate(`/guide/${articleSlug}`);
+            }}
+            className="text-primary hover:underline font-semibold"
+          >
+            {articleTitle}
+          </a>,
+          ` - ${description}`
+        ];
+      }
+    }
+    
+    // 如果沒有匹配到延伸閱讀格式，嘗試處理一般連結
+    return parseMarkdownLinks(text);
+  };
+
   if (!article) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -152,7 +232,7 @@ export default function GuideArticle() {
 
       {/* 文章內容 */}
       <article className="py-12 px-4">
-        <div className="container max-w-3xl">
+        <div className="container max-w-5xl mx-auto">
           {/* 文章標頭 */}
           <div className="mb-8">
             <div className="flex items-center gap-3 mb-4">
@@ -166,7 +246,7 @@ export default function GuideArticle() {
           </div>
 
           {/* 文章正文 */}
-          <Card className="p-8">
+          <Card className="p-6 md:p-8 lg:p-10">
             <div className="prose prose-slate dark:prose-invert max-w-none">
               {article.sections.map((section, index) => (
                 <div key={index} className="mb-8">
@@ -207,11 +287,15 @@ export default function GuideArticle() {
                       
                       // 處理表格
                       if (paragraph.startsWith('|')) {
+                        const rows = paragraph.split('\n').filter(row => row.trim());
+                        const headerRow = rows[0];
+                        const columnCount = headerRow.split('|').filter(cell => cell.trim()).length;
+                        
                         return (
                           <div key={pIndex} className="overflow-x-auto my-4 rounded-lg border border-border dark:border-border/50 bg-card dark:bg-card/50">
-                            <table className="min-w-full border-collapse">
+                            <table className="min-w-full border-collapse" style={{ tableLayout: 'fixed', width: '100%' }}>
                               <tbody>
-                                {paragraph.split('\n').filter(row => row.trim()).map((row, rIndex) => {
+                                {rows.map((row, rIndex) => {
                                   const cells = row.split('|').filter(cell => cell.trim());
                                   const isHeader = rIndex === 0;
                                   const isSeparator = cells.every(cell => cell.trim().match(/^-+$/));
@@ -229,15 +313,25 @@ export default function GuideArticle() {
                                     >
                                       {cells.map((cell, cIndex) => {
                                         const Tag = isHeader ? 'th' : 'td';
+                                        // 計算欄寬：第一欄和最後一欄較窄，中間欄位平均分配
+                                        const widthStyle = columnCount <= 3 
+                                          ? { width: `${100 / columnCount}%` }
+                                          : cIndex === 0 
+                                            ? { width: '20%' }
+                                            : cIndex === cells.length - 1
+                                              ? { width: '15%' }
+                                              : { width: `${65 / (cells.length - 2)}%` };
+                                        
                                         return (
                                           <Tag
                                             key={cIndex}
                                             className={cn(
-                                              "px-4 py-2 text-left",
+                                              "px-4 py-2 text-left break-words",
                                               isHeader 
                                                 ? "font-semibold text-foreground dark:text-foreground" 
                                                 : "text-foreground/90 dark:text-foreground/80"
                                             )}
+                                            style={widthStyle}
                                           >
                                             {cell.trim()}
                                           </Tag>
@@ -261,6 +355,28 @@ export default function GuideArticle() {
                       if (paragraph.startsWith('• ') || paragraph.startsWith('✅ ') || paragraph.startsWith('❌ ')) {
                         const icon = paragraph.startsWith('✅') ? '✅' : paragraph.startsWith('❌') ? '❌' : '•';
                         const text = paragraph.replace(/^[•✅❌]\s*/, '');
+                        
+                        // 檢查是否是延伸閱讀格式（包含 **標題** - 描述）
+                        if (text.includes('**') && text.includes(' - ')) {
+                          const parts = parseRelatedArticles(text);
+                          return (
+                            <div key={pIndex} className="flex gap-2 items-start">
+                              <span className="flex-shrink-0 mt-1">{icon}</span>
+                              <span className="flex-1">{parts}</span>
+                            </div>
+                          );
+                        }
+                        
+                        // 處理包含連結的文字
+                        if (text.includes('[') && text.includes('](')) {
+                          const parts = parseMarkdownLinks(text);
+                          return (
+                            <div key={pIndex} className="flex gap-2 items-start">
+                              <span className="flex-shrink-0 mt-1">{icon}</span>
+                              <span className="flex-1">{parts}</span>
+                            </div>
+                          );
+                        }
                         
                         // 處理列表項中的粗體文字
                         if (text.includes('**')) {
@@ -293,6 +409,16 @@ export default function GuideArticle() {
                             {parts.map((part, i) => 
                               i % 2 === 0 ? part : <strong key={i} className="font-semibold text-foreground">{part}</strong>
                             )}
+                          </p>
+                        );
+                      }
+                      
+                      // 處理包含連結的段落
+                      if (paragraph.includes('[') && paragraph.includes('](')) {
+                        const parts = parseMarkdownLinks(paragraph);
+                        return (
+                          <p key={pIndex} className="leading-relaxed text-muted-foreground">
+                            {parts}
                           </p>
                         );
                       }
