@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuthStore } from '@/stores/authStore';
+import { useUserDataStore } from '@/stores/userDataStore';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -105,25 +106,35 @@ export default function Statistics() {
     ].filter(item => item.value > 0);
   }, [analyticsOverview]);
 
-  // 載入統計數據
+  // 從 store 獲取統計數據
+  const storeAnalytics = useUserDataStore((state) => state.analyticsOverview);
+  const loadAnalyticsFromStore = useUserDataStore((state) => state.loadAnalytics);
+  const loadingAnalyticsFromStore = useUserDataStore((state) => state.loading.analytics);
+  
+  // 載入統計數據（從 store）
   useEffect(() => {
     const loadAnalytics = async () => {
       if (!user?.user_id) return;
       
-      try {
-        setLoadingAnalytics(true);
-        const data = await apiGet<AnalyticsOverview>('/api/user/analytics/overview');
-        setAnalyticsOverview(data);
-      } catch (error) {
-        console.error('載入統計數據失敗:', error);
-        toast.error('載入統計數據失敗');
-      } finally {
-        setLoadingAnalytics(false);
+      // 如果 store 中沒有數據，觸發載入
+      if (!storeAnalytics) {
+        await loadAnalyticsFromStore(user.user_id);
+      } else {
+        // 如果 store 中有數據，直接使用
+        setAnalyticsOverview(storeAnalytics);
       }
     };
 
     loadAnalytics();
-  }, [user?.user_id]);
+  }, [user?.user_id, storeAnalytics, loadAnalyticsFromStore]);
+  
+  // 監聽 store 數據變化
+  useEffect(() => {
+    if (storeAnalytics) {
+      setAnalyticsOverview(storeAnalytics);
+    }
+    setLoadingAnalytics(loadingAnalyticsFromStore);
+  }, [storeAnalytics, loadingAnalyticsFromStore]);
 
   // 載入 AI 洞察
   const loadAIInsights = async () => {

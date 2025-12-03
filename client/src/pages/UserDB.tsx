@@ -68,6 +68,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { apiGet, apiDelete, apiPost, apiPut } from '@/lib/api-client';
 import { useAuthStore } from '@/stores/authStore';
+import { useUserDataStore } from '@/stores/userDataStore';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -325,7 +326,17 @@ function PlanningCalendarView({
 export default function UserDB() {
   const navigate = useNavigate();
   const { logout, user, loading: authLoading } = useAuthStore();
+  
+  // 從 store 讀取數據
+  const storeScripts = useUserDataStore((state) => state.scripts);
+  const storeIPPlanningResults = useUserDataStore((state) => state.ipPlanningResults);
+  const loadScriptsFromStore = useUserDataStore((state) => state.loadScripts);
+  const loadIPPlanningFromStore = useUserDataStore((state) => state.loadIPPlanningResults);
+  const loadingScripts = useUserDataStore((state) => state.loading.scripts);
+  const loadingIPPlanning = useUserDataStore((state) => state.loading.ipPlanning);
+  
   const [activeTab, setActiveTab] = useState<'scripts' | 'ip-planning' | 'planning'>('scripts');
+  // 保留本地狀態用於過濾和排序（從 store 數據派生）
   const [scripts, setScripts] = useState<Script[]>([]);
   const [ipPlanningResults, setIpPlanningResults] = useState<IPPlanningResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -801,10 +812,10 @@ export default function UserDB() {
       const { type } = event.detail || {};
       
       // 如果更新的是 IP 人設規劃資料
-      if (type === 'ip-planning') {
+      if (type === 'ip-planning' && user?.user_id) {
         if (activeTab === 'ip-planning') {
-          // 如果當前在 IP 人設規劃標籤，自動刷新
-          loadIPPlanningResults();
+          // 如果當前在 IP 人設規劃標籤，自動刷新 store 數據
+          loadIPPlanningFromStore(user.user_id, true); // force refresh
           toast.info('資料已更新', { duration: 2000 });
         } else {
           // 如果不在 IP 人設規劃標籤，顯示提示
@@ -816,6 +827,9 @@ export default function UserDB() {
             }
           });
         }
+      } else if (type === 'scripts' && user?.user_id) {
+        // 如果更新的是腳本資料
+        loadScriptsFromStore(user.user_id, true); // force refresh
       }
     };
 
@@ -824,56 +838,46 @@ export default function UserDB() {
     return () => {
       window.removeEventListener('userdb-data-updated', handleDataUpdate as EventListener);
     };
-  }, [activeTab]);
+  }, [activeTab, user?.user_id, loadIPPlanningFromStore, loadScriptsFromStore]);
 
-  // 載入資料
+  // 從 store 同步數據到本地狀態（用於過濾和排序）
+  useEffect(() => {
+    if (activeTab === 'scripts') {
+      setScripts(storeScripts as Script[]);
+    } else if (activeTab === 'ip-planning' || activeTab === 'planning') {
+      setIpPlanningResults(storeIPPlanningResults);
+    }
+  }, [storeScripts, storeIPPlanningResults, activeTab]);
+
+  // 載入資料（從 store 載入，如果沒有則觸發載入）
   const loadData = async () => {
+    if (!user?.user_id) return;
+    
     setIsLoading(true);
     try {
       switch (activeTab) {
         case 'scripts':
-          await loadScripts();
+          // 如果 store 中沒有數據或數據過舊，觸發載入
+          await loadScriptsFromStore(user.user_id);
           break;
         case 'ip-planning':
         case 'planning':
-          await loadIPPlanningResults();
+          await loadIPPlanningFromStore(user.user_id);
           break;
       }
     } catch (error: any) {
       console.error('載入資料失敗:', error);
-      toast.error(error.message || '載入失敗');
+      // 不顯示錯誤，因為 store 會處理錯誤狀態
     } finally {
       setIsLoading(false);
     }
   };
 
-  // 載入腳本
-  const loadScripts = async () => {
-    if (!user?.user_id) {
-      setScripts([]);
-      return;
-    }
-    try {
-      // 後端端點：/api/scripts/my（自動使用當前登入用戶）
-      const data = await apiGet<{ scripts: Script[] }>('/api/scripts/my');
-      setScripts(data.scripts || []);
-    } catch (error) {
-      console.error('載入腳本失敗:', error);
-      setScripts([]);
-    }
-  };
+  // 載入腳本（已廢棄，改用 store）
+  // const loadScripts = async () => { ... }
 
-
-  // 載入 IP 人設規劃結果
-  const loadIPPlanningResults = async () => {
-    try {
-      const data = await apiGet<{ results: IPPlanningResult[] }>('/api/ip-planning/my');
-      setIpPlanningResults(data.results || []);
-    } catch (error) {
-      console.error('載入 IP 人設規劃結果失敗:', error);
-      setIpPlanningResults([]);
-    }
-  };
+  // 載入 IP 人設規劃結果（已廢棄，改用 store）
+  // const loadIPPlanningResults = async () => { ... }
 
   // 刪除項目
   const handleDelete = async (id: string, type: string) => {
@@ -896,6 +900,14 @@ export default function UserDB() {
       
       await apiDelete(endpoint);
       toast.success('刪除成功');
+      // 刪除後刷新 store 數據
+      if (user?.user_id) {
+        if (type === 'script') {
+          await loadScriptsFromStore(user.user_id, true); // force refresh
+        } else if (type === 'ip-planning') {
+          await loadIPPlanningFromStore(user.user_id, true); // force refresh
+        }
+      }
       loadData();
     } catch (error: any) {
       console.error('刪除失敗:', error);

@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useRef, memo, useMemo } from 'react';
 import { useAuthStore } from '@/stores/authStore';
+import { useUserDataStore } from '@/stores/userDataStore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -331,8 +332,20 @@ export default function Mode1() {
         setSavedResults(localResults);
         console.log('[Mode1] 從 localStorage 載入緩存:', localResults.length, '個結果');
       }
+      // 同時觸發 store 數據載入（如果還沒有載入）
+      if (storeIPPlanningResults.length === 0) {
+        loadIPPlanningFromStore(user.user_id);
+      }
     }
-  }, [user?.user_id]); // 只在 user_id 變化時執行
+  }, [user?.user_id, storeIPPlanningResults.length, loadIPPlanningFromStore]); // 只在 user_id 變化時執行
+  
+  // 監聽 store 數據變化，自動更新顯示
+  useEffect(() => {
+    if (storeIPPlanningResults.length > 0) {
+      // 當 store 數據更新時，重新載入並合併結果
+      loadSavedResults(false);
+    }
+  }, [storeIPPlanningResults]);
 
   // 如果是從 UserDB 的 14 天規劃導入，自動把內容發送給 AI
   useEffect(() => {
@@ -483,8 +496,12 @@ export default function Mode1() {
     }
   };
 
-  // 載入生成結果（從資料庫和 localStorage）
-  // 優化：先顯示 localStorage 緩存，然後異步更新資料庫數據
+  // 從 store 獲取 IP 規劃結果
+  const storeIPPlanningResults = useUserDataStore((state) => state.ipPlanningResults);
+  const loadIPPlanningFromStore = useUserDataStore((state) => state.loadIPPlanningResults);
+  
+  // 載入生成結果（從 store 和 localStorage）
+  // 優化：先顯示 localStorage 緩存，然後從 store 獲取資料庫數據
   const loadSavedResults = async (showCacheFirst: boolean = false) => {
     try {
       if (!user?.user_id) return;
@@ -497,16 +514,16 @@ export default function Mode1() {
         setSavedResults(localResults);
       }
       
-      // 2. 從資料庫載入（異步，不阻塞 UI）
+      // 2. 確保 store 中有數據（如果沒有則觸發載入）
+      if (storeIPPlanningResults.length === 0) {
+        await loadIPPlanningFromStore(user.user_id);
+      }
+      
+      // 3. 從 store 獲取資料庫結果並轉換為 SavedResult 格式
       let dbResults: SavedResult[] = [];
       try {
-        // 增加超時時間到 30 秒，因為後端處理可能需要較長時間
-        const data = await apiGet<{ results: HistoryItem[] }>('/api/ip-planning/my', {
-          timeout: 30000 // 30 秒超時
-        });
-        
-        // 將資料庫結果轉換為 SavedResult 格式
-        dbResults = data.results.map(item => {
+        // 將 store 中的 IP 規劃結果轉換為 SavedResult 格式
+        dbResults = storeIPPlanningResults.map(item => {
           // 映射 result_type 到 category
           // 注意：需要根據 metadata.category 來判斷，如果沒有則使用 result_type
           let category: 'positioning' | 'topics' | 'planning' | 'script' = 'positioning';
@@ -523,7 +540,7 @@ export default function Mode1() {
               'scripts': 'script'
             };
             
-            if (item.type === 'plan' || item.type === 'planning') {
+            if (item.result_type === 'plan') {
               // 判斷是 14天規劃 還是 選題方向
               const titleContent = ((item.title || '') + ' ' + (item.content || '')).toLowerCase();
               if (titleContent.includes('14天') || titleContent.includes('14 天') || titleContent.includes('14天規劃') || titleContent.includes('14 天規劃')) {
@@ -532,10 +549,8 @@ export default function Mode1() {
                 // 預設為 topics（選題方向）
                 category = 'topics';
               }
-            } else if (item.type === 'topics') {
-              category = 'topics';
             } else {
-              category = categoryMap[item.type as keyof typeof categoryMap] || 'positioning';
+              category = categoryMap[item.result_type as keyof typeof categoryMap] || 'positioning';
             }
           }
           
@@ -550,16 +565,7 @@ export default function Mode1() {
           };
         });
       } catch (error: any) {
-        console.error('從資料庫載入失敗:', error);
-        // 如果是 403 錯誤（權限不足），這是正常的，不顯示錯誤
-        // 但如果是其他錯誤（如網絡錯誤、超時），記錄詳細信息
-        if (error?.response?.status !== 403 && error?.response?.status !== 401) {
-          console.warn('[Mode1] 資料庫載入失敗，將僅顯示 localStorage 緩存:', {
-            status: error?.response?.status,
-            message: error?.message,
-            timeout: error?.code === 'ECONNABORTED'
-          });
-        }
+        console.error('從 store 轉換數據失敗:', error);
       }
       
       // 3. 合併結果（避免重複）
@@ -1012,6 +1018,11 @@ export default function Mode1() {
         saveToLocalStorage(updated);
         return updated;
       });
+      
+      // 刷新 store 數據
+      if (user?.user_id) {
+        loadIPPlanningFromStore(user.user_id, true); // force refresh
+      }
       
       // 發送自定義事件，通知 UserDB 頁面刷新資料
       window.dispatchEvent(new CustomEvent('userdb-data-updated', {
