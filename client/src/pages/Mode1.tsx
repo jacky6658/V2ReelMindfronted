@@ -331,20 +331,8 @@ export default function Mode1() {
         setSavedResults(localResults);
         console.log('[Mode1] 從 localStorage 載入緩存:', localResults.length, '個結果');
       }
-      // 同時觸發 store 數據載入（如果還沒有載入）
-      if (storeIPPlanningResults.length === 0) {
-        loadIPPlanningFromStore(user.user_id);
-      }
     }
-  }, [user?.user_id, storeIPPlanningResults.length, loadIPPlanningFromStore]); // 只在 user_id 變化時執行
-  
-  // 監聽 store 數據變化，自動更新顯示
-  useEffect(() => {
-    if (storeIPPlanningResults.length > 0) {
-      // 當 store 數據更新時，重新載入並合併結果
-      loadSavedResults(false);
-    }
-  }, [storeIPPlanningResults]);
+  }, [user?.user_id]); // 只在 user_id 變化時執行
 
   // 如果是從 UserDB 的 14 天規劃導入，自動把內容發送給 AI
   useEffect(() => {
