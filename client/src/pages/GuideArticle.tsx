@@ -158,15 +158,27 @@ export default function GuideArticle() {
     const match = text.match(relatedRegex);
     
     if (match) {
-      const articleTitle = match[1];
-      const description = match[2];
+      const articleTitle = match[1].trim();
+      const description = match[2].trim();
       
       // 查找對應的文章 slug
-      const articleSlug = Object.entries(guideArticles).find(
-        ([_, article]) => article.title === articleTitle
-      )?.[0];
+      // 支援完全匹配和部分匹配（標題前綴匹配）
+      const articleEntry = Object.entries(guideArticles).find(
+        ([_, article]) => {
+          const fullTitle = article.title;
+          // 完全匹配
+          if (fullTitle === articleTitle) return true;
+          // 部分匹配：檢查完整標題是否以簡短標題開頭
+          if (fullTitle.startsWith(articleTitle)) return true;
+          // 反向匹配：檢查簡短標題是否是完整標題的前綴（去掉冒號後的部分）
+          const titlePrefix = fullTitle.split('：')[0].split(':')[0].trim();
+          if (titlePrefix === articleTitle) return true;
+          return false;
+        }
+      );
       
-      if (articleSlug) {
+      if (articleEntry) {
+        const [articleSlug] = articleEntry;
         return [
           '• ',
           <a
@@ -185,7 +197,28 @@ export default function GuideArticle() {
       }
     }
     
-    // 如果沒有匹配到延伸閱讀格式，嘗試處理一般連結
+    // 如果沒有匹配到延伸閱讀格式，處理粗體和連結
+    // 先處理粗體，再處理連結
+    if (text.includes('**')) {
+      const parts = text.split('**');
+      const result: (string | JSX.Element)[] = [];
+      parts.forEach((part, i) => {
+        if (i % 2 === 0) {
+          // 偶數索引是普通文字，可能包含連結
+          if (part.includes('[') && part.includes('](')) {
+            result.push(...parseMarkdownLinks(part));
+          } else {
+            result.push(part);
+          }
+        } else {
+          // 奇數索引是粗體文字
+          result.push(<strong key={i} className="font-semibold">{part}</strong>);
+        }
+      });
+      return result;
+    }
+    
+    // 如果沒有粗體，嘗試處理連結
     return parseMarkdownLinks(text);
   };
 
@@ -359,6 +392,28 @@ export default function GuideArticle() {
                         // 檢查是否是延伸閱讀格式（包含 **標題** - 描述）
                         if (text.includes('**') && text.includes(' - ')) {
                           const parts = parseRelatedArticles(text);
+                          // 檢查是否成功匹配到連結（parts 中包含 <a> 元素）
+                          const hasLink = parts.some(p => 
+                            typeof p !== 'string' && 
+                            (p as any)?.type === 'a' || 
+                            (p as any)?.props?.href
+                          );
+                          
+                          // 如果沒有匹配到連結，但文字包含粗體，需要處理粗體
+                          if (!hasLink && text.includes('**')) {
+                            const boldParts = text.split('**');
+                            return (
+                              <div key={pIndex} className="flex gap-2 items-start">
+                                <span className="flex-shrink-0 mt-1">{icon}</span>
+                                <span className="flex-1">
+                                  {boldParts.map((part, i) => 
+                                    i % 2 === 0 ? part : <strong key={i} className="font-semibold">{part}</strong>
+                                  )}
+                                </span>
+                              </div>
+                            );
+                          }
+                          
                           return (
                             <div key={pIndex} className="flex gap-2 items-start">
                               <span className="flex-shrink-0 mt-1">{icon}</span>
@@ -401,7 +456,41 @@ export default function GuideArticle() {
                         );
                       }
                       
-                      // 處理粗體文字
+                      // 處理包含連結的段落（優先檢查連結，因為可能同時包含粗體）
+                      if (paragraph.includes('[') && paragraph.includes('](')) {
+                        // 如果同時包含粗體和連結，需要同時處理
+                        if (paragraph.includes('**')) {
+                          const parts = paragraph.split('**');
+                          const result: (string | JSX.Element)[] = [];
+                          parts.forEach((part, i) => {
+                            if (i % 2 === 0) {
+                              // 偶數索引是普通文字，可能包含連結
+                              if (part.includes('[') && part.includes('](')) {
+                                result.push(...parseMarkdownLinks(part));
+                              } else {
+                                result.push(part);
+                              }
+                            } else {
+                              // 奇數索引是粗體文字
+                              result.push(<strong key={i} className="font-semibold text-foreground">{part}</strong>);
+                            }
+                          });
+                          return (
+                            <p key={pIndex} className="leading-relaxed text-muted-foreground">
+                              {result}
+                            </p>
+                          );
+                        }
+                        
+                        const parts = parseMarkdownLinks(paragraph);
+                        return (
+                          <p key={pIndex} className="leading-relaxed text-muted-foreground">
+                            {parts}
+                          </p>
+                        );
+                      }
+                      
+                      // 處理粗體文字（優先於一般段落）
                       if (paragraph.includes('**')) {
                         const parts = paragraph.split('**');
                         return (
@@ -409,16 +498,6 @@ export default function GuideArticle() {
                             {parts.map((part, i) => 
                               i % 2 === 0 ? part : <strong key={i} className="font-semibold text-foreground">{part}</strong>
                             )}
-                          </p>
-                        );
-                      }
-                      
-                      // 處理包含連結的段落
-                      if (paragraph.includes('[') && paragraph.includes('](')) {
-                        const parts = parseMarkdownLinks(paragraph);
-                        return (
-                          <p key={pIndex} className="leading-relaxed text-muted-foreground">
-                            {parts}
                           </p>
                         );
                       }
