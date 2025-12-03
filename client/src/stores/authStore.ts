@@ -12,6 +12,7 @@
 import { create } from 'zustand';
 import { apiGet, apiPost } from '@/lib/api-client';
 import { APP_CONFIG } from '@/lib/api-config';
+import { useUserDataStore } from './userDataStore';
 
 interface User {
   user_id: string;
@@ -91,6 +92,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       subscription: null,
       loading: false 
     });
+    // 清除所有用戶數據
+    useUserDataStore.getState().clearAllData();
   },
 
   setAuth: ({ user, token, subscription = null }) => {
@@ -106,6 +109,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     });
     // 設置登入時更新活動時間
     get().updateLastActivity();
+    // 觸發數據預載入（不阻塞，在背景執行）
+    if (user?.user_id) {
+      setTimeout(() => {
+        useUserDataStore.getState().preloadAllData(user.user_id);
+      }, 100); // 稍微延遲，確保認證狀態已完全設置
+    }
   },
 
   logout: async () => {
@@ -148,6 +157,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       });
       // 成功獲取用戶資訊後更新活動時間
       get().updateLastActivity();
+      // 觸發數據預載入（不阻塞，在背景執行）
+      if (userData?.user_id) {
+        setTimeout(() => {
+          useUserDataStore.getState().preloadAllData(userData.user_id);
+        }, 100); // 稍微延遲，確保認證狀態已完全設置
+      }
     } catch (error: any) {
       // 如果是 401 錯誤或超时，表示未登入或网络问题，不顯示錯誤訊息
       if (error?.response?.status !== 401 && !error?.message?.includes('timeout')) {
