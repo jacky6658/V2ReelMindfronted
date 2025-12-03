@@ -3,7 +3,7 @@
  * 這是登入後用戶會看到的核心功能頁面
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { Link, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -46,6 +46,7 @@ const AppDashboard: React.FC = () => {
   const [analyticsOverview, setAnalyticsOverview] = useState<AnalyticsOverview | null>(null);
   const [loadingAnalytics, setLoadingAnalytics] = useState(false);
   const [showStatisticsHelpDialog, setShowStatisticsHelpDialog] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const [notifications, setNotifications] = useState<Array<{
     id: number;
     type: string;
@@ -120,6 +121,29 @@ const AppDashboard: React.FC = () => {
     const interval = setInterval(loadNotifications, 30000);
     return () => clearInterval(interval);
   }, [user?.user_id, authLoading]);
+
+  // 確保影片在載入後立即播放
+  useEffect(() => {
+    const video = videoRef.current;
+    if (video) {
+      const playVideo = async () => {
+        try {
+          await video.play();
+        } catch (error) {
+          console.warn('Video autoplay prevented:', error);
+        }
+      };
+      
+      if (video.readyState >= 2) {
+        // 如果影片已經載入足夠數據，立即播放
+        playVideo();
+      } else {
+        // 否則等待載入完成
+        video.addEventListener('loadeddata', playVideo, { once: true });
+        video.addEventListener('canplay', playVideo, { once: true });
+      }
+    }
+  }, []);
 
   // 標記通知為已讀
   const markNotificationRead = async (notificationId: number) => {
@@ -398,19 +422,28 @@ const AppDashboard: React.FC = () => {
         {/* 影片背景 */}
         <div className="video-background">
           <video
+            ref={videoRef}
             autoPlay
             loop
             muted
             playsInline
             preload="auto"
+            poster="/assets/images/reelmind-poster.jpg"
             className="object-cover"
+            onLoadedData={() => {
+              // 確保影片載入後立即播放
+              const video = videoRef.current;
+              if (video && video.paused) {
+                video.play().catch(e => console.warn('Video play failed:', e));
+              }
+            }}
             onError={(e) => {
               console.warn('视频加载失败，使用背景色替代');
               e.currentTarget.style.display = 'none';
             }}
           >
-            {/* 行動裝置相容性：優先使用 MP4，其次 WebM */}
-            <source src="/reelmind.mp4" type="video/mp4" />
+            {/* 使用壓縮後的影片（2.3MB），優先使用 MP4，其次 WebM */}
+            <source src="/assets/videos/reelmind.mp4" type="video/mp4" />
             <source src="/reelmind.webm" type="video/webm" />
           </video>
           <div className="video-overlay"></div>

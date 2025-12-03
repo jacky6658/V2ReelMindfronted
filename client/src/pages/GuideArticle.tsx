@@ -390,30 +390,11 @@ export default function GuideArticle() {
                         const text = paragraph.replace(/^[•✅❌]\s*/, '');
                         
                         // 檢查是否是延伸閱讀格式（包含 **標題** - 描述）
+                        // 但先檢查是否真的是延伸閱讀（通常在「延伸閱讀：」標題下）
+                        // 或者直接處理包含粗體和「 - 」的列表項
                         if (text.includes('**') && text.includes(' - ')) {
                           const parts = parseRelatedArticles(text);
-                          // 檢查是否成功匹配到連結（parts 中包含 <a> 元素）
-                          const hasLink = parts.some(p => 
-                            typeof p !== 'string' && 
-                            (p as any)?.type === 'a' || 
-                            (p as any)?.props?.href
-                          );
-                          
-                          // 如果沒有匹配到連結，但文字包含粗體，需要處理粗體
-                          if (!hasLink && text.includes('**')) {
-                            const boldParts = text.split('**');
-                            return (
-                              <div key={pIndex} className="flex gap-2 items-start">
-                                <span className="flex-shrink-0 mt-1">{icon}</span>
-                                <span className="flex-1">
-                                  {boldParts.map((part, i) => 
-                                    i % 2 === 0 ? part : <strong key={i} className="font-semibold">{part}</strong>
-                                  )}
-                                </span>
-                              </div>
-                            );
-                          }
-                          
+                          // parseRelatedArticles 已經處理了粗體，直接使用結果
                           return (
                             <div key={pIndex} className="flex gap-2 items-start">
                               <span className="flex-shrink-0 mt-1">{icon}</span>

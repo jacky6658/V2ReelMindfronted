@@ -5,7 +5,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTr
 import { Separator } from "@/components/ui/separator";
 import { Sparkles, Target, Zap, TrendingUp, CheckCircle2, Play, Check, Mail, Shield, CreditCard, Menu, User, LogOut, Home as HomeIcon, BookOpen, Users, Settings, ArrowLeft, Gift } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useAuthStore } from "@/stores/authStore";
 import SiteFooterContacts from "@/components/SiteFooterContacts";
 
@@ -14,6 +14,7 @@ export default function Home() {
   const { isLoggedIn, getToken, user, logout } = useAuthStore();
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('yearly');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   // 處理錨點滾動（因為使用 HashRouter，需要手動處理）
   const handleScrollTo = (elementId: string) => {
@@ -27,6 +28,29 @@ export default function Home() {
     // 導向登入頁面，讓用戶有機會輸入推薦碼
     navigate('/login');
   };
+
+  // 確保影片在載入後立即播放
+  useEffect(() => {
+    const video = videoRef.current;
+    if (video) {
+      const playVideo = async () => {
+        try {
+          await video.play();
+        } catch (error) {
+          console.warn('Video autoplay prevented:', error);
+        }
+      };
+      
+      if (video.readyState >= 2) {
+        // 如果影片已經載入足夠數據，立即播放
+        playVideo();
+      } else {
+        // 否則等待載入完成
+        video.addEventListener('loadeddata', playVideo, { once: true });
+        video.addEventListener('canplay', playVideo, { once: true });
+      }
+    }
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -283,19 +307,28 @@ export default function Home() {
         {/* 影片背景 */}
         <div className="video-background">
           <video
+            ref={videoRef}
             autoPlay
             loop
             muted
             playsInline
             preload="auto"
+            poster="/assets/images/hero-poster.jpg"
             className="object-cover"
+            onLoadedData={() => {
+              // 確保影片載入後立即播放
+              const video = videoRef.current;
+              if (video && video.paused) {
+                video.play().catch(e => console.warn('Video play failed:', e));
+              }
+            }}
             onError={(e) => {
               console.warn('视频加载失败，使用背景色替代');
               e.currentTarget.style.display = 'none';
             }}
           >
-            {/* 行動裝置相容性：優先使用 MP4，其次 WebM */}
-            <source src="/hero-bg.mp4" type="video/mp4" />
+            {/* 使用壓縮後的影片（2.3MB），優先使用 MP4，其次 WebM */}
+            <source src="/assets/videos/hero-bg.mp4" type="video/mp4" />
             <source src="/hero-bg.webm" type="video/webm" />
           </video>
           <div className="video-overlay"></div>
