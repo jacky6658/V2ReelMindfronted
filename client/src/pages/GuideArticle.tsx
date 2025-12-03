@@ -321,60 +321,51 @@ export default function GuideArticle() {
                       // 處理表格
                       if (paragraph.startsWith('|')) {
                         const rows = paragraph.split('\n').filter(row => row.trim());
-                        const headerRow = rows[0];
-                        const columnCount = headerRow.split('|').filter(cell => cell.trim()).length;
                         
                         return (
-                          <div key={pIndex} className="overflow-x-auto my-4 rounded-lg border border-border dark:border-border/50 bg-card dark:bg-card/50">
-                            <table className="min-w-full border-collapse" style={{ tableLayout: 'fixed', width: '100%' }}>
-                              <tbody>
-                                {rows.map((row, rIndex) => {
-                                  const cells = row.split('|').filter(cell => cell.trim());
-                                  const isHeader = rIndex === 0;
-                                  const isSeparator = cells.every(cell => cell.trim().match(/^-+$/));
-                                  
-                                  if (isSeparator) return null;
-                                  
-                                  return (
-                                    <tr 
-                                      key={rIndex} 
-                                      className={cn(
-                                        isHeader 
-                                          ? 'bg-muted/50 dark:bg-muted/30 border-b border-border dark:border-border/50' 
-                                          : 'border-b border-border/50 dark:border-border/30 hover:bg-muted/30 dark:hover:bg-muted/20 transition-colors'
-                                      )}
-                                    >
-                                      {cells.map((cell, cIndex) => {
-                                        const Tag = isHeader ? 'th' : 'td';
-                                        // 計算欄寬：第一欄和最後一欄較窄，中間欄位平均分配
-                                        const widthStyle = columnCount <= 3 
-                                          ? { width: `${100 / columnCount}%` }
-                                          : cIndex === 0 
-                                            ? { width: '20%' }
-                                            : cIndex === cells.length - 1
-                                              ? { width: '15%' }
-                                              : { width: `${65 / (cells.length - 2)}%` };
-                                        
-                                        return (
-                                          <Tag
-                                            key={cIndex}
-                                            className={cn(
-                                              "px-4 py-2 text-left break-words",
-                                              isHeader 
-                                                ? "font-semibold text-foreground dark:text-foreground" 
-                                                : "text-foreground/90 dark:text-foreground/80"
-                                            )}
-                                            style={widthStyle}
-                                          >
-                                            {cell.trim()}
-                                          </Tag>
-                                        );
-                                      })}
-                                    </tr>
-                                  );
-                                })}
-                              </tbody>
-                            </table>
+                          <div key={pIndex} className="my-4 -mx-4 md:mx-0">
+                            <div className="overflow-x-auto px-4 md:px-0">
+                              <table className="min-w-[600px] md:min-w-full border-collapse rounded-lg border border-border dark:border-border/50 bg-card dark:bg-card/50">
+                                <tbody>
+                                  {rows.map((row, rIndex) => {
+                                    const cells = row.split('|').filter(cell => cell.trim());
+                                    const isHeader = rIndex === 0;
+                                    const isSeparator = cells.every(cell => cell.trim().match(/^-+$/));
+                                    
+                                    if (isSeparator) return null;
+                                    
+                                    return (
+                                      <tr 
+                                        key={rIndex} 
+                                        className={cn(
+                                          isHeader 
+                                            ? 'bg-muted/50 dark:bg-muted/30 border-b border-border dark:border-border/50' 
+                                            : 'border-b border-border/50 dark:border-border/30 hover:bg-muted/30 dark:hover:bg-muted/20 transition-colors'
+                                        )}
+                                      >
+                                        {cells.map((cell, cIndex) => {
+                                          const Tag = isHeader ? 'th' : 'td';
+                                          
+                                          return (
+                                            <Tag
+                                              key={cIndex}
+                                              className={cn(
+                                                "px-4 py-2 text-left whitespace-nowrap",
+                                                isHeader 
+                                                  ? "font-semibold text-foreground dark:text-foreground" 
+                                                  : "text-foreground/90 dark:text-foreground/80"
+                                              )}
+                                            >
+                                              {cell.trim()}
+                                            </Tag>
+                                          );
+                                        })}
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                            </div>
                           </div>
                         );
                       }
