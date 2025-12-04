@@ -718,14 +718,23 @@ export default function Mode1() {
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
 
+    const inputText = input.trim();
+    
+    // 檢測是否為 URL，如果是則先抓取內容（允許替換現有上下文）
+    if (isUrl(inputText)) {
+      await handleUrlFetch(inputText);
+      setInput(''); // 清空輸入框
+      return;
+    }
+
     const userMessage: Message = {
       role: 'user',
-      content: input.trim(),
+      content: inputText,
       timestamp: Date.now()
     };
     
     // 儲存當前的 prompt 以便「換一個」功能使用
-    const currentPrompt = input.trim();
+    const currentPrompt = inputText;
 
     // 檢測儲存意圖
     const shouldAutoSave = detectSaveIntent(userMessage.content);
@@ -845,6 +854,21 @@ export default function Mode1() {
       return;
     }
 
+    // 檢查檔案格式
+    const fileExt = file.name.toLowerCase().split('.').pop() || '';
+    const supportedFormats = ['txt', 'md', 'docx', 'pdf'];
+    const imageFormats = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'];
+    
+    if (imageFormats.includes(fileExt)) {
+      toast.error('目前不支援圖片格式，請使用文字檔案（.txt, .md, .docx, .pdf）或貼上網址');
+      return;
+    }
+    
+    if (!supportedFormats.includes(fileExt)) {
+      toast.error(`不支援的檔案格式: .${fileExt}。目前支援: .txt, .md, .docx, .pdf`);
+      return;
+    }
+
     setUploadingFile(true);
     try {
       const formData = new FormData();
@@ -924,10 +948,21 @@ export default function Mode1() {
     }
   };
 
-  // 檢測是否為 URL
+  // 檢測是否為 URL（更準確的檢測）
   const isUrl = (text: string): boolean => {
-    const urlPattern = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/i;
-    return urlPattern.test(text.trim());
+    const trimmed = text.trim();
+    // 檢測是否包含 http:// 或 https://
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+      try {
+        new URL(trimmed);
+        return true;
+      } catch {
+        return false;
+      }
+    }
+    // 檢測是否為常見的網址格式（包含 .com, .tw, .org 等）
+    const urlPattern = /^([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/i;
+    return urlPattern.test(trimmed) && trimmed.includes('.');
   };
 
   // 清除上下文
