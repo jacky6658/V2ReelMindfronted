@@ -222,8 +222,6 @@ export default function Mode1() {
   const [contextSource, setContextSource] = useState<{ type: 'file' | 'url'; name: string } | null>(null); // 上下文來源資訊
   const [uploadingFile, setUploadingFile] = useState(false);
   const [fetchingUrl, setFetchingUrl] = useState(false);
-  const [urlInput, setUrlInput] = useState('');
-  const [showContextCard, setShowContextCard] = useState(false); // 是否顯示上下文卡片
 
   // 快速按鈕
   const quickButtons = [
@@ -879,8 +877,7 @@ export default function Mode1() {
         type: 'file',
         name: responseData.source_name
       });
-      setShowContextCard(false);
-      toast.success(`檔案「${responseData.source_name}」已上傳，內容已準備好供 AI 使用`);
+      toast.success(`✅ 檔案「${responseData.source_name}」已上傳，內容已準備好供 AI 使用`);
     } catch (error: any) {
       console.error('檔案上傳失敗:', error);
       toast.error(error?.response?.data?.error || error?.message || '檔案上傳失敗');
@@ -890,8 +887,8 @@ export default function Mode1() {
   };
 
   // 處理 URL 抓取
-  const handleUrlFetch = async () => {
-    if (!urlInput.trim()) {
+  const handleUrlFetch = async (url: string) => {
+    if (!url.trim()) {
       toast.error('請輸入 URL');
       return;
     }
@@ -910,7 +907,7 @@ export default function Mode1() {
         content_length: number;
         message: string;
       }>('/api/llm/context/fetch-url', {
-        url: urlInput.trim()
+        url: url.trim()
       });
 
       setContextId(response.context_id);
@@ -918,15 +915,19 @@ export default function Mode1() {
         type: 'url',
         name: response.source_name
       });
-      setUrlInput('');
-      setShowContextCard(false);
-      toast.success(`URL 內容已抓取，內容已準備好供 AI 使用`);
+      toast.success(`✅ URL 內容已抓取，內容已準備好供 AI 使用`);
     } catch (error: any) {
       console.error('URL 抓取失敗:', error);
       toast.error(error?.response?.data?.error || error?.message || 'URL 抓取失敗');
     } finally {
       setFetchingUrl(false);
     }
+  };
+
+  // 檢測是否為 URL
+  const isUrl = (text: string): boolean => {
+    const urlPattern = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/i;
+    return urlPattern.test(text.trim());
   };
 
   // 清除上下文
@@ -1128,11 +1129,6 @@ export default function Mode1() {
         saveToLocalStorage(updated);
         return updated;
       });
-      
-      // 刷新 store 數據
-      if (user?.user_id) {
-        loadIPPlanningFromStore(user.user_id, true); // force refresh
-      }
       
       // 發送自定義事件，通知 UserDB 頁面刷新資料
       window.dispatchEvent(new CustomEvent('userdb-data-updated', {
@@ -1417,127 +1413,31 @@ export default function Mode1() {
                 </div>
               </div>
               
-              {/* 上下文卡片（檔案上傳/URL 輸入） */}
-              {(showContextCard || contextId) && (
-                <div className="px-4 md:px-6 pb-4">
-                  <Card className="max-w-3xl mx-auto">
-                    <CardContent className="p-4">
-                      {contextId ? (
-                        // 顯示當前上下文資訊
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            {contextSource?.type === 'file' ? (
-                              <FileText className="w-4 h-4 text-primary" />
-                            ) : (
-                              <Home className="w-4 h-4 text-primary" />
-                            )}
-                            <span className="text-sm text-muted-foreground">
-                              參考資料：{contextSource?.name || '未知來源'}
-                            </span>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={handleClearContext}
-                            className="text-xs"
-                          >
-                            <X className="w-3 h-3 mr-1" />
-                            清除
-                          </Button>
-                        </div>
-                      ) : (
-                        // 顯示上傳/輸入選項
-                        <Tabs defaultValue="file" className="w-full">
-                          <TabsList className="grid w-full grid-cols-2">
-                            <TabsTrigger value="file">拖拉檔案</TabsTrigger>
-                            <TabsTrigger value="url">貼網址</TabsTrigger>
-                          </TabsList>
-                          <TabsContent value="file" className="mt-4">
-                            <div
-                              className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center cursor-pointer hover:border-primary/50 transition-colors"
-                              onDrop={handleDrop}
-                              onDragOver={handleDragOver}
-                              onClick={() => {
-                                const input = document.createElement('input');
-                                input.type = 'file';
-                                input.accept = '.txt,.md,.docx,.pdf';
-                                input.onchange = (e) => {
-                                  const file = (e.target as HTMLInputElement).files?.[0];
-                                  if (file) {
-                                    handleFileUpload(file);
-                                  }
-                                };
-                                input.click();
-                              }}
-                            >
-                              {uploadingFile ? (
-                                <div className="flex flex-col items-center gap-2">
-                                  <RefreshCw className="w-8 h-8 animate-spin text-primary" />
-                                  <span className="text-sm text-muted-foreground">上傳中...</span>
-                                </div>
-                              ) : (
-                                <div className="flex flex-col items-center gap-2">
-                                  <FileText className="w-8 h-8 text-muted-foreground" />
-                                  <span className="text-sm font-medium">點擊或拖放檔案到此處</span>
-                                  <span className="text-xs text-muted-foreground">
-                                    支援 .txt, .md, .docx, .pdf（最大 10MB）
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-                          </TabsContent>
-                          <TabsContent value="url" className="mt-4">
-                            <div className="space-y-3">
-                              <Input
-                                placeholder="貼上網址，例如：https://example.com/article"
-                                value={urlInput}
-                                onChange={(e) => setUrlInput(e.target.value)}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter' && !fetchingUrl) {
-                                    handleUrlFetch();
-                                  }
-                                }}
-                                disabled={fetchingUrl}
-                              />
-                              <Button
-                                onClick={handleUrlFetch}
-                                disabled={!urlInput.trim() || fetchingUrl}
-                                className="w-full"
-                              >
-                                {fetchingUrl ? (
-                                  <>
-                                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                                    抓取中...
-                                  </>
-                                ) : (
-                                  <>
-                                    <Home className="w-4 h-4 mr-2" />
-                                    抓取內容
-                                  </>
-                                )}
-                              </Button>
-                            </div>
-                          </TabsContent>
-                        </Tabs>
-                      )}
-                    </CardContent>
-                  </Card>
-                </div>
-              )}
-
-              {/* 顯示上下文卡片按鈕（如果沒有上下文） */}
-              {!contextId && !showContextCard && (
-                <div className="px-4 md:px-6 pb-2">
+              {/* 顯示當前上下文資訊（如果有） */}
+              {contextId && (
+                <div className="px-4 md:px-6 pb-2 pt-4">
                   <div className="max-w-3xl mx-auto">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setShowContextCard(true)}
-                      className="text-xs"
-                    >
-                      <FileText className="w-3 h-3 mr-1" />
-                      上傳檔案或貼網址作為參考資料
-                    </Button>
+                    <div className="flex items-center justify-between bg-muted/50 rounded-lg px-3 py-2">
+                      <div className="flex items-center gap-2">
+                        {contextSource?.type === 'file' ? (
+                          <FileText className="w-4 h-4 text-primary" />
+                        ) : (
+                          <Home className="w-4 h-4 text-primary" />
+                        )}
+                        <span className="text-sm text-muted-foreground">
+                          參考資料：{contextSource?.name || '未知來源'}
+                        </span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleClearContext}
+                        className="text-xs h-6"
+                      >
+                        <X className="w-3 h-3 mr-1" />
+                        清除
+                      </Button>
+                    </div>
                   </div>
                 </div>
               )}
@@ -1550,15 +1450,17 @@ export default function Mode1() {
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={handleKeyDown}
+                    onDrop={handleDrop}
+                    onDragOver={handleDragOver}
                     placeholder={
                       checkingPermission 
                         ? "正在檢查權限..." 
                         : hasPermission === false 
                         ? "試用期已過，請訂閱以繼續使用" 
-                        : "輸入你的問題或需求...（或是直接點選快速按鈕）"
+                        : "輸入你的問題或需求，或直接拖放檔案、貼上網址...（或是直接點選快速按鈕）"
                     }
                     className="min-h-[60px] md:min-h-[70px] resize-none text-base"
-                    disabled={isLoading || checkingPermission || hasPermission === false}
+                    disabled={isLoading || checkingPermission || hasPermission === false || uploadingFile || fetchingUrl}
                   />
                   <Button
                     onClick={() => {
