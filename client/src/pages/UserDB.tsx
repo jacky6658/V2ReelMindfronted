@@ -2731,6 +2731,21 @@ export default function UserDB() {
                                           <MessageSquare className="w-4 h-4 mr-2" />
                                           在 IP 人設規劃中使用
                                         </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          onClick={() => {
+                                            if (!user?.user_id) {
+                                              toast.error('請先登入');
+                                              navigate('/login');
+                                              return;
+                                            }
+                                            setScheduleTargetPlan(result);
+                                            setScheduleDate(new Date());
+                                            setScheduleDialogOpen(true);
+                                          }}
+                                        >
+                                          <CalendarIcon className="w-4 h-4 mr-2" />
+                                          排入日曆
+                                        </DropdownMenuItem>
                                         <DropdownMenuItem 
                                           onClick={() => handleDelete(result.id, 'ip-planning')}
                                           className="text-destructive"
@@ -2760,7 +2775,7 @@ export default function UserDB() {
 
       {/* 排入日曆 Dialog */}
       <Dialog open={scheduleDialogOpen} onOpenChange={setScheduleDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>排入日曆</DialogTitle>
             <DialogDescription>
@@ -2770,7 +2785,7 @@ export default function UserDB() {
           <div className="grid gap-4 py-4">
             <div className="flex flex-col gap-2">
               <Label htmlFor="start-date">開始日期</Label>
-              <div className="flex justify-center p-2 border rounded-md">
+              <div className="flex justify-center p-2 border rounded-md overflow-x-auto">
                 <UiCalendar
                   mode="single"
                   selected={scheduleDate}
@@ -2786,9 +2801,19 @@ export default function UserDB() {
               </div>
             )}
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setScheduleDialogOpen(false)}>取消</Button>
-            <Button onClick={handleSchedulePlanning} disabled={!scheduleDate}>
+          <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
+            <Button 
+              variant="outline" 
+              onClick={() => setScheduleDialogOpen(false)}
+              className="w-full sm:w-auto min-h-[44px] touch-manipulation"
+            >
+              取消
+            </Button>
+            <Button 
+              onClick={handleSchedulePlanning} 
+              disabled={!scheduleDate}
+              className="w-full sm:w-auto min-h-[44px] touch-manipulation"
+            >
               確認排入
             </Button>
           </DialogFooter>
