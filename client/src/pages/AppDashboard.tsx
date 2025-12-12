@@ -394,6 +394,11 @@ const AppDashboard: React.FC = () => {
                 <div className="hidden md:flex items-center gap-2 px-2">
                   <img src={user.picture} alt={user.name} className="w-8 h-8 rounded-full" />
                   <span className="text-sm">{user.name}</span>
+                  {user.is_admin && (
+                    <span className="px-2 py-0.5 text-xs bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full font-semibold">
+                      管理員
+                    </span>
+                  )}
                 </div>
                 <Button
                   variant="ghost"
@@ -462,6 +467,11 @@ const AppDashboard: React.FC = () => {
                   {user && (
                     <span className="block mt-1 text-xl md:text-2xl text-foreground/90 font-normal">
                       {user.name || user.email}
+                      {user.is_admin && (
+                        <span className="ml-2 px-2 py-1 text-xs md:text-sm bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full font-semibold">
+                          管理員
+                        </span>
+                      )}
                     </span>
                   )}
                 </h1>
