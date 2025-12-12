@@ -1272,27 +1272,13 @@ export default function Mode1() {
       console.error('儲存到 UserDB 失敗:', error);
       
       // 處理 403 錯誤 (權限不足/試用期已過)
+      // Mode1 必須訂閱或試用期內才能使用，即使有 LLM Key 也不能繞過此限制
       if (error?.response?.status === 403 || (error && typeof error === 'object' && 'status' in error && error.status === 403)) {
         const errorMessage = error?.response?.data?.error || error?.message || '試用期已過，請訂閱以繼續使用';
-        
-        // 根本修复：如果用户有 LLM Key 但仍然收到 403，可能是 Key 无效或已过期
-        // 提示用户检查 Key 而不是直接显示订阅对话框
-        if (hasLlmKey) {
-          setHasPermission(false);
-          toast.error('您的 LLM API Key 可能無效或已過期', {
-            description: '請前往設定頁面檢查並更新您的 API Key',
-            duration: 8000,
-            action: {
-              label: '前往設定',
-              onClick: () => navigate('/settings')
-            }
-          });
-        } else {
-          // 如果没有 LLM Key，显示订阅对话框
-          setHasPermission(false);
-          setShowSubscriptionDialog(true);
-          toast.error(errorMessage, {
-            action: {
+        setHasPermission(false);
+        setShowSubscriptionDialog(true);
+        toast.error(errorMessage, {
+          action: {
             label: '去訂閱',
             onClick: () => navigate('/pricing')
           },
