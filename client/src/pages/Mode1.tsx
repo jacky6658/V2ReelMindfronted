@@ -264,7 +264,10 @@ export default function Mode1() {
           return;
         }
 
-        // 對於未訂閱用戶，嘗試調用後端 API 檢查權限
+        // Mode1 必须订阅或试用期内才能使用，即使有 LLM Key 也不能绕过此限制
+        // 注意：只有 Mode3（一键生成）允许免费用户通过绑定 LLM Key 使用
+
+        // 對於未訂閱且沒有 LLM Key 的用戶，嘗試調用後端 API 檢查權限
         // 後端會根據試用期（7天內）判斷是否有權限
         try {
           // 使用 check_user_permission 的邏輯：通過嘗試發送一個測試請求來檢查權限
@@ -869,6 +872,7 @@ export default function Mode1() {
                                error?.is_quota_error === true;
           
           // 處理 403 錯誤 (權限不足/試用期已過)
+          // Mode1 必須訂閱或試用期內才能使用，即使有 LLM Key 也不能繞過此限制
           if (error?.response?.status === 403 || (error && typeof error === 'object' && 'status' in error && error.status === 403)) {
             const errorMessage = error?.response?.data?.error || error?.message || '試用期已過，請訂閱以繼續使用';
             setHasPermission(false);
@@ -1270,10 +1274,25 @@ export default function Mode1() {
       // 處理 403 錯誤 (權限不足/試用期已過)
       if (error?.response?.status === 403 || (error && typeof error === 'object' && 'status' in error && error.status === 403)) {
         const errorMessage = error?.response?.data?.error || error?.message || '試用期已過，請訂閱以繼續使用';
-        setHasPermission(false);
-        setShowSubscriptionDialog(true);
-        toast.error(errorMessage, {
-          action: {
+        
+        // 根本修复：如果用户有 LLM Key 但仍然收到 403，可能是 Key 无效或已过期
+        // 提示用户检查 Key 而不是直接显示订阅对话框
+        if (hasLlmKey) {
+          setHasPermission(false);
+          toast.error('您的 LLM API Key 可能無效或已過期', {
+            description: '請前往設定頁面檢查並更新您的 API Key',
+            duration: 8000,
+            action: {
+              label: '前往設定',
+              onClick: () => navigate('/settings')
+            }
+          });
+        } else {
+          // 如果没有 LLM Key，显示订阅对话框
+          setHasPermission(false);
+          setShowSubscriptionDialog(true);
+          toast.error(errorMessage, {
+            action: {
             label: '去訂閱',
             onClick: () => navigate('/pricing')
           },
@@ -1994,7 +2013,7 @@ export default function Mode1() {
                 className="flex-1"
                 onClick={() => {
                   setShowLlmKeyDialog(false);
-                  navigate('/profile');
+                  navigate('/settings');
                 }}
               >
                 <Key className="w-5 h-5 mr-2" />

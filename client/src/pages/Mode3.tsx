@@ -1484,7 +1484,7 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
                   className="flex-1"
                   onClick={() => {
                     setShowLlmKeyDialog(false);
-                    navigate('/profile');
+                    navigate('/settings');
                   }}
                 >
                   <Key className="w-5 h-5 mr-2" />
