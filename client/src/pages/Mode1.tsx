@@ -710,11 +710,11 @@ export default function Mode1() {
     // 改進：自動嘗試保存到資料庫（如果用戶已登入且有權限）
     if (isLoggedIn && user?.user_id) {
       try {
-        // 映射 category 到 result_type
+        // 映射 category 到 result_type（修复：与 handleSaveToUserDB 保持一致）
         const resultTypeMap: Record<'positioning' | 'topics' | 'planning' | 'script', string> = {
           'positioning': 'profile',    // 帳號定位 → profile
-          'topics': 'topics',           // 選題方向 → topics
-          'planning': 'plan',           // 14 天規劃 → plan
+          'topics': 'plan',            // 選題方向 → plan（修复：后端只接受 profile, plan, scripts）
+          'planning': 'plan',          // 14 天規劃 → plan
           'script': 'scripts'
         };
 
