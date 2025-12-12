@@ -118,6 +118,7 @@ export default function Mode3() {
   const [permissionError, setPermissionError] = useState('');
   const [hasLlmKey, setHasLlmKey] = useState<boolean | null>(null);
   const [showLlmKeyDialog, setShowLlmKeyDialog] = useState(false);
+  const [authReady, setAuthReady] = useState(false);
 
   // 表單資料
   const [formData, setFormData] = useState({
@@ -267,6 +268,30 @@ export default function Mode3() {
       }
     }
   }, [user?.user_id, isLoggedIn]);
+
+  // 認證就緒檢查 - 確保認證狀態完全加載後才啟用保存按鈕
+  useEffect(() => {
+    // 等待認證加載完成
+    if (!authLoading) {
+      // 延遲一點時間確保狀態已更新
+      const timer = setTimeout(() => {
+        const isReady = isLoggedIn && !!user?.user_id;
+        setAuthReady(isReady);
+        if (import.meta.env.DEV) {
+          console.log('[Mode3] 認證狀態更新:', {
+            authLoading,
+            isLoggedIn,
+            hasUser: !!user,
+            userId: user?.user_id,
+            authReady: isReady
+          });
+        }
+      }, 100);
+      return () => clearTimeout(timer);
+    } else {
+      setAuthReady(false);
+    }
+  }, [authLoading, isLoggedIn, user?.user_id]);
 
   // 當表單數據、生成結果或狀態變化時自動保存到 localStorage
   useEffect(() => {
@@ -1076,7 +1101,7 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
 
         {/* 步驟 3：生成結果 */}
         {currentStep === 3 && (
-          <div className="space-y-4">
+          <div className="space-y-4 pb-24 md:pb-4">
             {/* 使用說明提示 */}
             {!allStepsCompleted && (
               <Card className="border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20">
@@ -1102,7 +1127,7 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
             )}
             
             {/* 結果標籤切換 */}
-            <div className="flex border-b">
+            <div className="flex border-b overflow-x-auto">
               {[
                 { id: 'positioning', label: '帳號定位' },
                 { id: 'topics', label: '選題建議' },
@@ -1111,7 +1136,7 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
                 <button
                   key={tab.id}
                   onClick={() => setActiveResultTab(tab.id)}
-                  className={`px-6 py-3 font-medium transition-colors ${
+                  className={`px-4 md:px-6 py-3 font-medium transition-colors whitespace-nowrap flex-shrink-0 ${
                     activeResultTab === tab.id
                       ? 'border-b-2 border-primary text-primary'
                       : 'text-muted-foreground hover:text-foreground'
@@ -1150,109 +1175,117 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
               </CardContent>
             </Card>
 
-            <div className="flex justify-between gap-3">
-              <Button 
-                onClick={() => {
-                  // 清空結果並返回第一步
-                  setResults({
-                    positioning: '',
-                    topics: '',
-                    script: ''
-                  });
-                  setGenerationStatus({
-                    positioning: false,
-                    topics: false,
-                    script: false
-                  });
-                  setActiveResultTab('positioning');
-                  setCurrentStep(1);
-                }} 
-                variant="outline"
-              >
-                重新生成
-              </Button>
-              <div className="flex gap-2">
-                {results.positioning && (
-                  <Button
-                    variant="outline"
+            {/* 操作按鈕區域 - 手機版固定底部，桌面版正常布局 */}
+            <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t md:relative md:border-t-0 md:bg-transparent z-50 md:z-auto md:mt-4">
+              <div className="container max-w-5xl px-4 py-3 md:px-0 md:py-0">
+                <div className="flex flex-col md:flex-row justify-between gap-3">
+                  <Button 
                     onClick={() => {
-                      console.log('[Mode3] 儲存帳號定位按鈕被點擊');
-                      handleSaveResult('positioning');
-                    }}
-                    disabled={
-                      loading || 
-                      !generationStatus.positioning || 
-                      authLoading || 
-                      !isLoggedIn || 
-                      !user?.user_id
-                    }
-                    title={(() => {
-                      if (loading) return '正在生成中，請稍候...';
-                      if (!generationStatus.positioning) return '帳號定位尚未生成完成';
-                      if (authLoading && !user) return '正在載入用戶資訊...';
-                      if (!isLoggedIn) return '請先登入';
-                      if (!user?.user_id) return '用戶資訊不完整';
-                      return '儲存帳號定位';
-                    })()}
-                  >
-                    <Save className="mr-2 h-4 w-4" />
-                    儲存帳號定位
-                  </Button>
-                )}
-                {results.topics && (
-                  <Button
+                      setResults({
+                        positioning: '',
+                        topics: '',
+                        script: ''
+                      });
+                      setGenerationStatus({
+                        positioning: false,
+                        topics: false,
+                        script: false
+                      });
+                      setActiveResultTab('positioning');
+                      setCurrentStep(1);
+                    }} 
                     variant="outline"
-                    onClick={() => {
-                      console.log('[Mode3] 儲存選題建議按鈕被點擊');
-                      handleSaveResult('topics');
-                    }}
-                    disabled={
-                      loading || 
-                      !generationStatus.topics || 
-                      authLoading || 
-                      !isLoggedIn || 
-                      !user?.user_id
-                    }
-                    title={(() => {
-                      if (loading) return '正在生成中，請稍候...';
-                      if (!generationStatus.topics) return '選題建議尚未生成完成';
-                      if (authLoading && !user) return '正在載入用戶資訊...';
-                      if (!isLoggedIn) return '請先登入';
-                      if (!user?.user_id) return '用戶資訊不完整';
-                      return '儲存選題建議';
-                    })()}
+                    className="w-full md:w-auto order-2 md:order-1"
                   >
-                    <Save className="mr-2 h-4 w-4" />
-                    儲存選題建議
+                    重新生成
                   </Button>
-                )}
-                {results.script && (
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      console.log('[Mode3] 儲存腳本內容按鈕被點擊');
-                      handleSaveResult('script');
-                    }}
-                    disabled={
-                      loading || 
-                      !generationStatus.script || 
-                      authLoading || 
-                      !isLoggedIn || 
-                      !user?.user_id
-                    }
-                    title={(() => {
-                      if (loading) return '正在生成中，請稍候...';
-                      if (!generationStatus.script) return '腳本內容尚未生成完成';
-                      if (authLoading && !user) return '正在載入用戶資訊...';
-                      if (!isLoggedIn) return '請先登入';
-                      if (!user?.user_id) return '用戶資訊不完整';
-                      return '儲存腳本內容';
-                    })()}
-                  >
-                    <Save className="mr-2 h-4 w-4" />
-                    儲存腳本內容
-                  </Button>
-                )}
+                  <div className="flex flex-col md:flex-row gap-2 w-full md:w-auto order-1 md:order-2">
+                    {results.positioning && (
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          console.log('[Mode3] 儲存帳號定位按鈕被點擊');
+                          handleSaveResult('positioning');
+                        }}
+                        disabled={
+                          loading || 
+                          !generationStatus.positioning || 
+                          !authReady || 
+                          !isLoggedIn || 
+                          !user?.user_id
+                        }
+                        className="w-full md:w-auto"
+                        title={(() => {
+                          if (loading) return '正在生成中，請稍候...';
+                          if (!generationStatus.positioning) return '帳號定位尚未生成完成';
+                          if (!authReady) return '正在載入用戶資訊...';
+                          if (!isLoggedIn) return '請先登入';
+                          if (!user?.user_id) return '用戶資訊不完整';
+                          return '儲存帳號定位';
+                        })()}
+                      >
+                        <Save className="mr-2 h-4 w-4" />
+                        儲存帳號定位
+                      </Button>
+                    )}
+                    {results.topics && (
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          console.log('[Mode3] 儲存選題建議按鈕被點擊');
+                          handleSaveResult('topics');
+                        }}
+                        disabled={
+                          loading || 
+                          !generationStatus.topics || 
+                          !authReady || 
+                          !isLoggedIn || 
+                          !user?.user_id
+                        }
+                        className="w-full md:w-auto"
+                        title={(() => {
+                          if (loading) return '正在生成中，請稍候...';
+                          if (!generationStatus.topics) return '選題建議尚未生成完成';
+                          if (!authReady) return '正在載入用戶資訊...';
+                          if (!isLoggedIn) return '請先登入';
+                          if (!user?.user_id) return '用戶資訊不完整';
+                          return '儲存選題建議';
+                        })()}
+                      >
+                        <Save className="mr-2 h-4 w-4" />
+                        儲存選題建議
+                      </Button>
+                    )}
+                    {results.script && (
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          console.log('[Mode3] 儲存腳本內容按鈕被點擊');
+                          handleSaveResult('script');
+                        }}
+                        disabled={
+                          loading || 
+                          !generationStatus.script || 
+                          !authReady || 
+                          !isLoggedIn || 
+                          !user?.user_id
+                        }
+                        className="w-full md:w-auto"
+                        title={(() => {
+                          if (loading) return '正在生成中，請稍候...';
+                          if (!generationStatus.script) return '腳本內容尚未生成完成';
+                          if (!authReady) return '正在載入用戶資訊...';
+                          if (!isLoggedIn) return '請先登入';
+                          if (!user?.user_id) return '用戶資訊不完整';
+                          return '儲存腳本內容';
+                        })()}
+                      >
+                        <Save className="mr-2 h-4 w-4" />
+                        儲存腳本內容
+                      </Button>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
