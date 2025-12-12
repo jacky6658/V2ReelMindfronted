@@ -675,8 +675,8 @@ export default function Mode1() {
     return 'positioning';
   };
 
-  // 自動儲存結果
-  const autoSaveResult = (content: string, category: 'positioning' | 'topics' | 'planning' | 'script') => {
+  // 自動儲存結果（改進：自動保存到資料庫）
+  const autoSaveResult = async (content: string, category: 'positioning' | 'topics' | 'planning' | 'script') => {
     const categoryTitles: Record<'positioning' | 'topics' | 'planning' | 'script', string> = {
       'positioning': '帳號定位',
       'topics': '選題方向',
@@ -704,14 +704,87 @@ export default function Mode1() {
     // 自動切換到對應的標籤頁
     setResultTab(category);
     
-    // 顯示提示並打開生成結果面板
-    toast.success('已自動儲存到生成結果', {
-      description: `已切換到「${categoryTitles[category]}」標籤頁，點擊「生成結果」查看`,
-      duration: 3000
-    });
-    
     // 自動打開生成結果面板
     setShowResults(true);
+    
+    // 改進：自動嘗試保存到資料庫（如果用戶已登入且有權限）
+    if (isLoggedIn && user?.user_id) {
+      try {
+        // 映射 category 到 result_type
+        const resultTypeMap: Record<'positioning' | 'topics' | 'planning' | 'script', string> = {
+          'positioning': 'profile',    // 帳號定位 → profile
+          'topics': 'topics',           // 選題方向 → topics
+          'planning': 'plan',           // 14 天規劃 → plan
+          'script': 'scripts'
+        };
+
+        const result_type = resultTypeMap[category] || 'profile';
+        
+        const savePayload = {
+          user_id: user.user_id,
+          result_type: result_type,
+          title: newResult.title,
+          content: newResult.content,
+          metadata: {
+            source: 'mode1',
+            category: category,
+            timestamp: newResult.timestamp.toISOString(),
+            auto_saved: true // 標記為自動保存
+          }
+        };
+        
+        console.log('[Mode1 AutoSave] 自動保存到資料庫:', savePayload);
+        
+        // 靜默保存，不顯示錯誤（除非是網絡錯誤）
+        await apiPost('/api/ip-planning/save', savePayload);
+        
+        console.log('[Mode1 AutoSave] 自動保存成功');
+        
+        // 標記為已儲存到資料庫
+        setSavedResults(prev => {
+          const updated = prev.map(r => 
+            r.id === newResult.id ? { ...r, savedToDB: true } : r
+          );
+          // 更新 localStorage（已儲存到資料庫的項目會從 localStorage 移除）
+          saveToLocalStorage(updated);
+          return updated;
+        });
+        
+        // 發送自定義事件，通知 UserDB 頁面刷新資料
+        window.dispatchEvent(new CustomEvent('userdb-data-updated', {
+          detail: { type: 'ip-planning' }
+        }));
+        
+        // 顯示成功提示
+        toast.success('已自動儲存到生成結果', {
+          description: `已切換到「${categoryTitles[category]}」標籤頁，並自動保存到創作者資料庫`,
+          duration: 3000
+        });
+      } catch (error: any) {
+        // 靜默處理權限錯誤（403）和認證錯誤（401），只記錄其他錯誤
+        if (error?.response?.status === 403 || error?.response?.status === 401) {
+          console.log('[Mode1 AutoSave] 自動保存失敗（權限不足或未登入），將保留在本地:', error?.response?.status);
+          // 仍然顯示成功提示，但說明只保存到本地
+          toast.success('已自動儲存到生成結果', {
+            description: `已切換到「${categoryTitles[category]}」標籤頁，點擊「生成結果」查看`,
+            duration: 3000
+          });
+        } else {
+          // 網絡錯誤或其他錯誤，記錄但不影響用戶體驗
+          console.warn('[Mode1 AutoSave] 自動保存到資料庫失敗（將保留在本地）:', error);
+          toast.success('已自動儲存到生成結果', {
+            description: `已切換到「${categoryTitles[category]}」標籤頁，點擊「生成結果」查看`,
+            duration: 3000
+          });
+        }
+      }
+    } else {
+      // 未登入，只顯示本地保存提示
+      toast.success('已自動儲存到生成結果', {
+        description: `已切換到「${categoryTitles[category]}」標籤頁，點擊「生成結果」查看`,
+        duration: 3000
+      });
+    }
   };
 
   // 發送訊息
