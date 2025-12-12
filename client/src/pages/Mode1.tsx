@@ -861,6 +861,13 @@ export default function Mode1() {
           console.error('流式請求錯誤:', error);
           setIsLoading(false);
           
+          // 根本修复：检查是否为流式错误消息（来自 SSE）
+          const errorMessage = error?.message || error?.response?.data?.error || '生成失敗，請稍後再試';
+          const isQuotaError = errorMessage.includes('配額') || 
+                               errorMessage.includes('quota') || 
+                               error?.error_code === '429' ||
+                               error?.is_quota_error === true;
+          
           // 處理 403 錯誤 (權限不足/試用期已過)
           if (error?.response?.status === 403 || (error && typeof error === 'object' && 'status' in error && error.status === 403)) {
             const errorMessage = error?.response?.data?.error || error?.message || '試用期已過，請訂閱以繼續使用';
@@ -873,15 +880,30 @@ export default function Mode1() {
               },
               duration: 5000
             });
-          } else if (error?.response?.status === 401) {
+          } 
+          // 根本修复：处理 429 配额错误
+          else if (isQuotaError || error?.response?.status === 429) {
+            toast.error('⚠️ API 配額已用盡', {
+              description: '請檢查您的 API 金鑰配額或稍後再試',
+              duration: 8000,
+              action: {
+                label: '查看用量',
+                onClick: () => window.open('https://ai.dev/usage?tab=rate-limit', '_blank')
+              }
+            });
+          } 
+          else if (error?.response?.status === 401) {
             toast.error('登入已過期，請重新登入', {
               action: {
                 label: '去登入',
                 onClick: () => navigate('/login')
               }
             });
-          } else {
-            toast.error(error?.message || '生成失敗，請稍後再試');
+          } 
+          else {
+            toast.error(errorMessage, {
+              duration: 5000
+            });
           }
         },
         () => {

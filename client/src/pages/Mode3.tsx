@@ -446,10 +446,31 @@ export default function Mode3() {
       }
       
       toast.success('生成完成！');
-    } catch (error) {
+    } catch (error: any) {
       console.error('生成失敗:', error);
+      
+      // 根本修复：检查是否为配额错误
+      const errorMessage = error?.message || '生成失敗，請稍後再試';
+      const isQuotaError = errorMessage.includes('配額') || 
+                           errorMessage.includes('quota') || 
+                           error?.error_code === '429' ||
+                           error?.is_quota_error === true;
+      
       if (!handlePermissionError(error)) {
-          toast.error('生成失敗，請稍後再試');
+        if (isQuotaError) {
+          toast.error('⚠️ API 配額已用盡', {
+            description: '請檢查您的 API 金鑰配額或稍後再試',
+            duration: 8000,
+            action: {
+              label: '查看用量',
+              onClick: () => window.open('https://ai.dev/usage?tab=rate-limit', '_blank')
+            }
+          });
+        } else {
+          toast.error(errorMessage, {
+            duration: 5000
+          });
+        }
       } else {
           // 如果是權限錯誤，停止後續生成，返回確認頁面
           setCurrentStep(2);
@@ -559,7 +580,32 @@ export default function Mode3() {
       const filtered = filterConversationalPrefix(result);
       setResults(prev => ({ ...prev, positioning: filtered }));
     }, (error) => {
-      throw error; // 拋出錯誤供 handleGenerate 捕獲處理
+      // 根本修复：增强错误处理，显示用户友好的提示
+      const errorMessage = error?.message || '生成失敗，請稍後再試';
+      const isQuotaError = errorMessage.includes('配額') || 
+                           errorMessage.includes('quota') || 
+                           error?.error_code === '429' ||
+                           error?.is_quota_error === true ||
+                           error?.response?.status === 429;
+      
+      if (isQuotaError) {
+        toast.error('⚠️ API 配額已用盡', {
+          description: '請檢查您的 API 金鑰配額或稍後再試',
+          duration: 8000,
+          action: {
+            label: '查看用量',
+            onClick: () => window.open('https://ai.dev/usage?tab=rate-limit', '_blank')
+          }
+        });
+      } else if (error?.response?.status === 403) {
+        handlePermissionError(error);
+      } else {
+        toast.error(errorMessage, {
+          duration: 5000
+        });
+      }
+      
+      throw error; // 仍然抛出错误供 handleGenerate 捕获
     });
   };
 
@@ -592,7 +638,32 @@ export default function Mode3() {
       const filtered = filterConversationalPrefix(result);
       setResults(prev => ({ ...prev, topics: filtered }));
     }, (error) => {
-      throw error;
+      // 根本修复：增强错误处理，显示用户友好的提示
+      const errorMessage = error?.message || '生成失敗，請稍後再試';
+      const isQuotaError = errorMessage.includes('配額') || 
+                           errorMessage.includes('quota') || 
+                           error?.error_code === '429' ||
+                           error?.is_quota_error === true ||
+                           error?.response?.status === 429;
+      
+      if (isQuotaError) {
+        toast.error('⚠️ API 配額已用盡', {
+          description: '請檢查您的 API 金鑰配額或稍後再試',
+          duration: 8000,
+          action: {
+            label: '查看用量',
+            onClick: () => window.open('https://ai.dev/usage?tab=rate-limit', '_blank')
+          }
+        });
+      } else if (error?.response?.status === 403) {
+        handlePermissionError(error);
+      } else {
+        toast.error(errorMessage, {
+          duration: 5000
+        });
+      }
+      
+      throw error; // 仍然抛出错误供 handleGenerate 捕获
     });
   };
 
@@ -640,7 +711,32 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
       const filtered = filterConversationalPrefix(result);
       setResults(prev => ({ ...prev, script: filtered }));
     }, (error) => {
-      throw error;
+      // 根本修复：增强错误处理，显示用户友好的提示
+      const errorMessage = error?.message || '生成失敗，請稍後再試';
+      const isQuotaError = errorMessage.includes('配額') || 
+                           errorMessage.includes('quota') || 
+                           error?.error_code === '429' ||
+                           error?.is_quota_error === true ||
+                           error?.response?.status === 429;
+      
+      if (isQuotaError) {
+        toast.error('⚠️ API 配額已用盡', {
+          description: '請檢查您的 API 金鑰配額或稍後再試',
+          duration: 8000,
+          action: {
+            label: '查看用量',
+            onClick: () => window.open('https://ai.dev/usage?tab=rate-limit', '_blank')
+          }
+        });
+      } else if (error?.response?.status === 403) {
+        handlePermissionError(error);
+      } else {
+        toast.error(errorMessage, {
+          duration: 5000
+        });
+      }
+      
+      throw error; // 仍然抛出错误供 handleGenerate 捕获
     });
   };
 
