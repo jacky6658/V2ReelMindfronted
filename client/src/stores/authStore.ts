@@ -19,6 +19,7 @@ interface User {
   name: string;
   picture: string;
   is_subscribed: boolean;
+  is_admin?: boolean;  // 管理員標識
 }
 
 type Subscription = "free" | "pro" | null;
