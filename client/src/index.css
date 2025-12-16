@@ -127,15 +127,50 @@
   
   /* iOS Safe Area Support - 为所有 sticky/fixed 导航栏添加顶部安全区域 */
   @supports (padding: max(0px)) {
-    nav.sticky,
+    /* 匹配所有包含 sticky 的导航栏（Tailwind 类名） */
     nav[class*="sticky"] {
-      padding-top: max(0px, env(safe-area-inset-top));
+      padding-top: max(0px, env(safe-area-inset-top)) !important;
+    }
+    
+    /* 针对固定定位的导航栏 */
+    nav[class*="fixed"] {
+      padding-top: max(0px, env(safe-area-inset-top)) !important;
     }
     
     /* 确保导航栏内容在安全区域内 */
-    nav.sticky > *,
-    nav[class*="sticky"] > * {
+    nav[class*="sticky"] > *,
+    nav[class*="fixed"] > * {
       margin-top: 0;
+    }
+  }
+  
+  /* iOS PWA 特定：在 standalone 模式下，为导航栏添加额外的安全区域支持 */
+  @supports (padding: max(0px)) {
+    /* 检测 iOS PWA standalone 模式 */
+    @media (display-mode: standalone) {
+      /* 为所有 sticky/fixed 导航栏添加顶部安全区域 */
+      nav[class*="sticky"],
+      nav[class*="fixed"] {
+        padding-top: max(0px, env(safe-area-inset-top)) !important;
+      }
+      
+      /* 确保导航栏内容不会重叠 */
+      nav[class*="sticky"] > div,
+      nav[class*="fixed"] > div {
+        padding-top: 0;
+      }
+    }
+  }
+  
+  /* iOS 特定：针对 iOS Safari 和 PWA 的额外支持 */
+  @supports (padding: max(0px)) {
+    /* 使用 -webkit-touch-callout 检测 iOS */
+    @supports (-webkit-touch-callout: none) {
+      /* 为所有 sticky/fixed 导航栏添加顶部安全区域 */
+      nav[class*="sticky"],
+      nav[class*="fixed"] {
+        padding-top: max(0px, env(safe-area-inset-top)) !important;
+      }
     }
   }
   
