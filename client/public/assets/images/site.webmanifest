@@ -2,20 +2,45 @@
   "name": "ReelMind AI 短影音智能體",
   "short_name": "ReelMind",
   "description": "ReelMind AI 短影音智能體：一鍵生成腳本、IP 人設規劃與創作者資料庫，幫助創作者建立高效率的短影音內容系統。",
-  "start_url": "/index.html",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#3B82F6",
+  "orientation": "portrait-primary",
+  "background_color": "#0ea5e9",
+  "theme_color": "#0ea5e9",
   "icons": [
     {
       "src": "/assets/images/android-chrome-192x192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "/assets/images/android-chrome-512x512.png",
       "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/images/apple-touch-icon.png",
+      "sizes": "180x180",
       "type": "image/png"
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "生成腳本",
+      "short_name": "生成",
+      "description": "快速生成短影音腳本",
+      "url": "/#/generate",
+      "icons": [
+        {
+          "src": "/assets/images/android-chrome-192x192.png",
+          "sizes": "192x192"
+        }
+      ]
     }
   ]
 }
