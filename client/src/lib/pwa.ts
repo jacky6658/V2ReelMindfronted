@@ -28,7 +28,7 @@ export function registerServiceWorker() {
   }
 }
 
-// 处理安装提示
+// 处理安装提示（保留向后兼容）
 let deferredPrompt: any = null;
 
 export function handleInstallPrompt() {
@@ -51,6 +51,16 @@ export function handleInstallPrompt() {
       });
     }
   });
+}
+
+// 获取 deferredPrompt（供组件使用）
+export function getDeferredPrompt() {
+  return deferredPrompt;
+}
+
+// 清除 deferredPrompt
+export function clearDeferredPrompt() {
+  deferredPrompt = null;
 }
 
 // 检查是否已安装为 PWA
