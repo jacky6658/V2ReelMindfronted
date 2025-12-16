@@ -40,7 +40,7 @@ interface ModelsResponse {
 
 const Settings: React.FC = () => {
   const navigate = useNavigate();
-  const { user, loading: authLoading, isLoggedIn } = useAuthStore();
+  const { user, loading: authLoading } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
@@ -95,24 +95,17 @@ const Settings: React.FC = () => {
     }
   };
 
-  // 檢查登入狀態
+  // 載入數據（PrivateRoute 已經處理了登入檢查，這裡不需要再檢查）
   useEffect(() => {
-    // 等待認證狀態加載完成
-    if (authLoading) {
-      return;
-    }
-    
-    // 如果未登入，跳轉到登入頁
-    if (!isLoggedIn || !user?.user_id) {
-      console.log('[Settings] 用戶未登入，跳轉到登入頁');
-      navigate('/login', { replace: true });
+    // 等待認證狀態加載完成且用戶信息已加載
+    if (authLoading || !user?.user_id) {
       return;
     }
     
     // 已登入，載入數據
     loadKeys();
     loadAvailableModels();
-  }, [user?.user_id, isLoggedIn, authLoading, navigate]);
+  }, [user?.user_id, authLoading]);
 
   // 當 provider 改變時，更新 modelName
   useEffect(() => {
@@ -137,9 +130,9 @@ const Settings: React.FC = () => {
       return;
     }
 
-    if (!isLoggedIn || !user?.user_id) {
+    if (!user?.user_id) {
       toast.error('請先登入');
-      navigate('/login', { replace: true });
+      // 不跳轉，因為 PrivateRoute 會處理
       return;
     }
 
@@ -195,11 +188,11 @@ const Settings: React.FC = () => {
       }
     }
 
-    // 檢查登入狀態
-    if (!isLoggedIn || !user?.user_id) {
-      console.error('[Settings] 保存失敗：用戶未登入', { isLoggedIn, userId: user?.user_id });
+    // 檢查登入狀態（PrivateRoute 已經處理了登入檢查，這裡只做雙重確認）
+    if (!user?.user_id) {
+      console.error('[Settings] 保存失敗：用戶未登入', { userId: user?.user_id });
       toast.error('請先登入');
-      navigate('/login', { replace: true });
+      // 不跳轉，因為 PrivateRoute 會處理
       return;
     }
 
