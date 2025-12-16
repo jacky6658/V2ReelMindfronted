@@ -158,7 +158,7 @@ export default function PWAInstallGuide() {
             <Download className="w-4 h-4 text-primary" />
             <p className="text-sm text-muted-foreground">
               <span className="font-semibold text-foreground">自動更新：</span>
-              當網頁版更新時，PWA 版本會自動同步更新，無需手動重新安裝
+              當網頁版更新時，版本會自動同步更新，無需手動重新安裝
             </p>
           </div>
         </div>
