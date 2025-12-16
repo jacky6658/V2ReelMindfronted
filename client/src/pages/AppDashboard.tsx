@@ -68,21 +68,72 @@ const AppDashboard: React.FC = () => {
   // 載入統計數據
   useEffect(() => {
     const loadAnalytics = async () => {
-      if (!user?.user_id) return;
+      if (!user?.user_id) {
+        console.log('[AppDashboard] 等待用戶登入...');
+        return;
+      }
+      
+      // 等待認證完成
+      if (authLoading) {
+        console.log('[AppDashboard] 等待認證完成...');
+        return;
+      }
       
       try {
         setLoadingAnalytics(true);
+        console.log('[AppDashboard] 開始載入統計數據，用戶ID:', user.user_id);
+        
         const data = await apiGet<AnalyticsOverview>('/api/user/analytics/overview');
-        setAnalyticsOverview(data);
-      } catch (error) {
-        console.error('載入統計數據失敗:', error);
-        // 不顯示錯誤提示，因為這是可選功能
+        console.log('[AppDashboard] 統計數據載入成功:', data);
+        
+        // 確保數據結構正確
+        if (data && typeof data === 'object') {
+          setAnalyticsOverview(data);
+        } else {
+          console.warn('[AppDashboard] 統計數據格式異常:', data);
+          // 設置默認值
+          setAnalyticsOverview({
+            today: { scripts: 0, generations: 0, total: 0 },
+            week: { scripts: 0, generations: 0, total: 0 },
+            month: { scripts: 0, generations: 0, total: 0 },
+            total: { scripts: 0, generations: 0, conversations: 0 }
+          });
+        }
+      } catch (error: any) {
+        console.error('[AppDashboard] 載入統計數據失敗:', error);
+        console.error('[AppDashboard] 錯誤詳情:', {
+          message: error?.message,
+          response: error?.response?.data,
+          status: error?.response?.status
+        });
+        
+        // 顯示錯誤提示（僅在開發環境或重要錯誤時）
+        if (error?.response?.status === 401) {
+          console.warn('[AppDashboard] 認證失敗，可能需要重新登入');
+        } else if (error?.response?.status === 500) {
+          toast.error('載入統計數據失敗，請稍後再試', {
+            duration: 3000
+          });
+        }
+        
+        // 設置默認值，避免顯示"暫無數據"
+        setAnalyticsOverview({
+          today: { scripts: 0, generations: 0, total: 0 },
+          week: { scripts: 0, generations: 0, total: 0 },
+          month: { scripts: 0, generations: 0, total: 0 },
+          total: { scripts: 0, generations: 0, conversations: 0 }
+        });
       } finally {
         setLoadingAnalytics(false);
       }
     };
 
-    loadAnalytics();
+    // 延遲載入，確保用戶已完全登入
+    const timer = setTimeout(() => {
+      loadAnalytics();
+    }, 500);
+
+    return () => clearTimeout(timer);
   }, [user?.user_id, authLoading]);
 
   // 載入通知
@@ -729,8 +780,38 @@ const AppDashboard: React.FC = () => {
                         </>
                       ) : (
                         <div className="text-center py-6">
-                          <p className="text-sm text-muted-foreground">暫無數據</p>
-                          <p className="text-xs text-muted-foreground mt-1">開始使用功能後會顯示統計</p>
+                          <p className="text-sm text-muted-foreground">
+                            {loadingAnalytics ? '載入中...' : '暫無數據'}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {loadingAnalytics ? '正在載入統計數據' : '開始使用功能後會顯示統計'}
+                          </p>
+                          {!loadingAnalytics && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="mt-2"
+                              onClick={() => {
+                                // 手動重新載入
+                                const loadAnalytics = async () => {
+                                  if (!user?.user_id) return;
+                                  try {
+                                    setLoadingAnalytics(true);
+                                    const data = await apiGet<AnalyticsOverview>('/api/user/analytics/overview');
+                                    setAnalyticsOverview(data);
+                                  } catch (error) {
+                                    console.error('重新載入統計數據失敗:', error);
+                                    toast.error('載入失敗，請檢查網路連線');
+                                  } finally {
+                                    setLoadingAnalytics(false);
+                                  }
+                                };
+                                loadAnalytics();
+                              }}
+                            >
+                              重新載入
+                            </Button>
+                          )}
                         </div>
                       )}
                     </CardContent>

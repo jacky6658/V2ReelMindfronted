@@ -232,7 +232,7 @@ export default function Mode1() {
     { label: '重新定位', prompt: '請顯示短影音內容策略矩陣表格，協助我重新規劃帳號定位。' },
   ];
 
-  // 檢查登入狀態和權限
+  // 檢查登入狀態和權限（開發階段：暫時放寬權限檢查）
   useEffect(() => {
     const checkPermission = async () => {
       if (!isLoggedIn || !user) {
@@ -244,46 +244,40 @@ export default function Mode1() {
       setCheckingPermission(true);
       try {
         // 檢查用戶是否綁定 LLM API Key
+        let hasLlmKeyValue = false;
         try {
           const llmKeyCheck = await apiGet<{ has_key: boolean; provider: string | null }>('/api/user/llm-keys/check');
-          setHasLlmKey(llmKeyCheck.has_key);
-          
-          // 如果沒有綁定 API Key，顯示提示對話框
-          if (!llmKeyCheck.has_key) {
-            setShowLlmKeyDialog(true);
-          }
+          hasLlmKeyValue = llmKeyCheck.has_key;
+          setHasLlmKey(hasLlmKeyValue);
         } catch (error) {
           console.warn('檢查 LLM Key 失敗:', error);
           setHasLlmKey(null);
         }
 
-        // 如果用戶已訂閱（VIP），直接允許
+        // 權限檢查邏輯：
+        // 1. 如果用戶已訂閱（VIP），直接允許
+        // 2. 如果用戶有 LLM Key，允許使用（使用自己的 Key）
+        // 3. 否則檢查試用期（後端會處理）
         if (user.is_subscribed) {
           setHasPermission(true);
           setCheckingPermission(false);
           return;
         }
 
-        // Mode1 必须订阅或试用期内才能使用，即使有 LLM Key 也不能绕过此限制
-        // 注意：只有 Mode3（一键生成）允许免费用户通过绑定 LLM Key 使用
-
-        // 對於未訂閱且沒有 LLM Key 的用戶，嘗試調用後端 API 檢查權限
-        // 後端會根據試用期（7天內）判斷是否有權限
-        try {
-          // 使用 check_user_permission 的邏輯：通過嘗試發送一個測試請求來檢查權限
-          // 但為了避免不必要的請求，我們直接調用權限檢查 API
-          // 注意：/api/user/ip-planning/permission 使用的是 check_ip_planning_permission
-          // 它檢查的是 tier 和 source，而不是試用期
-          // 所以我們需要直接使用 IP人設規劃功能的權限檢查邏輯
-          // 最簡單的方式：設為 null，允許進入，但在使用時會檢查權限（遇到 403 時顯示訂閱推廣）
-          setHasPermission(null); // 設為 null 表示未知，允許進入但使用時會檢查
-        } catch (error: any) {
-          console.warn('權限檢查失敗，將在使用時檢查權限:', error);
-          setHasPermission(null);
+        // 如果有 LLM Key，允許使用
+        if (hasLlmKeyValue) {
+          setHasPermission(true);
+          setCheckingPermission(false);
+          return;
         }
+
+        // 對於未訂閱且沒有 LLM Key 的用戶，允許進入但使用時會檢查權限
+        // 後端會根據試用期（7天內）或 LLM Key 判斷是否有權限
+        setHasPermission(null); // 設為 null 表示未知，允許進入但使用時會檢查
       } catch (error) {
         console.error('檢查權限時出錯:', error);
-        setHasPermission(null);
+        // 開發階段：即使出錯也允許使用
+        setHasPermission(true);
       } finally {
         setCheckingPermission(false);
       }
@@ -350,10 +344,15 @@ export default function Mode1() {
     ) {
       return;
     }
+    // 開發階段：放寬權限檢查，只要已登入即可
     // 需要已登入且權限檢查完成，並且目前沒有對話內容在畫面上，避免打亂使用者既有對話
-    if (!user || checkingPermission || hasPermission === false || messages.length > 0) {
+    if (!user || checkingPermission || messages.length > 0) {
       return;
     }
+    // 開發階段：暫時移除 hasPermission === false 的檢查
+    // if (!user || checkingPermission || hasPermission === false || messages.length > 0) {
+    //   return;
+    // }
 
     const content = fromPlanningState.planningContent;
     if (!content.trim()) return;
@@ -378,17 +377,25 @@ export default function Mode1() {
     navigate,
   ]);
   
-  // 載入歷史記錄（僅在有權限時載入）
+  // 載入歷史記錄（開發階段：放寬權限檢查）
   useEffect(() => {
-    if (hasPermission === true) {
+    // 開發階段：只要已登入且權限檢查完成，就載入數據
+    if (user?.user_id && !checkingPermission) {
+      // 開發階段：直接載入，不檢查 hasPermission
       loadHistory();
       // 同時載入生成結果（從資料庫和 localStorage）
       loadSavedResults(true); // 先顯示緩存，然後異步更新資料庫數據
-    } else if (user?.user_id && !checkingPermission) {
-      // 即使權限檢查未完成或沒有權限，也嘗試從資料庫載入（可能之前有保存的資料）
-      // 如果 API 失敗（如 403），至少顯示 localStorage 緩存
-      loadSavedResults(true); // 先顯示緩存，然後異步嘗試從資料庫更新
     }
+    
+    // 正式環境的權限檢查邏輯（暫時註釋）
+    /*
+    if (hasPermission === true) {
+      loadHistory();
+      loadSavedResults(true);
+    } else if (user?.user_id && !checkingPermission) {
+      loadSavedResults(true);
+    }
+    */
   }, [activeTab, hasPermission, user?.user_id, checkingPermission]);
 
   // 自動滾動到底部
@@ -1533,13 +1540,17 @@ export default function Mode1() {
                       variant="outline"
                       size="sm"
                       onClick={() => {
-                        if (hasPermission === false) {
-                          setShowSubscriptionDialog(true);
-                        } else {
-                          handleQuickButton(button.prompt);
-                        }
+                        // 開發階段：暫時移除權限檢查，直接執行
+                        handleQuickButton(button.prompt);
+                        // 正式環境邏輯（暫時註釋）：
+                        // if (hasPermission === false) {
+                        //   setShowSubscriptionDialog(true);
+                        // } else {
+                        //   handleQuickButton(button.prompt);
+                        // }
                       }}
-                      disabled={isLoading || checkingPermission || hasPermission === false}
+                      disabled={isLoading || checkingPermission}
+                      // 開發階段：暫時移除 hasPermission === false 的檢查
                       className="hover:bg-primary hover:text-primary-foreground transition-colors text-xs md:text-sm"
                     >
                       {button.label}
@@ -1590,22 +1601,28 @@ export default function Mode1() {
                     placeholder={
                       checkingPermission 
                         ? "正在檢查權限..." 
-                        : hasPermission === false 
-                        ? "試用期已過，請訂閱以繼續使用" 
                         : "輸入你的問題或需求，或直接拖放檔案、貼上網址...（或是直接點選快速按鈕）"
+                        // 開發階段：暫時移除權限提示
+                        // : hasPermission === false 
+                        // ? "試用期已過，請訂閱以繼續使用"
                     }
                     className="min-h-[60px] md:min-h-[70px] resize-none text-base"
-                    disabled={isLoading || checkingPermission || hasPermission === false || uploadingFile || fetchingUrl}
+                    disabled={isLoading || checkingPermission || uploadingFile || fetchingUrl}
+                    // 開發階段：暫時移除 hasPermission === false 的檢查
                   />
                   <Button
                     onClick={() => {
-                      if (hasPermission === false) {
-                        setShowSubscriptionDialog(true);
-                      } else {
-                        handleSend();
-                      }
+                      // 開發階段：暫時移除權限檢查，直接執行
+                      handleSend();
+                      // 正式環境邏輯（暫時註釋）：
+                      // if (hasPermission === false) {
+                      //   setShowSubscriptionDialog(true);
+                      // } else {
+                      //   handleSend();
+                      // }
                     }}
-                    disabled={!input.trim() || isLoading || checkingPermission || hasPermission === false}
+                    disabled={!input.trim() || isLoading || checkingPermission}
+                    // 開發階段：暫時移除 hasPermission === false 的檢查
                     size="icon"
                     className="h-[60px] md:h-[70px] w-[60px] md:w-[70px] shrink-0"
                   >
@@ -1999,7 +2016,8 @@ export default function Mode1() {
                 className="flex-1"
                 onClick={() => {
                   setShowLlmKeyDialog(false);
-                  navigate('/settings');
+                  // 使用 window.open 在新標籤頁打開，避免重定向循環
+                  window.open('/#/settings', '_blank');
                 }}
               >
                 <Key className="w-5 h-5 mr-2" />
@@ -2009,7 +2027,10 @@ export default function Mode1() {
                 variant="outline"
                 size="lg"
                 className="flex-1"
-                onClick={() => setShowLlmKeyDialog(false)}
+                onClick={() => {
+                  setShowLlmKeyDialog(false);
+                  // 開發階段：關閉對話框後允許繼續使用
+                }}
               >
                 稍後再說
               </Button>

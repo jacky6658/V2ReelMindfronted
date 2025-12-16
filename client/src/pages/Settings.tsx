@@ -40,7 +40,7 @@ interface ModelsResponse {
 
 const Settings: React.FC = () => {
   const navigate = useNavigate();
-  const { user, loading: authLoading } = useAuthStore();
+  const { user, loading: authLoading, isLoggedIn } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
@@ -95,10 +95,24 @@ const Settings: React.FC = () => {
     }
   };
 
+  // 檢查登入狀態
   useEffect(() => {
+    // 等待認證狀態加載完成
+    if (authLoading) {
+      return;
+    }
+    
+    // 如果未登入，跳轉到登入頁
+    if (!isLoggedIn || !user?.user_id) {
+      console.log('[Settings] 用戶未登入，跳轉到登入頁');
+      navigate('/login', { replace: true });
+      return;
+    }
+    
+    // 已登入，載入數據
     loadKeys();
     loadAvailableModels();
-  }, [user?.user_id]);
+  }, [user?.user_id, isLoggedIn, authLoading, navigate]);
 
   // 當 provider 改變時，更新 modelName
   useEffect(() => {
@@ -117,8 +131,15 @@ const Settings: React.FC = () => {
       return;
     }
 
-    if (!user?.user_id) {
+    // 等待認證狀態加載完成
+    if (authLoading) {
+      toast.info('正在載入用戶資訊，請稍候...');
+      return;
+    }
+
+    if (!isLoggedIn || !user?.user_id) {
       toast.error('請先登入');
+      navigate('/login', { replace: true });
       return;
     }
 
@@ -157,20 +178,34 @@ const Settings: React.FC = () => {
       return;
     }
 
-    // 如果正在載入認證狀態，等待載入完成
+    // 等待認證狀態加載完成
     if (authLoading) {
       toast.info('正在載入用戶資訊，請稍候...');
-      return;
+      // 等待最多 3 秒
+      let waitCount = 0;
+      while (authLoading && waitCount < 30) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        waitCount++;
+      }
+      
+      // 如果還是載入中，提示用戶
+      if (authLoading) {
+        toast.error('載入用戶資訊超時，請重新整理頁面');
+        return;
+      }
     }
 
-    if (!user?.user_id) {
+    // 檢查登入狀態
+    if (!isLoggedIn || !user?.user_id) {
+      console.error('[Settings] 保存失敗：用戶未登入', { isLoggedIn, userId: user?.user_id });
       toast.error('請先登入');
-      navigate('/login');
+      navigate('/login', { replace: true });
       return;
     }
 
     try {
       setSaving(true);
+      console.log('[Settings] 開始保存 LLM Key', { userId: user.user_id, provider });
       
       await apiPost('/api/user/llm-keys', {
         user_id: user.user_id,
@@ -184,8 +219,15 @@ const Settings: React.FC = () => {
       setTestResult(null);
       await loadKeys(); // 重新載入列表
     } catch (error: any) {
+      console.error('[Settings] 保存 LLM Key 失敗:', error);
       const errorMessage = error.response?.data?.error || error.message || '保存失敗，請稍後再試';
       toast.error(errorMessage);
+      
+      // 如果是 401 錯誤，可能是認證問題
+      if (error.response?.status === 401) {
+        console.warn('[Settings] 認證失敗，可能需要重新登入');
+        // 不自動跳轉，讓用戶知道問題
+      }
     } finally {
       setSaving(false);
     }
