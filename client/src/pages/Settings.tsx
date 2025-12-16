@@ -41,6 +41,12 @@ interface ModelsResponse {
 const Settings: React.FC = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuthStore();
+  
+  // #region agent log
+  useEffect(() => {
+    fetch('http://127.0.0.1:7243/ingest/aee77852-1708-49e5-a727-07abc0272511',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Settings.tsx:46',message:'Settings component mounted/updated',data:{authLoading,hasUser:!!user,userId:user?.user_id,userEmail:user?.email},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+  }, [authLoading, user]);
+  // #endregion
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
@@ -97,14 +103,33 @@ const Settings: React.FC = () => {
 
   // 載入數據（PrivateRoute 已經處理了登入檢查，這裡不需要再檢查）
   useEffect(() => {
+    // #region agent log
+    const state = useAuthStore.getState();
+    fetch('http://127.0.0.1:7243/ingest/aee77852-1708-49e5-a727-07abc0272511',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Settings.tsx:99',message:'Settings useEffect triggered',data:{authLoading,hasUser:!!user,userId:user?.user_id,storeLoading:state.loading,storeHasUser:!!state.user,storeUserId:state.user?.user_id,isLoggedIn:state.isLoggedIn,hasToken:!!state.token},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+    // #endregion
+    
     // 等待認證狀態加載完成且用戶信息已加載
-    if (authLoading || !user?.user_id) {
+    if (authLoading) {
       return;
     }
     
-    // 已登入，載入數據
-    loadKeys();
-    loadAvailableModels();
+    // 如果沒有用戶但有 token，嘗試重新獲取用戶信息
+    const currentState = useAuthStore.getState();
+    if (!user?.user_id && currentState.token && !currentState.loading) {
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/aee77852-1708-49e5-a727-07abc0272511',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Settings.tsx:108',message:'Attempting to fetch user info',data:{hasToken:!!currentState.token},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+      // #endregion
+      useAuthStore.getState().fetchCurrentUser().catch((error) => {
+        console.error('[Settings] 獲取用戶信息失敗:', error);
+      });
+      return;
+    }
+    
+    // 已登入且有用戶信息，載入數據
+    if (user?.user_id) {
+      loadKeys();
+      loadAvailableModels();
+    }
   }, [user?.user_id, authLoading]);
 
   // 當 provider 改變時，更新 modelName
@@ -166,31 +191,73 @@ const Settings: React.FC = () => {
 
   // 保存 API Key
   const handleSave = async () => {
+    // #region agent log
+    const authState = useAuthStore.getState();
+    fetch('http://127.0.0.1:7243/ingest/aee77852-1708-49e5-a727-07abc0272511',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Settings.tsx:168',message:'handleSave called',data:{authLoading,hasUser:!!user,userId:user?.user_id,storeLoading:authState.loading,storeHasUser:!!authState.user,storeUserId:authState.user?.user_id,isLoggedIn:authState.isLoggedIn,hasToken:!!authState.token},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,B,C,D'})}).catch(()=>{});
+    // #endregion
+    
     if (!apiKey.trim()) {
       toast.error('請先輸入 API Key');
       return;
     }
 
-    // 等待認證狀態加載完成
-    if (authLoading) {
+    // 等待認證狀態加載完成 - 使用 store 的當前狀態而不是閉包值
+    let currentState = useAuthStore.getState();
+    let currentLoading = currentState.loading;
+    let currentUser = currentState.user;
+    
+    // 如果正在載入或沒有用戶，等待並嘗試重新獲取用戶信息
+    if (currentLoading || !currentUser?.user_id) {
       toast.info('正在載入用戶資訊，請稍候...');
-      // 等待最多 3 秒
-      let waitCount = 0;
-      while (authLoading && waitCount < 30) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-        waitCount++;
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/aee77852-1708-49e5-a727-07abc0272511',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Settings.tsx:180',message:'Waiting for auth/user to load',data:{currentLoading,hasUser:!!currentUser,userId:currentUser?.user_id,hasToken:!!currentState.token},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B,D'})}).catch(()=>{});
+      // #endregion
+      
+      // 如果有 token 但沒有用戶，嘗試重新獲取用戶信息
+      if (!currentUser?.user_id && currentState.token) {
+        try {
+          await useAuthStore.getState().fetchCurrentUser();
+          currentState = useAuthStore.getState();
+          currentUser = currentState.user;
+          currentLoading = currentState.loading;
+        } catch (error) {
+          console.error('[Settings] 重新獲取用戶信息失敗:', error);
+        }
       }
       
-      // 如果還是載入中，提示用戶
-      if (authLoading) {
+      // 等待最多 3 秒，每次檢查最新的狀態
+      let waitCount = 0;
+      while ((currentLoading || !currentUser?.user_id) && waitCount < 30) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        currentState = useAuthStore.getState(); // 獲取最新狀態
+        currentLoading = currentState.loading;
+        currentUser = currentState.user;
+        waitCount++;
+        
+        // #region agent log
+        if (waitCount % 5 === 0) {
+          fetch('http://127.0.0.1:7243/ingest/aee77852-1708-49e5-a727-07abc0272511',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Settings.tsx:200',message:'Waiting loop iteration',data:{waitCount,currentLoading,hasUser:!!currentUser,userId:currentUser?.user_id,isLoggedIn:currentState.isLoggedIn},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B,D'})}).catch(()=>{});
+        }
+        // #endregion
+      }
+      
+      // 如果還是載入中或沒有用戶，提示用戶
+      if (currentLoading || !currentUser?.user_id) {
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/aee77852-1708-49e5-a727-07abc0272511',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Settings.tsx:208',message:'Auth/user loading timeout or missing',data:{waitCount,currentLoading,hasUser:!!currentUser,userId:currentUser?.user_id,isLoggedIn:currentState.isLoggedIn,hasToken:!!currentState.token},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B,D'})}).catch(()=>{});
+        // #endregion
         toast.error('載入用戶資訊超時，請重新整理頁面');
         return;
       }
     }
 
-    // 檢查登入狀態（PrivateRoute 已經處理了登入檢查，這裡只做雙重確認）
-    if (!user?.user_id) {
-      console.error('[Settings] 保存失敗：用戶未登入', { userId: user?.user_id });
+    // 最終檢查登入狀態 - 使用 store 的當前狀態
+    if (!currentUser?.user_id) {
+      // #region agent log
+      const state = useAuthStore.getState();
+      fetch('http://127.0.0.1:7243/ingest/aee77852-1708-49e5-a727-07abc0272511',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Settings.tsx:216',message:'User check failed after wait',data:{hasUser:!!user,userId:user?.user_id,storeHasUser:!!state.user,storeUserId:state.user?.user_id,isLoggedIn:state.isLoggedIn,loading:state.loading,hasToken:!!state.token},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C,D'})}).catch(()=>{});
+      // #endregion
+      console.error('[Settings] 保存失敗：用戶未登入', { userId: currentUser?.user_id, storeState: useAuthStore.getState() });
       toast.error('請先登入');
       // 不跳轉，因為 PrivateRoute 會處理
       return;
@@ -198,26 +265,40 @@ const Settings: React.FC = () => {
 
     try {
       setSaving(true);
-      console.log('[Settings] 開始保存 LLM Key', { userId: user.user_id, provider });
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/aee77852-1708-49e5-a727-07abc0272511',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Settings.tsx:205',message:'Starting save API call',data:{userId:currentUser.user_id,provider},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
+      console.log('[Settings] 開始保存 LLM Key', { userId: currentUser.user_id, provider });
       
       await apiPost('/api/user/llm-keys', {
-        user_id: user.user_id,
+        user_id: currentUser.user_id,
         provider,
         api_key: apiKey,
         model_name: modelName && modelName !== '' && modelName !== '__default__' ? modelName : undefined
       });
+      
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/aee77852-1708-49e5-a727-07abc0272511',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Settings.tsx:214',message:'Save API call succeeded',data:{userId:currentUser.user_id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
 
       toast.success('API Key 已保存');
       setApiKey('');
       setTestResult(null);
       await loadKeys(); // 重新載入列表
     } catch (error: any) {
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/aee77852-1708-49e5-a727-07abc0272511',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Settings.tsx:220',message:'Save API call failed',data:{error:error?.message,status:error?.response?.status,statusText:error?.response?.statusText,userId:currentUser?.user_id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,C'})}).catch(()=>{});
+      // #endregion
       console.error('[Settings] 保存 LLM Key 失敗:', error);
       const errorMessage = error.response?.data?.error || error.message || '保存失敗，請稍後再試';
       toast.error(errorMessage);
       
       // 如果是 401 錯誤，可能是認證問題
       if (error.response?.status === 401) {
+        // #region agent log
+        const state = useAuthStore.getState();
+        fetch('http://127.0.0.1:7243/ingest/aee77852-1708-49e5-a727-07abc0272511',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Settings.tsx:228',message:'401 error detected',data:{hasUser:!!state.user,userId:state.user?.user_id,isLoggedIn:state.isLoggedIn,loading:state.loading},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+        // #endregion
         console.warn('[Settings] 認證失敗，可能需要重新登入');
         // 不自動跳轉，讓用戶知道問題
       }
