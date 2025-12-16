@@ -614,17 +614,35 @@ export default function Mode3() {
       });
     }, (error) => {
       // 根本修复：增强错误处理，显示用户友好的提示
-      const errorMessage = error?.message || '生成失敗，請稍後再試';
+      const errorMessage = error?.message || error?.content || '生成失敗，請稍後再試';
       const isQuotaError = errorMessage.includes('配額') || 
                            errorMessage.includes('quota') || 
+                           errorMessage.includes('exceeded') ||
+                           errorMessage.includes('rate limit') ||
+                           errorMessage.includes('rate-limit') ||
+                           errorMessage.includes('ResourceExhausted') ||
                            error?.error_code === '429' ||
                            error?.is_quota_error === true ||
                            error?.response?.status === 429;
       
+      console.error('[Mode3] 生成帳號定位錯誤:', {
+        error,
+        errorMessage,
+        isQuotaError,
+        errorCode: error?.error_code,
+        status: error?.response?.status,
+        originalError: error?.original_error
+      });
+      
       if (isQuotaError) {
-        toast.error('⚠️ API 配額已用盡', {
-          description: '請檢查您的 API 金鑰配額或稍後再試',
-          duration: 8000,
+        // 使用后端返回的用户友好消息，如果没有则使用默认消息
+        const quotaMessage = errorMessage.includes('配額') || errorMessage.includes('quota') 
+          ? errorMessage 
+          : '⚠️ API 配額或速率限制已用盡\n\n您的 Gemini API 可能已達到：\n1. 每日請求限制 (RPD)\n2. 每分鐘請求限制 (RPM)\n3. 總配額限制\n\n請前往 https://ai.dev/usage?tab=rate-limit 查看詳細用量';
+        
+        toast.error(quotaMessage, {
+          description: '請檢查您的 API 金鑰配額和速率限制',
+          duration: 10000,
           action: {
             label: '查看用量',
             onClick: () => window.open('https://ai.dev/usage?tab=rate-limit', '_blank')
@@ -678,17 +696,35 @@ export default function Mode3() {
       });
     }, (error) => {
       // 根本修复：增强错误处理，显示用户友好的提示
-      const errorMessage = error?.message || '生成失敗，請稍後再試';
+      const errorMessage = error?.message || error?.content || '生成失敗，請稍後再試';
       const isQuotaError = errorMessage.includes('配額') || 
                            errorMessage.includes('quota') || 
+                           errorMessage.includes('exceeded') ||
+                           errorMessage.includes('rate limit') ||
+                           errorMessage.includes('rate-limit') ||
+                           errorMessage.includes('ResourceExhausted') ||
                            error?.error_code === '429' ||
                            error?.is_quota_error === true ||
                            error?.response?.status === 429;
       
+      console.error('[Mode3] 生成選題建議錯誤:', {
+        error,
+        errorMessage,
+        isQuotaError,
+        errorCode: error?.error_code,
+        status: error?.response?.status,
+        originalError: error?.original_error
+      });
+      
       if (isQuotaError) {
-        toast.error('⚠️ API 配額已用盡', {
-          description: '請檢查您的 API 金鑰配額或稍後再試',
-          duration: 8000,
+        // 使用后端返回的用户友好消息，如果没有则使用默认消息
+        const quotaMessage = errorMessage.includes('配額') || errorMessage.includes('quota') 
+          ? errorMessage 
+          : '⚠️ API 配額或速率限制已用盡\n\n您的 Gemini API 可能已達到：\n1. 每日請求限制 (RPD)\n2. 每分鐘請求限制 (RPM)\n3. 總配額限制\n\n請前往 https://ai.dev/usage?tab=rate-limit 查看詳細用量';
+        
+        toast.error(quotaMessage, {
+          description: '請檢查您的 API 金鑰配額和速率限制',
+          duration: 10000,
           action: {
             label: '查看用量',
             onClick: () => window.open('https://ai.dev/usage?tab=rate-limit', '_blank')
@@ -757,17 +793,35 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
       });
     }, (error) => {
       // 根本修复：增强错误处理，显示用户友好的提示
-      const errorMessage = error?.message || '生成失敗，請稍後再試';
+      const errorMessage = error?.message || error?.content || '生成失敗，請稍後再試';
       const isQuotaError = errorMessage.includes('配額') || 
                            errorMessage.includes('quota') || 
+                           errorMessage.includes('exceeded') ||
+                           errorMessage.includes('rate limit') ||
+                           errorMessage.includes('rate-limit') ||
+                           errorMessage.includes('ResourceExhausted') ||
                            error?.error_code === '429' ||
                            error?.is_quota_error === true ||
                            error?.response?.status === 429;
       
+      console.error('[Mode3] 生成腳本內容錯誤:', {
+        error,
+        errorMessage,
+        isQuotaError,
+        errorCode: error?.error_code,
+        status: error?.response?.status,
+        originalError: error?.original_error
+      });
+      
       if (isQuotaError) {
-        toast.error('⚠️ API 配額已用盡', {
-          description: '請檢查您的 API 金鑰配額或稍後再試',
-          duration: 8000,
+        // 使用后端返回的用户友好消息，如果没有则使用默认消息
+        const quotaMessage = errorMessage.includes('配額') || errorMessage.includes('quota') 
+          ? errorMessage 
+          : '⚠️ API 配額或速率限制已用盡\n\n您的 Gemini API 可能已達到：\n1. 每日請求限制 (RPD)\n2. 每分鐘請求限制 (RPM)\n3. 總配額限制\n\n請前往 https://ai.dev/usage?tab=rate-limit 查看詳細用量';
+        
+        toast.error(quotaMessage, {
+          description: '請檢查您的 API 金鑰配額和速率限制',
+          duration: 10000,
           action: {
             label: '查看用量',
             onClick: () => window.open('https://ai.dev/usage?tab=rate-limit', '_blank')
