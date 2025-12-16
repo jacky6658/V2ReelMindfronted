@@ -14,12 +14,18 @@ export function registerServiceWorker() {
               newWorker.addEventListener('statechange', () => {
                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                   // 有新版本可用
-                  console.log('New service worker available');
-                  // 可以在这里显示更新提示
+                  console.log('[PWA] New service worker available, will activate automatically');
+                  // Service Worker 會自動激活（因為使用了 skipWaiting 和 clients.claim）
+                  // 用戶下次重新載入頁面時會獲得新版本
                 }
               });
             }
           });
+
+          // 定期檢查更新（每小時檢查一次）
+          setInterval(() => {
+            registration.update();
+          }, 60 * 60 * 1000); // 1 小時
         })
         .catch((registrationError) => {
           console.log('SW registration failed: ', registrationError);
