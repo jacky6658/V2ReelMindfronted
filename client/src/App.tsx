@@ -8,6 +8,7 @@ import { router } from "./router";
 import { useAuthStore } from "./stores/authStore";
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
+import { registerServiceWorker, handleInstallPrompt } from "./lib/pwa";
 
 // NOTE: About Theme
 // - First choose a default theme according to your design style (dark or light bg), than change color palette in index.css
@@ -23,6 +24,10 @@ function App() {
   const checkIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
+    // 注册 Service Worker (PWA)
+    registerServiceWorker();
+    handleInstallPrompt();
+    
     // 檢查 URL 參數中的推薦碼
     const urlParams = new URLSearchParams(window.location.search);
     const refCode = urlParams.get('ref');
