@@ -128,6 +128,11 @@ apiClient.interceptors.request.use(
         const csrfToken = await getCsrfToken();
         if (csrfToken) {
           config.headers['X-CSRF-Token'] = csrfToken;
+        } else {
+          console.warn('[API Client] 無法獲取 CSRF Token，請求可能失敗', {
+            url: config.url,
+            method: config.method
+          });
         }
       }
     }
@@ -168,11 +173,29 @@ apiClient.interceptors.response.use(
       }
     }
 
-    // 如果是 403 錯誤且可能是 CSRF Token 驗證失敗，清除緩存並重試
+    // 如果是 403 錯誤，可能是 CSRF Token 驗證失敗，嘗試刷新並重試
     if (error.response?.status === 403 && !originalRequest._csrfRetry) {
-      const errorMessage = error.response?.data?.error || '';
-      if (errorMessage.includes('CSRF') || errorMessage.includes('csrf')) {
+      const errorMessage = error.response?.data?.error || error.response?.data?.detail || '';
+      const isCsrfError = errorMessage.includes('CSRF') || 
+                         errorMessage.includes('csrf') || 
+                         errorMessage.includes('Token') ||
+                         errorMessage.includes('驗證失敗');
+      
+      // 對於 POST/PUT/DELETE/PATCH 請求，如果是 403 錯誤，都嘗試刷新 CSRF Token
+      const isModifyingRequest = ['post', 'put', 'delete', 'patch'].includes(
+        (originalRequest.method || '').toLowerCase()
+      );
+      
+      if (isCsrfError || (isModifyingRequest && !originalRequest.url?.includes('/api/admin/'))) {
         originalRequest._csrfRetry = true;
+        
+        console.log('[API Client] 檢測到 403 錯誤，嘗試刷新 CSRF Token 並重試', {
+          url: originalRequest.url,
+          method: originalRequest.method,
+          errorMessage,
+          isCsrfError,
+          isModifyingRequest
+        });
         
         // 清除 CSRF Token 緩存並強制刷新
         clearCsrfToken();
@@ -180,10 +203,13 @@ apiClient.interceptors.response.use(
         // 重新獲取 CSRF Token（強制刷新）
         const csrfToken = await getCsrfToken(true);
         if (csrfToken) {
+          console.log('[API Client] 成功獲取新的 CSRF Token，重試請求');
           // 更新請求的 CSRF Token header
           originalRequest.headers['X-CSRF-Token'] = csrfToken;
           // 重試原始請求
           return apiClient(originalRequest);
+        } else {
+          console.warn('[API Client] 無法獲取新的 CSRF Token');
         }
       }
     }
@@ -230,9 +256,15 @@ export async function getCsrfToken(forceRefresh: boolean = false): Promise<strin
   try {
     const response = await apiClient.get<{ csrf_token: string }>('/api/csrf-token');
     csrfTokenCache = response.data.csrf_token;
+    console.log('[API Client] 成功獲取 CSRF Token', { forceRefresh });
     return csrfTokenCache;
-  } catch (e) {
-    console.warn('獲取 CSRF Token 失敗:', e);
+  } catch (e: any) {
+    console.error('[API Client] 獲取 CSRF Token 失敗:', {
+      error: e?.message,
+      status: e?.response?.status,
+      url: '/api/csrf-token',
+      forceRefresh
+    });
   }
   return null;
 }
