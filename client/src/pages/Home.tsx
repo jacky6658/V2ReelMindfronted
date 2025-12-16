@@ -8,6 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
 import { useAuthStore } from "@/stores/authStore";
 import SiteFooterContacts from "@/components/SiteFooterContacts";
+import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 
 export default function Home() {
   const navigate = useNavigate();
@@ -945,6 +946,9 @@ export default function Home() {
 
       {/* 頁尾：全站聯繫方式與社群 */}
       <SiteFooterContacts />
+
+      {/* PWA 安裝提示 */}
+      <PWAInstallPrompt />
     </div>
   );
 }
