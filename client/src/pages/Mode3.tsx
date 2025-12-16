@@ -48,11 +48,11 @@ const FormatText = memo(({ content }: { content: string }) => {
   
   // 如果沒有匹配到任何粗體，直接返回原文字
   if (parts.length === 0) {
-    return <div className="whitespace-pre-wrap">{content}</div>;
+    return <div className="whitespace-pre-wrap text-black dark:text-white">{content}</div>;
   }
   
   return (
-    <div className="whitespace-pre-wrap">
+    <div className="whitespace-pre-wrap text-black dark:text-white">
       {parts.map((part, index) => {
         if (typeof part === 'object' && part.type === 'bold') {
           return <strong key={index} className="font-bold">{part.text}</strong>;
@@ -1359,7 +1359,7 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
                 )}
                 {currentResult && (
                   <div className="space-y-4">
-                    <div className="prose prose-sm max-w-none dark:prose-invert whitespace-pre-wrap">
+                    <div className="prose prose-sm max-w-none dark:prose-invert whitespace-pre-wrap text-black dark:text-white">
                       <FormatText content={currentResult} />
                     </div>
                     <div className="flex justify-end gap-2">
