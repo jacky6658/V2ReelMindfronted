@@ -440,6 +440,16 @@ export async function apiStream(
               error.error_code = parsed.error_code;
               error.is_quota_error = parsed.is_quota_error;
               error.original_error = parsed.original_error;
+              error.content = parsed.content; // 确保 content 也被传递
+              
+              console.error('[API Client] 收到流式錯誤:', {
+                type: parsed.type,
+                message: parsed.message,
+                content: parsed.content,
+                error_code: parsed.error_code,
+                is_quota_error: parsed.is_quota_error,
+                original_error: parsed.original_error
+              });
               
               onError?.(error);
             } else if (parsed.type === 'end') {
