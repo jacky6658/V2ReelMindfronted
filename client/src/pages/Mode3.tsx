@@ -307,7 +307,18 @@ export default function Mode3() {
 
   // 使用 useMemo 優化當前結果內容
   const currentResult = useMemo(() => {
-    return results[activeResultTab as keyof typeof results] || '';
+    const result = results[activeResultTab as keyof typeof results] || '';
+    console.log('[Mode3] currentResult 計算:', { 
+      activeResultTab, 
+      resultLength: result.length, 
+      hasContent: !!result.trim(),
+      results: {
+        positioning: results.positioning?.substring(0, 50),
+        topics: results.topics?.substring(0, 50),
+        script: results.script?.substring(0, 50)
+      }
+    });
+    return result;
   }, [results, activeResultTab]);
 
   // 使用 useMemo 優化結構資訊
@@ -420,28 +431,34 @@ export default function Mode3() {
     try {
       // 生成帳號定位
       try {
+        console.log('[Mode3] 開始生成帳號定位');
         await generatePositioning();
+        console.log('[Mode3] 帳號定位生成完成，當前 results.positioning:', results.positioning?.substring(0, 100));
         setGenerationStatus(prev => ({ ...prev, positioning: true }));
       } catch (error) {
-        console.error('生成帳號定位失敗:', error);
+        console.error('[Mode3] 生成帳號定位失敗:', error);
         throw error; // 重新拋出錯誤，讓外層 catch 處理
       }
       
       // 生成選題
       try {
+        console.log('[Mode3] 開始生成選題建議');
         await generateTopics();
+        console.log('[Mode3] 選題建議生成完成，當前 results.topics:', results.topics?.substring(0, 100));
         setGenerationStatus(prev => ({ ...prev, topics: true }));
       } catch (error) {
-        console.error('生成選題失敗:', error);
+        console.error('[Mode3] 生成選題失敗:', error);
         throw error; // 重新拋出錯誤，讓外層 catch 處理
       }
       
       // 生成腳本
       try {
+        console.log('[Mode3] 開始生成腳本內容');
         await generateScript();
+        console.log('[Mode3] 腳本內容生成完成，當前 results.script:', results.script?.substring(0, 100));
         setGenerationStatus(prev => ({ ...prev, script: true }));
       } catch (error) {
-        console.error('生成腳本失敗:', error);
+        console.error('[Mode3] 生成腳本失敗:', error);
         throw error; // 重新拋出錯誤，讓外層 catch 處理
       }
       
@@ -543,9 +560,19 @@ export default function Mode3() {
     
     // 如果過濾後為空或只有空白，返回原文字（避免完全清空）
     if (!filtered.trim()) {
+      console.warn('[Mode3] filterConversationalPrefix 過濾後為空，返回原文字', { 
+        originalLength: text.length, 
+        filteredLength: filtered.length,
+        originalPreview: text.substring(0, 100)
+      });
       return text;
     }
     
+    console.log('[Mode3] filterConversationalPrefix 過濾成功', { 
+      originalLength: text.length, 
+      filteredLength: filtered.length,
+      removedLength: text.length - filtered.length
+    });
     return filtered;
   }, []);
 
@@ -576,9 +603,15 @@ export default function Mode3() {
         user_id: user?.user_id || null
     }, (chunk) => {
       result += chunk;
+      console.log('[Mode3] 收到帳號定位 chunk:', { chunkLength: chunk.length, totalLength: result.length, chunk: chunk.substring(0, 50) });
       // 過濾談話性開頭後再更新狀態
       const filtered = filterConversationalPrefix(result);
-      setResults(prev => ({ ...prev, positioning: filtered }));
+      console.log('[Mode3] 過濾後的帳號定位:', { originalLength: result.length, filteredLength: filtered.length, hasContent: !!filtered.trim() });
+      setResults(prev => {
+        const newResults = { ...prev, positioning: filtered };
+        console.log('[Mode3] 更新 results.positioning:', { newLength: filtered.length, hasContent: !!filtered.trim() });
+        return newResults;
+      });
     }, (error) => {
       // 根本修复：增强错误处理，显示用户友好的提示
       const errorMessage = error?.message || '生成失敗，請稍後再試';
@@ -634,9 +667,15 @@ export default function Mode3() {
         user_id: user?.user_id || null
     }, (chunk) => {
       result += chunk;
+      console.log('[Mode3] 收到選題建議 chunk:', { chunkLength: chunk.length, totalLength: result.length, chunk: chunk.substring(0, 50) });
       // 過濾談話性開頭後再更新狀態
       const filtered = filterConversationalPrefix(result);
-      setResults(prev => ({ ...prev, topics: filtered }));
+      console.log('[Mode3] 過濾後的選題建議:', { originalLength: result.length, filteredLength: filtered.length, hasContent: !!filtered.trim() });
+      setResults(prev => {
+        const newResults = { ...prev, topics: filtered };
+        console.log('[Mode3] 更新 results.topics:', { newLength: filtered.length, hasContent: !!filtered.trim() });
+        return newResults;
+      });
     }, (error) => {
       // 根本修复：增强错误处理，显示用户友好的提示
       const errorMessage = error?.message || '生成失敗，請稍後再試';
@@ -707,9 +746,15 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
         user_id: user?.user_id || null
     }, (chunk) => {
       result += chunk;
+      console.log('[Mode3] 收到腳本內容 chunk:', { chunkLength: chunk.length, totalLength: result.length, chunk: chunk.substring(0, 50) });
       // 過濾談話性開頭後再更新狀態
       const filtered = filterConversationalPrefix(result);
-      setResults(prev => ({ ...prev, script: filtered }));
+      console.log('[Mode3] 過濾後的腳本內容:', { originalLength: result.length, filteredLength: filtered.length, hasContent: !!filtered.trim() });
+      setResults(prev => {
+        const newResults = { ...prev, script: filtered };
+        console.log('[Mode3] 更新 results.script:', { newLength: filtered.length, hasContent: !!filtered.trim() });
+        return newResults;
+      });
     }, (error) => {
       // 根本修复：增强错误处理，显示用户友好的提示
       const errorMessage = error?.message || '生成失敗，請稍後再試';
@@ -1251,6 +1296,12 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
                     activeResultTab === 'positioning' ? '帳號定位' :
                     activeResultTab === 'topics' ? '選題建議' : '短影音腳本'
                   }...`} />
+                )}
+                {!loading && !currentResult && (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <p>尚未生成內容</p>
+                    <p className="text-sm mt-2">請等待生成完成或點擊「重新生成」</p>
+                  </div>
                 )}
                 {currentResult && (
                   <div className="space-y-4">
