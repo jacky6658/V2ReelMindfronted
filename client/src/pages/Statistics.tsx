@@ -111,14 +111,29 @@ export default function Statistics() {
   const loadAnalyticsFromStore = useUserDataStore((state) => state.loadAnalytics);
   const loadingAnalyticsFromStore = useUserDataStore((state) => state.loading.analytics);
   
-  // 載入統計數據（從 store）
+  // 載入統計數據（從 store 或直接從 API）
   useEffect(() => {
     const loadAnalytics = async () => {
       if (!user?.user_id) return;
       
       // 如果 store 中沒有數據，觸發載入
       if (!storeAnalytics) {
-        await loadAnalyticsFromStore(user.user_id);
+        try {
+          await loadAnalyticsFromStore(user.user_id);
+        } catch (error) {
+          console.error('[Statistics] 從 store 載入統計數據失敗，嘗試直接從 API 載入:', error);
+          // 如果 store 載入失敗，直接從 API 載入
+          try {
+            setLoadingAnalytics(true);
+            const data = await apiGet<AnalyticsOverview>('/api/user/analytics/overview');
+            setAnalyticsOverview(data);
+          } catch (apiError: any) {
+            console.error('[Statistics] 直接從 API 載入統計數據失敗:', apiError);
+            toast.error('載入統計數據失敗，請稍後再試');
+          } finally {
+            setLoadingAnalytics(false);
+          }
+        }
       } else {
         // 如果 store 中有數據，直接使用
         setAnalyticsOverview(storeAnalytics);
@@ -162,7 +177,7 @@ export default function Statistics() {
   return (
     <div className="min-h-screen bg-background">
       {/* 導航欄 */}
-      <nav className="border-b bg-card">
+      <nav className="sticky top-0 z-50 border-b bg-card">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between relative">
           {/* 左侧：返回主控台 */}
           <div className="flex-1 flex items-center">

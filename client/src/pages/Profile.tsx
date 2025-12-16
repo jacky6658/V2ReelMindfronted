@@ -503,7 +503,7 @@ const Profile: React.FC = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* 導航欄 */}
-      <nav className="border-b bg-card">
+      <nav className="sticky top-0 z-50 border-b bg-card">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between relative">
           {/* 左侧：返回主控台 */}
           <div className="flex-1 flex items-center">
