@@ -139,7 +139,7 @@ apiClient.interceptors.request.use(
   }
 );
 
-// 回應攔截器：處理錯誤響應，例如 401 Unauthorized
+// 回應攔截器：處理錯誤響應，例如 401 Unauthorized 和 403 CSRF Token 驗證失敗
 apiClient.interceptors.response.use(
   (response) => {
     return response;
@@ -168,6 +168,26 @@ apiClient.interceptors.response.use(
       }
     }
 
+    // 如果是 403 錯誤且可能是 CSRF Token 驗證失敗，清除緩存並重試
+    if (error.response?.status === 403 && !originalRequest._csrfRetry) {
+      const errorMessage = error.response?.data?.error || '';
+      if (errorMessage.includes('CSRF') || errorMessage.includes('csrf')) {
+        originalRequest._csrfRetry = true;
+        
+        // 清除 CSRF Token 緩存並強制刷新
+        clearCsrfToken();
+        
+        // 重新獲取 CSRF Token（強制刷新）
+        const csrfToken = await getCsrfToken(true);
+        if (csrfToken) {
+          // 更新請求的 CSRF Token header
+          originalRequest.headers['X-CSRF-Token'] = csrfToken;
+          // 重試原始請求
+          return apiClient(originalRequest);
+        }
+      }
+    }
+
     // 其他錯誤直接拒絕
     return Promise.reject(error);
   }
@@ -188,17 +208,23 @@ function getCookie(name: string): string | null {
 
 /**
  * 獲取 CSRF Token
+ * @param forceRefresh 是否強制刷新（忽略緩存）
  */
-export async function getCsrfToken(): Promise<string | null> {
-  // 優先從 Cookie 中讀取
-  const csrfTokenFromCookie = getCookie('csrf_token');
-  if (csrfTokenFromCookie) {
-    csrfTokenCache = csrfTokenFromCookie;
-    return csrfTokenCache;
+export async function getCsrfToken(forceRefresh: boolean = false): Promise<string | null> {
+  // 如果強制刷新，清除緩存
+  if (forceRefresh) {
+    csrfTokenCache = null;
+  } else {
+    // 優先從 Cookie 中讀取
+    const csrfTokenFromCookie = getCookie('csrf_token');
+    if (csrfTokenFromCookie) {
+      csrfTokenCache = csrfTokenFromCookie;
+      return csrfTokenCache;
+    }
+    
+    // 如果有緩存，直接返回
+    if (csrfTokenCache) return csrfTokenCache;
   }
-  
-  // 如果有緩存，直接返回
-  if (csrfTokenCache) return csrfTokenCache;
   
   // 從 API 獲取
   try {
@@ -374,8 +400,15 @@ export async function apiStream(
               // 流式 token 消息，發送內容
               onMessage?.(parsed.content);
             } else if (parsed.type === 'error') {
-              // 錯誤消息，觸發 onError
-              const error = new Error(parsed.message || '發生錯誤');
+              // 根本修复：增强错误消息传递，包含更多错误信息
+              const errorMessage = parsed.message || parsed.content || '發生錯誤';
+              const error = new Error(errorMessage) as any;
+              
+              // 传递额外的错误信息
+              error.error_code = parsed.error_code;
+              error.is_quota_error = parsed.is_quota_error;
+              error.original_error = parsed.original_error;
+              
               onError?.(error);
             } else if (parsed.type === 'end') {
               // 結束標記，觸發 onComplete
