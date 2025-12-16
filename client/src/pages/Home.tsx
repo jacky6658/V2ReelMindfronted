@@ -9,6 +9,7 @@ import { useEffect, useState, useRef } from "react";
 import { useAuthStore } from "@/stores/authStore";
 import SiteFooterContacts from "@/components/SiteFooterContacts";
 import PWAInstallPrompt from "@/components/PWAInstallPrompt";
+import PWAInstallGuide from "@/components/PWAInstallGuide";
 
 export default function Home() {
   const navigate = useNavigate();
@@ -597,6 +598,9 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* PWA 安裝教學區塊 */}
+      <PWAInstallGuide />
 
       {/* 定價區塊 - 優化 SEO 和 FOMO */}
       <section id="pricing" className="py-16 md:py-24 bg-muted/30">
