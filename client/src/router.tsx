@@ -30,7 +30,8 @@ import HelpCenter from './pages/HelpCenter';
 const Checkout = lazy(() => import('./pages/Checkout'));
 const PaymentResult = lazy(() => import('./pages/PaymentResult'));
 const Subscription = lazy(() => import('./pages/Subscription'));
-const Orders = lazy(() => import('./pages/Orders'));
+// Orders 改為同步導入，避免 iOS PWA 動態模組載入錯誤
+import Orders from './pages/Orders';
 const Statistics = lazy(() => import('./pages/Statistics'));
 const ReferralRewards = lazy(() => import('./pages/ReferralRewards'));
 import NotFound from './pages/NotFound';
