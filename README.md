@@ -57,6 +57,10 @@ ReelMind 是一個 AI 短影音智能體平台，從靈感枯竭到內容量產�
 
 ### 2. 功能優化與增強
 
+#### 2.0 系統優化 ✅
+- [x] **Request ID 追蹤系統**：所有 API 請求自動生成 Request ID，便於追蹤和排障
+- [x] **結構化日誌支援**：後端日誌包含 request_id，可用於快速定位問題
+
 #### 2.1 IP人設規劃（Mode1）✅
 - [x] **快速按鈕**：對話框上方添加快速指令按鈕
 - [x] **生成結果管理**：優化結果展示彈窗，支援儲存到資料庫
@@ -330,6 +334,53 @@ ECPAY_RETURN_URL=https://reelmind.aijob.com.tw/payment-result.html
 ---
 
 ## API 對接說明
+
+### Request ID 追蹤
+
+後端已實作全域 Request ID 功能，所有 API 請求都會自動追蹤：
+
+- **自動生成**：如果前端沒有在 header 中帶入 `X-Request-ID`，後端會自動生成
+- **自訂 Request ID**：前端可以在請求 header 中帶入 `X-Request-ID`，用於追蹤特定請求
+- **Response Header**：所有 API 回應都會在 header 中返回 `X-Request-ID`
+- **日誌追蹤**：後端所有日誌都包含 `[request_id=xxx]`，可用此 ID 搜尋整條請求鏈
+
+**前端實作建議**：
+```typescript
+// 在 api-client.ts 中自動生成 Request ID
+import { v4 as uuidv4 } from 'uuid';
+
+apiClient.interceptors.request.use((config) => {
+  // 如果沒有自訂 Request ID，自動生成
+  if (!config.headers['X-Request-ID']) {
+    config.headers['X-Request-ID'] = uuidv4();
+  }
+  return config;
+});
+
+// 在 response 中獲取 Request ID（用於錯誤報告）
+apiClient.interceptors.response.use(
+  (response) => {
+    const requestId = response.headers['x-request-id'];
+    if (requestId) {
+      console.log(`Request ID: ${requestId}`);
+    }
+    return response;
+  },
+  (error) => {
+    const requestId = error.response?.headers['x-request-id'];
+    if (requestId) {
+      console.error(`Request failed with ID: ${requestId}`);
+      // 可以將 requestId 顯示給用戶，方便聯繫客服時提供
+    }
+    return Promise.reject(error);
+  }
+);
+```
+
+**使用場景**：
+- 錯誤報告：當 API 請求失敗時，可以將 Request ID 提供給客服或開發團隊，快速定位問題
+- 日誌追蹤：在後端日誌中搜尋特定 Request ID，可以追蹤整條請求鏈的所有操作
+- 效能分析：透過 Request ID 可以追蹤單一請求的完整生命週期和耗時
 
 ### 生成 API
 前端發送請求時，統一使用 `message` 作為參數名稱：
