@@ -17,6 +17,7 @@ const ArticleDetail = lazy(() => import('./pages/ArticleDetail'));
 const AppDashboard = lazy(() => import('./pages/AppDashboard'));
 const Login = lazy(() => import('./pages/Login'));
 const OAuthCallback = lazy(() => import('./pages/OAuthCallback'));
+const LicenseActivate = lazy(() => import('./pages/LicenseActivate'));
 const Profile = lazy(() => import('./pages/Profile'));
 const Settings = lazy(() => import('./pages/Settings'));
 const Mode1 = lazy(() => import('./pages/Mode1'));
@@ -197,6 +198,14 @@ export const router = createHashRouter([
     element: (
       <Suspense fallback={<LoadingFallback />}>
         <OAuthCallback />
+      </Suspense>
+    ),
+  },
+  {
+    path: '/license/activate',
+    element: (
+      <Suspense fallback={<LoadingFallback />}>
+        <LicenseActivate />
       </Suspense>
     ),
   },

@@ -31,6 +31,10 @@ function App() {
     // 檢查 URL 參數中的推薦碼
     const urlParams = new URLSearchParams(window.location.search);
     const refCode = urlParams.get('ref');
+    const activationCode =
+      urlParams.get('activation_code') ||
+      urlParams.get('license') ||
+      urlParams.get('license_code');
     
     if (refCode) {
       // 立即保存推薦碼到 localStorage（不阻塞 UI）
@@ -43,6 +47,14 @@ function App() {
       });
       
       // 清除 URL 參數（避免重複處理）
+      const newUrl = window.location.pathname + window.location.hash;
+      window.history.replaceState({}, '', newUrl);
+    }
+
+    // 檢查 URL 參數中的授權碼（合作/課程包啟用）
+    if (activationCode) {
+      localStorage.setItem('pending_activation_code', activationCode.toUpperCase());
+      toast.info('已保存授權碼，登入後將自動啟用', { duration: 5000 });
       const newUrl = window.location.pathname + window.location.hash;
       window.history.replaceState({}, '', newUrl);
     }
