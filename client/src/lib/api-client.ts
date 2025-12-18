@@ -431,6 +431,10 @@ export async function apiStream(
             if (parsed.type === 'token' && parsed.content) {
               // 流式 token 消息，發送內容
               onMessage?.(parsed.content);
+            } else if (parsed.type === 'info') {
+              // info 訊息：用於提示「自動降級/切換」，不應混入生成內容
+              // 目前先忽略（保持輸出乾淨）；如需顯示可在前端頁面自行處理/顯示 toast
+              continue;
             } else if (parsed.type === 'error') {
               // 根本修复：增强错误消息传递，包含更多错误信息
               const errorMessage = parsed.message || parsed.content || '發生錯誤';
