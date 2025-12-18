@@ -597,8 +597,10 @@ const Profile: React.FC = () => {
                         </div>
                         <div>
                           <p className="text-sm text-muted-foreground">訂閱等級:</p>
-                          <Badge variant={subscription === 'pro' ? 'default' : 'secondary'}>
-                            {subscription === 'pro' ? 'Pro' : subscription === 'free' ? 'Free' : 'N/A'}
+                          <Badge
+                            variant={subscription === 'vip' ? 'default' : subscription === 'pro' ? 'secondary' : 'outline'}
+                          >
+                            {subscription === 'vip' ? 'VIP' : subscription === 'pro' ? 'Pro' : subscription === 'free' ? 'Free' : 'N/A'}
                           </Badge>
                         </div>
                         <div>

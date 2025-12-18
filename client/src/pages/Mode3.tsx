@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { ArrowLeft, Sparkles, CheckCircle2, Loader2, Copy, Lock, Save, Key, Home, HelpCircle, Info } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -97,9 +98,17 @@ const SCRIPT_STRUCTURES = [
 export default function Mode3() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, loading: authLoading, isLoggedIn } = useAuthStore();
+  const { user, loading: authLoading, isLoggedIn, subscription } = useAuthStore();
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const isVip = subscription === 'vip';
+  const [usePremium, setUsePremium] = useState(false);
+  const qualityMode = isVip && usePremium ? 'premium' : 'economy';
+  
+  // 非 VIP 時強制關閉 Premium（避免送出 premium 參數）
+  useEffect(() => {
+    if (!isVip && usePremium) setUsePremium(false);
+  }, [isVip, usePremium]);
   
   // 調試：在開發環境中輸出認證狀態
   if (import.meta.env.DEV) {
@@ -600,7 +609,8 @@ export default function Mode3() {
         topic: formData.topic,
         profile: formData.positioning,
         conversation_type: 'one_click',
-        user_id: user?.user_id || null
+        user_id: user?.user_id || null,
+        quality_mode: qualityMode
     }, (chunk) => {
       result += chunk;
       console.log('[Mode3] 收到帳號定位 chunk:', { chunkLength: chunk.length, totalLength: result.length, chunk: chunk.substring(0, 50) });
@@ -682,7 +692,8 @@ export default function Mode3() {
         topic: formData.topic,
         profile: formData.positioning,
         conversation_type: 'one_click',
-        user_id: user?.user_id || null
+        user_id: user?.user_id || null,
+        quality_mode: qualityMode
     }, (chunk) => {
       result += chunk;
       console.log('[Mode3] 收到選題建議 chunk:', { chunkLength: chunk.length, totalLength: result.length, chunk: chunk.substring(0, 50) });
@@ -779,7 +790,8 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
         duration: formData.duration,
         script_structure: formData.structure,
         conversation_type: 'one_click',
-        user_id: user?.user_id || null
+        user_id: user?.user_id || null,
+        quality_mode: qualityMode
     }, (chunk) => {
       result += chunk;
       console.log('[Mode3] 收到腳本內容 chunk:', { chunkLength: chunk.length, totalLength: result.length, chunk: chunk.substring(0, 50) });
@@ -1106,6 +1118,20 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              {/* 模式切換：VIP 才能開啟 Premium（方案 A） */}
+              <div className="flex items-center justify-between gap-4 rounded-lg border p-3">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Label>高品質模式（VIP）</Label>
+                    {!isVip && <span className="text-xs text-muted-foreground">僅 VIP</span>}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    開啟後會使用較高品質模型；超過本月上限會自動降級為省額度模式（不中斷）。
+                  </p>
+                </div>
+                <Switch checked={usePremium} onCheckedChange={setUsePremium} disabled={!isVip} />
+              </div>
+
               {/* 主題或產品 */}
               <div className="space-y-2">
                 <Label htmlFor="topic">你的主題或產品 *</Label>

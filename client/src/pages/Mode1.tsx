@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import { 
   Send, 
   Sparkles, 
@@ -194,7 +195,10 @@ interface SavedResult {
 export default function Mode1() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, isLoggedIn, loading: authLoading } = useAuthStore();
+  const { user, isLoggedIn, loading: authLoading, subscription } = useAuthStore();
+  const isVip = subscription === 'vip';
+  const [usePremium, setUsePremium] = useState(false);
+  const qualityMode = isVip && usePremium ? 'premium' : 'economy';
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -222,6 +226,11 @@ export default function Mode1() {
   const [contextSource, setContextSource] = useState<{ type: 'file' | 'url'; name: string } | null>(null); // 上下文來源資訊
   const [uploadingFile, setUploadingFile] = useState(false);
   const [fetchingUrl, setFetchingUrl] = useState(false);
+
+  // 非 VIP 時強制關閉 Premium（避免送出 premium 參數）
+  useEffect(() => {
+    if (!isVip && usePremium) setUsePremium(false);
+  }, [isVip, usePremium]);
 
   // 快速按鈕
   const quickButtons = [
@@ -840,7 +849,8 @@ export default function Mode1() {
         conversation_type: 'ip_planning', // IP 人設規劃類型
         user_id: user?.user_id || null, // 使用當前登入用戶的 ID
         feature_mode: 'mode1', // 新增：指定使用 Mode1 權限檢查
-        context_id: contextId || null // 新增：LLM 上下文 ID（檔案上傳或 URL 抓取的內容）
+        context_id: contextId || null, // 新增：LLM 上下文 ID（檔案上傳或 URL 抓取的內容）
+        quality_mode: qualityMode
       };
 
       // 使用流式 API
@@ -1402,6 +1412,16 @@ export default function Mode1() {
               <CardDescription className="text-sm">
                 透過 AI 對話，建立你的 IP 人設檔案、規劃 14 天內容、生成今日腳本
               </CardDescription>
+              <div className="flex items-center justify-between pt-2">
+                <div className="text-xs text-muted-foreground">
+                  模式：{qualityMode === 'premium' ? '高品質' : '省額度'}
+                  {!isVip && <span className="ml-2">（高品質僅 VIP）</span>}
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs">高品質（VIP）</span>
+                  <Switch checked={usePremium} onCheckedChange={setUsePremium} disabled={!isVip} />
+                </div>
+              </div>
             </CardHeader>
 
             {/* 訊息列表 - 添加 ref 和相對定位 */}

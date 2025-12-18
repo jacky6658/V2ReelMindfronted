@@ -683,8 +683,8 @@ export default function Home() {
                 <div className="space-y-3 flex-1">
                   {[
                     '免費體驗一鍵生成功能',
-                    '支援自訂 AI 模型，使用自己的 API Key 完全掌控生成品質',
-                    '無限次生成腳本，不受系統配額限制',
+                    '支援綁定 BYOK（使用自己的 Gemini API Key）',
+                    '使用量限制：每日 20 次 / 每月 300 次',
                     '帳號定位分析',
                     '選題推薦',
                     '短影音腳本生成'
@@ -726,9 +726,9 @@ export default function Home() {
                     <Zap className="w-8 h-8 text-primary" />
                   </div>
                 </div>
-                <CardTitle className="text-2xl mb-2">ReelMind 全功能方案</CardTitle>
+                <CardTitle className="text-2xl mb-2">Pro 方案</CardTitle>
                 <CardDescription className="text-base">
-                  解鎖所有 AI 短影音創作工具
+                  主力付費方案（Economy 模型為主）
                 </CardDescription>
                 
                 {/* Price */}
@@ -769,6 +769,8 @@ export default function Home() {
                     '腳本歷史記錄與管理',
                     '多平台腳本優化建議',
                     '優先客服支援',
+                    '使用量限制：每日 300 次 / 每月 10,000 次',
+                    'Premium 高規模型：❌（VIP 才開放）',
                     ...(billingCycle === 'yearly' ? ['年度專屬優惠', '新功能搶先體驗'] : [])
                   ].map((feature, index) => (
                     <div key={index} className="flex items-start gap-3">
@@ -806,28 +808,28 @@ export default function Home() {
               </CardContent>
             </Card>
 
-            {/* 右邊：客製化專案卡片 */}
+            {/* 右邊：VIP 方案卡片 */}
             <Card className="border-2 border-purple-200 dark:border-purple-800 flex flex-col h-full hover:shadow-lg transition-shadow">
               <CardHeader className="text-center pb-6 flex-shrink-0">
                 <div className="flex justify-center mb-4">
                   <div className="p-3 bg-purple-100 dark:bg-purple-900/20 rounded-full">
-                    <Mail className="w-8 h-8 text-purple-600 dark:text-purple-400" />
+                    <Shield className="w-8 h-8 text-purple-600 dark:text-purple-400" />
                   </div>
                 </div>
-                <CardTitle className="text-2xl mb-2">客製化專案</CardTitle>
+                <CardTitle className="text-2xl mb-2">VIP 方案</CardTitle>
                 <CardDescription className="text-base">
-                  企業級客製化服務
+                  高階用戶 / 企業 / 課程包（開放 Premium 模型）
                 </CardDescription>
                 
                 {/* Price */}
                 <div className="mt-6">
                   <div className="flex items-baseline justify-center gap-2">
                     <span className="text-5xl font-bold text-purple-600 dark:text-purple-400">
-                      客製化
+                      授權啟用
                     </span>
                   </div>
                   <p className="text-sm text-muted-foreground mt-2">
-                  依需求報價
+                    透過授權碼或合作開通
                   </p>
                 </div>
               </CardHeader>
@@ -836,12 +838,11 @@ export default function Home() {
                 {/* Features */}
                 <div className="space-y-3 flex-1">
                   {[
-                    '專屬 AI 模型訓練',
-                    '客製化功能開發',
-                    '企業級技術支援',
-                    '專案管理服務',
-                    'API 整合服務',
-                    '優先技術諮詢'
+                    '包含 Pro 所有功能',
+                    'Premium 高規模型（預設 gemini-2.5-flash-lite）',
+                    '使用量限制：每日 1,000 次 / 每月 30,000 次',
+                    'Premium 額度：每月 5,000 次（超過自動降級 Economy）',
+                    '優先支援與合作授權'
                   ].map((feature, index) => (
                     <div key={index} className="flex items-start gap-3">
                       <div className="mt-0.5">
@@ -858,10 +859,10 @@ export default function Home() {
                     size="lg"
                     variant="outline"
                     className="w-full text-lg h-14 border-purple-600 dark:border-purple-400 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20"
-                    onClick={() => navigate('/contact')}
+                    onClick={() => navigate('/settings')}
                   >
-                    <Mail className="w-5 h-5 mr-2" />
-                    聯繫我們
+                    <Shield className="w-5 h-5 mr-2" />
+                    使用授權碼啟用
                   </Button>
                 </div>
               </CardContent>
@@ -873,7 +874,7 @@ export default function Home() {
             <div className="flex flex-wrap justify-center gap-4 text-sm text-muted-foreground">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-primary" />
-                <span>7 天免費試用期</span>
+                <span>Free / Pro / VIP 三方案</span>
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-primary" />

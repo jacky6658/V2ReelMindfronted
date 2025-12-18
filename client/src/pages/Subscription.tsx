@@ -187,7 +187,7 @@ export default function Subscription() {
               <span className="text-primary">.</span>
             </h1>
             <p className="text-xl text-muted-foreground">
-              單一訂閱制，解鎖所有功能。包含 7 天免費試用期（註冊後）。
+              三種方案（Free / Pro / VIP），依使用量與模型需求選擇最適合的等級。
             </p>
           </div>
         </div>
@@ -222,7 +222,7 @@ export default function Subscription() {
           </div>
         </div>
 
-        {/* Three Column Layout: Free Plan (Left) + Full Feature Plan (Center) + Custom Project (Right) */}
+        {/* Three Column Layout: Free / Pro / VIP */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-7xl mx-auto mb-16">
           {/* 左邊：免費方案卡片 */}
           <Card className="border-2 border-muted flex flex-col h-full">
@@ -253,8 +253,8 @@ export default function Subscription() {
               <div className="space-y-3 flex-1">
                 {[
                   '免費體驗一鍵生成功能',
-                  '支援自訂 AI 模型，使用自己的 API Key 完全掌控生成品質',
-                  '無限次生成腳本，不受系統配額限制',
+                  '支援綁定 BYOK（使用自己的 Gemini API Key）',
+                  '使用量限制：每日 20 次 / 每月 300 次',
                   '帳號定位分析',
                   '選題推薦',
                   '短影音腳本生成'
@@ -283,7 +283,7 @@ export default function Subscription() {
             </CardContent>
           </Card>
 
-          {/* 右邊：ReelMind 全功能方案卡片 */}
+          {/* 中間：Pro 方案卡片 */}
           <Card className="border-2 border-primary shadow-lg flex flex-col h-full">
             <CardHeader className="text-center pb-6 flex-shrink-0">
               <div className="flex justify-center mb-4">
@@ -291,9 +291,9 @@ export default function Subscription() {
                   <Zap className="w-8 h-8 text-primary" />
                 </div>
               </div>
-              <CardTitle className="text-2xl mb-2">ReelMind 全功能方案</CardTitle>
+              <CardTitle className="text-2xl mb-2">Pro 方案</CardTitle>
               <CardDescription className="text-base">
-                解鎖所有 AI 短影音創作工具
+                主力付費方案（Economy 模型為主）
               </CardDescription>
               
               {/* Price */}
@@ -325,7 +325,11 @@ export default function Subscription() {
             <CardContent className="space-y-6 flex-1 flex flex-col">
               {/* Features */}
               <div className="space-y-3 flex-1">
-                {currentPlan.features.map((feature, index) => (
+                {[
+                  ...currentPlan.features,
+                  '使用量限制：每日 300 次 / 每月 10,000 次',
+                  'Premium 高規模型：❌（避免成本失控）'
+                ].map((feature, index) => (
                   <div key={index} className="flex items-start gap-3">
                     <div className="mt-0.5">
                       <Check className="w-5 h-5 text-primary" />
@@ -373,28 +377,28 @@ export default function Subscription() {
             </CardContent>
           </Card>
 
-          {/* 右邊：客製化專案卡片 */}
+          {/* 右邊：VIP 方案卡片 */}
           <Card className="border-2 border-purple-200 dark:border-purple-800 flex flex-col h-full">
             <CardHeader className="text-center pb-6 flex-shrink-0">
               <div className="flex justify-center mb-4">
                 <div className="p-3 bg-purple-100 dark:bg-purple-900/20 rounded-full">
-                  <Mail className="w-8 h-8 text-purple-600 dark:text-purple-400" />
+                  <Shield className="w-8 h-8 text-purple-600 dark:text-purple-400" />
                 </div>
               </div>
-              <CardTitle className="text-2xl mb-2">客製化專案</CardTitle>
+              <CardTitle className="text-2xl mb-2">VIP 方案</CardTitle>
               <CardDescription className="text-base">
-                企業級客製化服務
+                高階用戶 / 企業 / 課程包（開放 Premium 模型）
               </CardDescription>
               
               {/* Price */}
               <div className="mt-6">
                 <div className="flex items-baseline justify-center gap-2">
                   <span className="text-5xl font-bold text-purple-600 dark:text-purple-400">
-                    客製化
+                    授權啟用
                   </span>
                 </div>
                 <p className="text-sm text-muted-foreground mt-2">
-                  依需求報價
+                  透過授權碼或合作開通
                 </p>
               </div>
             </CardHeader>
@@ -403,12 +407,11 @@ export default function Subscription() {
               {/* Features */}
               <div className="space-y-3 flex-1">
                 {[
-                  '專屬 AI 模型訓練',
-                  '客製化功能開發',
-                  '企業級技術支援',
-                  '專案管理服務',
-                  'API 整合服務',
-                  '優先技術諮詢'
+                  '包含 Pro 所有功能',
+                  'Premium 高規模型（預設 gemini-2.5-flash-lite）',
+                  '使用量限制：每日 1,000 次 / 每月 30,000 次',
+                  'Premium 額度：每月 5,000 次（超過自動降級 Economy，不報錯）',
+                  '優先支援與合作授權'
                 ].map((feature, index) => (
                   <div key={index} className="flex items-start gap-3">
                     <div className="mt-0.5">
@@ -425,10 +428,10 @@ export default function Subscription() {
                   size="lg"
                   variant="outline"
                   className="w-full text-lg h-14 border-purple-600 dark:border-purple-400 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20"
-                  onClick={() => navigate('/contact')}
+                  onClick={() => navigate('/settings')}
                 >
-                  <Mail className="w-5 h-5 mr-2" />
-                  聯繫我們
+                  <Shield className="w-5 h-5 mr-2" />
+                  使用授權碼啟用
                 </Button>
               </div>
             </CardContent>
@@ -468,9 +471,9 @@ export default function Subscription() {
 
             <Card>
               <CardContent className="p-6">
-                <h3 className="font-bold mb-2">Q：有免費試用嗎？</h3>
+                <h3 className="font-bold mb-2">Q：Free / Pro / VIP 差在哪？</h3>
                 <p className="text-muted-foreground">
-                  A：目前沒有免費試用，但我們提供「立即體驗」功能，讓您在訂閱前先體驗 AI 生成腳本的效果。
+                  A：差別在「每日/每月用量上限」與「是否開放 Premium 高規模型」。Free/Pro 以 Economy 為主，VIP 才開 Premium（超過 Premium 上限會自動降級 Economy）。
                 </p>
               </CardContent>
             </Card>

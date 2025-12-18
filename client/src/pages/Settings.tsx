@@ -38,6 +38,25 @@ interface ModelsResponse {
   openai: AvailableModel[];
 }
 
+interface PlanStatusResponse {
+  plan: 'free' | 'pro' | 'vip';
+  billing_cycle: 'none' | 'monthly' | 'yearly' | string;
+  limits: {
+    daily: number;
+    monthly: number;
+    premium_monthly: number;
+    vip_premium_default_model?: string;
+    premium_byok_allowed?: boolean;
+  };
+  usage: {
+    day: string;
+    month: string;
+    daily_used: number;
+    monthly_used: number;
+    premium_monthly_used: number;
+  };
+}
+
 const Settings: React.FC = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuthStore();
@@ -47,6 +66,7 @@ const Settings: React.FC = () => {
   const [deleting, setDeleting] = useState<string | null>(null);
   const [keys, setKeys] = useState<LLMKey[]>([]);
   const [availableModels, setAvailableModels] = useState<ModelsResponse | null>(null);
+  const [planStatus, setPlanStatus] = useState<PlanStatusResponse | null>(null);
   
   // 表單狀態
   const [provider, setProvider] = useState<'gemini' | 'openai'>('gemini');
@@ -95,6 +115,15 @@ const Settings: React.FC = () => {
     }
   };
 
+  const loadPlanStatus = async () => {
+    try {
+      const data = await apiGet<PlanStatusResponse>('/api/user/plan-status');
+      setPlanStatus(data);
+    } catch (error) {
+      setPlanStatus(null);
+    }
+  };
+
   // 載入數據（PrivateRoute 已經處理了登入檢查，這裡不需要再檢查）
   useEffect(() => {
     // 等待認證狀態加載完成且用戶信息已加載
@@ -115,6 +144,7 @@ const Settings: React.FC = () => {
     if (user?.user_id) {
       loadKeys();
       loadAvailableModels();
+      loadPlanStatus();
     }
   }, [user?.user_id, authLoading]);
 
@@ -386,6 +416,46 @@ const Settings: React.FC = () => {
       </nav>
 
       <div className="container max-w-4xl mx-auto py-8 px-4">
+        {/* 方案狀態 */}
+        {planStatus && (
+          <Card className="mb-6">
+            <CardHeader>
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <CardTitle>目前方案</CardTitle>
+                  <CardDescription>
+                    付款週期：{planStatus.billing_cycle === 'monthly' ? '月付' : planStatus.billing_cycle === 'yearly' ? '年付' : '無'}
+                  </CardDescription>
+                </div>
+                <Badge variant={planStatus.plan === 'vip' ? 'default' : planStatus.plan === 'pro' ? 'secondary' : 'outline'}>
+                  {planStatus.plan.toUpperCase()}
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div className="text-sm text-muted-foreground">
+                今日用量：<span className="font-medium text-foreground">{planStatus.usage.daily_used}</span> / {planStatus.limits.daily}
+              </div>
+              <div className="text-sm text-muted-foreground">
+                本月用量：<span className="font-medium text-foreground">{planStatus.usage.monthly_used}</span> / {planStatus.limits.monthly}
+              </div>
+              {planStatus.plan === 'vip' && (
+                <div className="text-sm text-muted-foreground">
+                  Premium 本月用量：<span className="font-medium text-foreground">{planStatus.usage.premium_monthly_used}</span> / {planStatus.limits.premium_monthly}
+                  {planStatus.limits.vip_premium_default_model && (
+                    <span className="ml-2">
+                      （預設 Premium：<span className="font-mono">{planStatus.limits.vip_premium_default_model}</span>）
+                    </span>
+                  )}
+                </div>
+              )}
+              <div className="text-xs text-muted-foreground pt-2">
+                綁定 BYOK 會優先使用您的金鑰；系統保底僅在您金鑰不可用時啟用。
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* LLM API Key 管理 */}
         <Card className="mb-6">
           <CardHeader>

@@ -9,6 +9,8 @@ import { apiPost } from '@/lib/api-client';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/stores/authStore';
 
+const PENDING_LICENSE_CODE_KEY = 'pending_activation_code';
+
 export default function OAuthCallback() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -75,6 +77,28 @@ export default function OAuthCallback() {
         });
 
         toast.success(`歡迎回來，${response.user.name}！`);
+
+        // ✅ 若使用者是從「授權碼啟用連結」進來，登入後自動啟用
+        const pendingCode = localStorage.getItem(PENDING_LICENSE_CODE_KEY);
+        if (pendingCode) {
+          try {
+            const res = await apiPost<{ success?: boolean; message?: string; error?: string }>(
+              '/api/user/license/activate',
+              { activation_code: pendingCode }
+            );
+            if ((res as any)?.error) {
+              toast.error((res as any).error || '授權啟用失敗');
+            } else {
+              toast.success(res?.message || '授權啟用成功');
+              localStorage.removeItem(PENDING_LICENSE_CODE_KEY);
+              navigate('/profile', { replace: true });
+              return;
+            }
+          } catch (e: any) {
+            const msg = e?.response?.data?.error || e?.message || '授權啟用失敗，請稍後再試';
+            toast.error(msg);
+          }
+        }
         
         // 任務 3: 成功後 navigate("/app")
         navigate('/app', { replace: true });
