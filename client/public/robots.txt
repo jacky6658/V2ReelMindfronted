@@ -1,6 +1,10 @@
 User-agent: *
 Allow: /
 
+Disallow: /cdn-cgi/
+Disallow: /login
+Disallow: /search
+
 Disallow: /mode1.html
 Disallow: /mode2.html
 Disallow: /mode3.html
