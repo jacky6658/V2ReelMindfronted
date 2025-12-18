@@ -22,7 +22,28 @@ interface User {
   is_admin?: boolean;  // 管理員標識
 }
 
-type Subscription = "free" | "pro" | null;
+type Subscription = "free" | "pro" | "vip" | null;
+
+type Plan = "free" | "pro" | "vip";
+
+interface PlanStatusResponse {
+  plan: Plan;
+  billing_cycle: "none" | "monthly" | "yearly" | string;
+  limits?: {
+    daily: number;
+    monthly: number;
+    premium_monthly: number;
+    vip_premium_default_model?: string;
+    premium_byok_allowed?: boolean;
+  };
+  usage?: {
+    day: string;
+    month: string;
+    daily_used: number;
+    monthly_used: number;
+    premium_monthly_used: number;
+  };
+}
 
 interface AuthState {
   isLoggedIn: boolean;
@@ -125,6 +146,26 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         }
       }, 100); // 稍微延遲，確保認證狀態已完全設置
     }
+
+    // ✅ 背景獲取三方案狀態（free/pro/vip），用於顯示 VIP 與用量限制（不阻塞 UI）
+    if (user?.user_id) {
+      setTimeout(async () => {
+        try {
+          const timeoutPromise = new Promise<never>((_, reject) => {
+            setTimeout(() => reject(new Error('Plan status timeout')), 3000);
+          });
+          const planData = await Promise.race([
+            apiGet<PlanStatusResponse>('/api/user/plan-status'),
+            timeoutPromise
+          ]);
+          if (planData?.plan) {
+            set({ subscription: planData.plan });
+          }
+        } catch (e) {
+          // 不阻擋登入流程
+        }
+      }, 200);
+    }
   },
 
   logout: async () => {
@@ -178,6 +219,26 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             console.error('[AuthStore] 預載入數據失敗:', error);
           }
         }, 100); // 稍微延遲，確保認證狀態已完全設置
+      }
+
+      // ✅ 背景獲取三方案狀態（free/pro/vip），讓 VIP 用戶在 UI 顯示正確方案
+      if (userData?.user_id) {
+        setTimeout(async () => {
+          try {
+            const timeoutPromise = new Promise<never>((_, reject) => {
+              setTimeout(() => reject(new Error('Plan status timeout')), 3000);
+            });
+            const planData = await Promise.race([
+              apiGet<PlanStatusResponse>('/api/user/plan-status'),
+              timeoutPromise
+            ]);
+            if (planData?.plan) {
+              set({ subscription: planData.plan });
+            }
+          } catch (e) {
+            // ignore
+          }
+        }, 200);
       }
     } catch (error: any) {
       // 如果是 401 錯誤或超时，表示未登入或网络问题，不顯示錯誤訊息
