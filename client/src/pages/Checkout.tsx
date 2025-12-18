@@ -76,7 +76,16 @@ export default function Checkout() {
       price: amount,
       period: '月',
       features: [
-        tier === 'lite' ? '必須 BYOK（不提供平台保底）' : tier === 'pro' ? 'BYOK 為主（推薦）' : '不需 BYOK（Platform Mode）',
+        tier === 'lite'
+          ? '需要綁定自己的 Gemini 金鑰（平台不提供保底）'
+          : tier === 'pro'
+          ? '建議綁定自己的 Gemini 金鑰（提供單篇保底）'
+          : '不需要綁定金鑰（平台已提供）',
+        tier === 'lite'
+          ? '平台保底：0 次 / 月'
+          : tier === 'pro'
+          ? '平台保底（單篇生成）：每月 10 次'
+          : '使用次數：每日 1,000 次 / 每月 30,000 次（高品質每月 5,000 次）',
         '日曆排程 / 選題管理',
         'AI 人設規劃',
         '單篇生成'
@@ -88,7 +97,16 @@ export default function Checkout() {
       period: '年',
       monthlyPrice: Math.round(amount / 12),
       features: [
-        tier === 'lite' ? '必須 BYOK（不提供平台保底）' : tier === 'pro' ? 'BYOK 為主（推薦）' : '不需 BYOK（Platform Mode）',
+        tier === 'lite'
+          ? '需要綁定自己的 Gemini 金鑰（平台不提供保底）'
+          : tier === 'pro'
+          ? '建議綁定自己的 Gemini 金鑰（提供單篇保底）'
+          : '不需要綁定金鑰（平台已提供）',
+        tier === 'lite'
+          ? '平台保底：0 次 / 月'
+          : tier === 'pro'
+          ? '平台保底（單篇生成）：每月 10 次'
+          : '使用次數：每日 1,000 次 / 每月 30,000 次（高品質每月 5,000 次）',
         '日曆排程 / 選題管理',
         'AI 人設規劃',
         '單篇生成'

@@ -659,7 +659,7 @@ export default function Home() {
                 </div>
                 <CardTitle className="text-2xl mb-2">Lite 方案</CardTitle>
                 <CardDescription className="text-base">
-                  入門工具型（必須 BYOK）
+                  我已經有金鑰，只想用一個順手的創作工具
                 </CardDescription>
                 
                 {/* Price */}
@@ -680,13 +680,15 @@ export default function Home() {
                 {/* Features */}
                 <div className="space-y-3 flex-1">
                   {[
-                    '必須 BYOK（不提供平台保底）',
+                    '需要綁定自己的 Gemini 金鑰',
                     '日曆排程 / 選題管理',
-                    'AI 人設規劃（需 BYOK）',
-                    '單篇生成（需 BYOK）',
+                    'AI 人設規劃',
+                    '單篇生成',
+                    '使用次數：依你的金鑰額度為準',
+                    '平台保底：0 次 / 月',
                     '批次生成：✖',
                     'AI 智能分析：✖',
-                    '平台 Fallback 救援：✖'
+                    '平台保底：✖'
                   ].map((feature, index) => (
                     <div key={index} className="flex items-start gap-3">
                       <div className="mt-0.5">
@@ -733,7 +735,7 @@ export default function Home() {
                 </div>
                 <CardTitle className="text-2xl mb-2">Pro 方案</CardTitle>
                 <CardDescription className="text-base">
-                  主力銷售（BYOK 為主 + Fallback）
+                  我想穩定產出，不想被額度卡住
                 </CardDescription>
                 
                 {/* Price */}
@@ -754,13 +756,14 @@ export default function Home() {
                 {/* Features */}
                 <div className="space-y-3 flex-1">
                   {[
-                    'BYOK 為主（推薦）',
-                    '提供 Fallback 單篇救援（每月 10 次）',
+                    '建議綁定自己的 Gemini 金鑰',
+                    '平台保底（單篇生成）：每月 10 次',
                     '日曆排程 / 選題管理',
                     'AI 人設規劃',
-                    '單篇生成（含 Fallback）',
+                    '單篇生成',
+                    '使用次數：自帶金鑰依你的額度；平台保底依每月 10 次',
                     '批次生成：✖',
-                    'AI 智能分析：✖（Fallback 狀態）'
+                    'AI 智能分析：✖'
                   ].map((feature, index) => (
                     <div key={index} className="flex items-start gap-3">
                       <div className="mt-0.5">
@@ -807,7 +810,7 @@ export default function Home() {
                 </div>
                 <CardTitle className="text-2xl mb-2">Max 方案</CardTitle>
                 <CardDescription className="text-base">
-                  包 AI 完整（Platform Mode）
+                  你幫我包好，我只管用
                 </CardDescription>
                 
                 {/* Price */}
@@ -828,12 +831,14 @@ export default function Home() {
                 {/* Features */}
                 <div className="space-y-3 flex-1">
                   {[
-                    '不需 BYOK（Platform Mode）',
+                    '不需要綁定金鑰（平台已提供）',
                     '日曆排程 / 選題管理',
                     'AI 人設規劃',
                     '單篇生成',
-                    '批次生成（有上限）',
-                    'AI 智能分析（有上限）'
+                    '使用次數：每日 1,000 次 / 每月 30,000 次',
+                    '高品質模式：每月 5,000 次（超過自動降級，服務不中斷）',
+                    '批次生成：有上限（可加購）',
+                    'AI 智能分析：有上限（可加購）'
                   ].map((feature, index) => (
                     <div key={index} className="flex items-start gap-3">
                       <div className="mt-0.5">
