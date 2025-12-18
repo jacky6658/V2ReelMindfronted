@@ -3,7 +3,7 @@
  * 整合綠界金流付款功能
  */
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -40,46 +40,14 @@ export default function Subscription() {
     }
   };
 
-  // 方案資訊
-  const plans = {
-    monthly: {
-      price: 399,
-      period: '月',
-      save: 0,
-      features: [
-        '包含免費方案所有功能',
-        'IP 人設規劃工具（AI 深度對話建立個人品牌）',
-        '14 天短影音內容規劃',
-        '今日腳本快速生成',
-        '創作者資料庫完整功能',
-        '腳本歷史記錄與管理',
-        '多平台腳本優化建議',
-        '優先客服支援'
-      ]
-    },
-    yearly: {
-      price: 4788, // 原價 399 * 12
-      monthlyPrice: 332, // 優惠後的平均月費 (3990 / 12)
-      period: '月', // 顯示為每月價格
-      save: 4788 - 3990,
-      savePercent: Math.round(((4788 - 3990) / 4788) * 100),
-      actualPrice: 3990, // 實際付款金額
-      features: [
-        '包含免費方案所有功能',
-        'IP 人設規劃工具（AI 深度對話建立個人品牌）',
-        '14 天短影音內容規劃',
-        '今日腳本快速生成',
-        '創作者資料庫完整功能',
-        '腳本歷史記錄與管理',
-        '多平台腳本優化建議',
-        '優先客服支援',
-        '年度專屬優惠',
-        '新功能搶先體驗'
-      ]
-    }
-  };
+  const priceTable = useMemo(() => ({
+    lite: { monthly: 300, yearly: 3600 },
+    pro: { monthly: 800, yearly: 9600 },
+    max: { monthly: 2000, yearly: 24000 }
+  }), []);
 
-  const currentPlan = plans[billingCycle];
+  const getAmount = (tier: 'lite' | 'pro' | 'max') =>
+    billingCycle === 'yearly' ? priceTable[tier].yearly : priceTable[tier].monthly;
 
   // 處理付款
   const handleCheckout = async () => {
@@ -187,7 +155,7 @@ export default function Subscription() {
               <span className="text-primary">.</span>
             </h1>
             <p className="text-xl text-muted-foreground">
-              三種方案（Free / Pro / VIP），依使用量與模型需求選擇最適合的等級。
+              三種方案（Lite / Pro / Max），方案不變、月付/年付可切換。
             </p>
           </div>
         </div>
@@ -204,7 +172,7 @@ export default function Subscription() {
               onClick={() => setBillingCycle('monthly')}
               className="rounded-full"
             >
-              月
+              月付
             </Button>
             <Button
               variant={billingCycle === 'yearly' ? 'default' : 'ghost'}
@@ -212,19 +180,14 @@ export default function Subscription() {
               onClick={() => setBillingCycle('yearly')}
               className="rounded-full"
             >
-              年
-              {billingCycle === 'yearly' && (
-                <Badge variant="secondary" className="ml-2">
-                  省 {(currentPlan as any).savePercent}%
-                </Badge>
-              )}
+              年付
             </Button>
           </div>
         </div>
 
-        {/* Three Column Layout: Free / Pro / VIP */}
+        {/* Three Column Layout: Lite / Pro / Max */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-7xl mx-auto mb-16">
-          {/* 左邊：免費方案卡片 */}
+          {/* Lite */}
           <Card className="border-2 border-muted flex flex-col h-full">
             <CardHeader className="text-center pb-6 flex-shrink-0">
               <div className="flex justify-center mb-4">
@@ -232,18 +195,23 @@ export default function Subscription() {
                   <Sparkles className="w-8 h-8 text-green-600 dark:text-green-400" />
                 </div>
               </div>
-              <CardTitle className="text-2xl mb-2">免費方案</CardTitle>
+              <CardTitle className="text-2xl mb-2">Lite 方案</CardTitle>
               <CardDescription className="text-base">
-                體驗 AI 短影音生成功能
+                入門工具型（必須 BYOK）
               </CardDescription>
               
               {/* Price */}
               <div className="mt-6">
                 <div className="flex items-baseline justify-center gap-2">
                   <span className="text-5xl font-bold text-green-600 dark:text-green-400">
-                    NT$0
+                    NT${getAmount('lite').toLocaleString()}
                   </span>
-                  <span className="text-muted-foreground">/ 永久</span>
+                  <span className="text-muted-foreground">/ {billingCycle === 'yearly' ? '年' : '月'}</span>
+                </div>
+                <div className="text-xs text-muted-foreground mt-2">
+                  {billingCycle === 'yearly'
+                    ? `平均 NT$${priceTable.lite.monthly.toLocaleString()} / 月`
+                    : `年繳 NT$${priceTable.lite.yearly.toLocaleString()}`}
                 </div>
               </div>
             </CardHeader>
@@ -252,12 +220,13 @@ export default function Subscription() {
               {/* Features */}
               <div className="space-y-3 flex-1">
                 {[
-                  '免費體驗一鍵生成功能',
-                  '支援綁定 BYOK（使用自己的 Gemini API Key）',
-                  '使用量限制：每日 20 次 / 每月 300 次',
-                  '帳號定位分析',
-                  '選題推薦',
-                  '短影音腳本生成'
+                  '必須 BYOK（不提供平台保底）',
+                  '日曆排程 / 選題管理',
+                  'AI 人設規劃（需 BYOK）',
+                  '單篇生成（需 BYOK）',
+                  '批次生成：✖',
+                  'AI 智能分析：✖',
+                  '平台 Fallback 救援：✖'
                 ].map((feature, index) => (
                   <div key={index} className="flex items-start gap-3">
                     <div className="mt-0.5">
@@ -274,16 +243,24 @@ export default function Subscription() {
                   size="lg"
                   variant="outline"
                   className="w-full text-lg h-14 border-green-600 dark:border-green-400 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20"
-                  onClick={handleFreeExperience}
+                  onClick={() => {
+                    const token = getToken();
+                    if (!token) {
+                      toast.error('請先登入');
+                      navigate('/login');
+                      return;
+                    }
+                    window.location.href = `/#/checkout?tier=lite&plan=${billingCycle}&amount=${getAmount('lite')}`;
+                  }}
                 >
                   <Sparkles className="w-5 h-5 mr-2" />
-                  立即體驗
+                  前往付款
                 </Button>
               </div>
             </CardContent>
           </Card>
 
-          {/* 中間：Pro 方案卡片 */}
+          {/* Pro */}
           <Card className="border-2 border-primary shadow-lg flex flex-col h-full">
             <CardHeader className="text-center pb-6 flex-shrink-0">
               <div className="flex justify-center mb-4">
@@ -293,32 +270,22 @@ export default function Subscription() {
               </div>
               <CardTitle className="text-2xl mb-2">Pro 方案</CardTitle>
               <CardDescription className="text-base">
-                主力付費方案（Economy 模型為主）
+                主力銷售（BYOK 為主 + Fallback）
               </CardDescription>
               
               {/* Price */}
               <div className="mt-6">
-                {billingCycle === 'yearly' && (
-                  <div className="text-sm text-muted-foreground line-through mb-2">
-                    原價 NT${currentPlan.price.toLocaleString()} / 年
-                  </div>
-                )}
                 <div className="flex items-baseline justify-center gap-2">
                   <span className="text-5xl font-bold text-primary">
-                    NT${(billingCycle === 'yearly' ? (currentPlan as any).monthlyPrice : currentPlan.price).toLocaleString()}
+                    NT${getAmount('pro').toLocaleString()}
                   </span>
-                  <span className="text-muted-foreground">/ {currentPlan.period}</span>
+                  <span className="text-muted-foreground">/ {billingCycle === 'yearly' ? '年' : '月'}</span>
                 </div>
-                {billingCycle === 'yearly' && (
-                  <div className="mt-2 flex flex-col items-center gap-1">
-                    <Badge variant="secondary" className="text-sm">
-                      年繳 NT${(currentPlan as any).actualPrice.toLocaleString()}
-                    </Badge>
-                    <span className="text-xs text-green-600 font-medium">
-                      省下 NT${(currentPlan as any).save} ({Math.round((currentPlan as any).savePercent)}%)
-                    </span>
-                  </div>
-                )}
+                <div className="text-xs text-muted-foreground mt-2">
+                  {billingCycle === 'yearly'
+                    ? `平均 NT$${priceTable.pro.monthly.toLocaleString()} / 月`
+                    : `年繳 NT$${priceTable.pro.yearly.toLocaleString()}`}
+                </div>
               </div>
             </CardHeader>
 
@@ -326,9 +293,13 @@ export default function Subscription() {
               {/* Features */}
               <div className="space-y-3 flex-1">
                 {[
-                  ...currentPlan.features,
-                  '使用量限制：每日 300 次 / 每月 10,000 次',
-                  'Premium 高規模型：❌（避免成本失控）'
+                  'BYOK 為主（推薦）',
+                  '提供 Fallback 單篇救援（每月 10 次）',
+                  '日曆排程 / 選題管理',
+                  'AI 人設規劃',
+                  '單篇生成（含 Fallback）',
+                  '批次生成：✖',
+                  'AI 智能分析：✖（Fallback 狀態）'
                 ].map((feature, index) => (
                   <div key={index} className="flex items-start gap-3">
                     <div className="mt-0.5">
@@ -348,10 +319,11 @@ export default function Subscription() {
                     const token = getToken();
                     if (!token) {
                       toast.error('請先登入');
+                      navigate('/login');
                       return;
                     }
                     // 導向到 Checkout 頁面，並帶上方案資訊
-                    window.location.href = `/#/checkout?plan=${billingCycle}&amount=${billingCycle === 'yearly' ? (currentPlan as any).actualPrice : currentPlan.price}`;
+                    window.location.href = `/#/checkout?tier=pro&plan=${billingCycle}&amount=${getAmount('pro')}`;
                   }}
                   disabled={isProcessing}
                 >
@@ -377,7 +349,7 @@ export default function Subscription() {
             </CardContent>
           </Card>
 
-          {/* 右邊：VIP 方案卡片 */}
+          {/* Max */}
           <Card className="border-2 border-purple-200 dark:border-purple-800 flex flex-col h-full">
             <CardHeader className="text-center pb-6 flex-shrink-0">
               <div className="flex justify-center mb-4">
@@ -385,21 +357,24 @@ export default function Subscription() {
                   <Shield className="w-8 h-8 text-purple-600 dark:text-purple-400" />
                 </div>
               </div>
-              <CardTitle className="text-2xl mb-2">VIP 方案</CardTitle>
+              <CardTitle className="text-2xl mb-2">Max 方案</CardTitle>
               <CardDescription className="text-base">
-                高階用戶 / 企業 / 課程包（開放 Premium 模型）
+                包 AI 完整（Platform Mode）
               </CardDescription>
               
               {/* Price */}
               <div className="mt-6">
                 <div className="flex items-baseline justify-center gap-2">
                   <span className="text-5xl font-bold text-purple-600 dark:text-purple-400">
-                    授權啟用
+                    NT${getAmount('max').toLocaleString()}
                   </span>
+                  <span className="text-muted-foreground">/ {billingCycle === 'yearly' ? '年' : '月'}</span>
                 </div>
-                <p className="text-sm text-muted-foreground mt-2">
-                  透過授權碼或合作開通
-                </p>
+                <div className="text-xs text-muted-foreground mt-2">
+                  {billingCycle === 'yearly'
+                    ? `平均 NT$${priceTable.max.monthly.toLocaleString()} / 月`
+                    : `年繳 NT$${priceTable.max.yearly.toLocaleString()}`}
+                </div>
               </div>
             </CardHeader>
 
@@ -407,11 +382,12 @@ export default function Subscription() {
               {/* Features */}
               <div className="space-y-3 flex-1">
                 {[
-                  '包含 Pro 所有功能',
-                  'Premium 高規模型（預設 gemini-2.5-flash-lite）',
-                  '使用量限制：每日 1,000 次 / 每月 30,000 次',
-                  'Premium 額度：每月 5,000 次（超過自動降級 Economy，不報錯）',
-                  '優先支援與合作授權'
+                  '不需 BYOK（Platform Mode）',
+                  '日曆排程 / 選題管理',
+                  'AI 人設規劃',
+                  '單篇生成',
+                  '批次生成（有上限）',
+                  'AI 智能分析（有上限）'
                 ].map((feature, index) => (
                   <div key={index} className="flex items-start gap-3">
                     <div className="mt-0.5">
@@ -428,10 +404,18 @@ export default function Subscription() {
                   size="lg"
                   variant="outline"
                   className="w-full text-lg h-14 border-purple-600 dark:border-purple-400 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20"
-                  onClick={() => navigate('/settings')}
+                  onClick={() => {
+                    const token = getToken();
+                    if (!token) {
+                      toast.error('請先登入');
+                      navigate('/login');
+                      return;
+                    }
+                    window.location.href = `/#/checkout?tier=max&plan=${billingCycle}&amount=${getAmount('max')}`;
+                  }}
                 >
                   <Shield className="w-5 h-5 mr-2" />
-                  使用授權碼啟用
+                  前往付款
                 </Button>
               </div>
             </CardContent>
@@ -471,9 +455,9 @@ export default function Subscription() {
 
             <Card>
               <CardContent className="p-6">
-                <h3 className="font-bold mb-2">Q：Free / Pro / VIP 差在哪？</h3>
+                <h3 className="font-bold mb-2">Q：Lite / Pro / Max 差在哪？</h3>
                 <p className="text-muted-foreground">
-                  A：差別在「每日/每月用量上限」與「是否開放 Premium 高規模型」。Free/Pro 以 Economy 為主，VIP 才開 Premium（超過 Premium 上限會自動降級 Economy）。
+                  A：差別在「是否需要 BYOK」、「是否有平台保底（Fallback）」與「是否為 Platform Mode」。
                 </p>
               </CardContent>
             </Card>

@@ -621,7 +621,7 @@ export default function Home() {
               </span>
             </p>
             <p className="text-sm text-muted-foreground max-w-2xl mx-auto">
-              ⚡ 立即訂閱，解鎖所有功能 | 🎁 年付方案省下 17% | 💎 7 天免費試用期
+              ⚡ 方案不變，月付/年付可切換 | 🔒 付費前可先綁定 BYOK 測試
             </p>
           </div>
 
@@ -643,18 +643,13 @@ export default function Home() {
                 className="rounded-full"
               >
                 年付
-                {billingCycle === 'yearly' && (
-                  <Badge variant="secondary" className="ml-2">
-                    省 17%
-                  </Badge>
-                )}
               </Button>
             </div>
           </div>
 
-          {/* Three Column Layout: Free Plan + Full Feature Plan + Custom Project */}
+          {/* Three Column Layout: Lite / Pro / Max */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8 max-w-7xl mx-auto">
-            {/* 左邊：免費方案卡片 */}
+            {/* Lite */}
             <Card className="border-2 border-muted flex flex-col h-full hover:shadow-lg transition-shadow">
               <CardHeader className="text-center pb-6 flex-shrink-0">
                 <div className="flex justify-center mb-4">
@@ -662,18 +657,21 @@ export default function Home() {
                     <Sparkles className="w-8 h-8 text-green-600 dark:text-green-400" />
                   </div>
                 </div>
-                <CardTitle className="text-2xl mb-2">免費方案</CardTitle>
+                <CardTitle className="text-2xl mb-2">Lite 方案</CardTitle>
                 <CardDescription className="text-base">
-                  體驗 AI 短影音生成功能
+                  入門工具型（必須 BYOK）
                 </CardDescription>
                 
                 {/* Price */}
                 <div className="mt-6">
                   <div className="flex items-baseline justify-center gap-2">
                     <span className="text-5xl font-bold text-green-600 dark:text-green-400">
-                      NT$0
+                      NT${(billingCycle === 'yearly' ? 3600 : 300).toLocaleString()}
                     </span>
-                    <span className="text-muted-foreground">/ 永久</span>
+                    <span className="text-muted-foreground">/ {billingCycle === 'yearly' ? '年' : '月'}</span>
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-2">
+                    {billingCycle === 'yearly' ? '平均 NT$300 / 月' : '年繳 NT$3,600'}
                   </div>
                 </div>
               </CardHeader>
@@ -682,12 +680,13 @@ export default function Home() {
                 {/* Features */}
                 <div className="space-y-3 flex-1">
                   {[
-                    '免費體驗一鍵生成功能',
-                    '支援綁定 BYOK（使用自己的 Gemini API Key）',
-                    '使用量限制：每日 20 次 / 每月 300 次',
-                    '帳號定位分析',
-                    '選題推薦',
-                    '短影音腳本生成'
+                    '必須 BYOK（不提供平台保底）',
+                    '日曆排程 / 選題管理',
+                    'AI 人設規劃（需 BYOK）',
+                    '單篇生成（需 BYOK）',
+                    '批次生成：✖',
+                    'AI 智能分析：✖',
+                    '平台 Fallback 救援：✖'
                   ].map((feature, index) => (
                     <div key={index} className="flex items-start gap-3">
                       <div className="mt-0.5">
@@ -704,16 +703,22 @@ export default function Home() {
                     size="lg"
                     variant="outline"
                     className="w-full text-lg h-14 border-green-600 dark:border-green-400 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20"
-                    onClick={isLoggedIn ? () => navigate('/app') : handleGoogleLogin}
+                    onClick={() => {
+                      if (!isLoggedIn) {
+                        handleGoogleLogin();
+                        return;
+                      }
+                      navigate(`/checkout?tier=lite&plan=${billingCycle}&amount=${billingCycle === 'yearly' ? 3600 : 300}`);
+                    }}
                   >
                     <Sparkles className="w-5 h-5 mr-2" />
-                    立即體驗
+                    前往付款
                   </Button>
                 </div>
               </CardContent>
             </Card>
 
-            {/* 中間：ReelMind 全功能方案卡片 - 最受歡迎 */}
+            {/* Pro */}
             <Card className="border-2 border-primary shadow-xl flex flex-col h-full relative hover:shadow-2xl transition-shadow">
               <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-10">
                 <Badge className="bg-primary text-primary-foreground px-4 py-1.5 rounded-full text-sm font-semibold shadow-lg">
@@ -728,32 +733,20 @@ export default function Home() {
                 </div>
                 <CardTitle className="text-2xl mb-2">Pro 方案</CardTitle>
                 <CardDescription className="text-base">
-                  主力付費方案（Economy 模型為主）
+                  主力銷售（BYOK 為主 + Fallback）
                 </CardDescription>
                 
                 {/* Price */}
                 <div className="mt-6">
-                  {billingCycle === 'yearly' && (
-                    <div className="text-sm text-muted-foreground line-through mb-2">
-                      原價 NT$4,788 / 年
-                    </div>
-                  )}
                   <div className="flex items-baseline justify-center gap-2">
                     <span className="text-5xl font-bold text-primary">
-                      NT${billingCycle === 'yearly' ? '332' : '399'}
+                      NT${(billingCycle === 'yearly' ? 9600 : 800).toLocaleString()}
                     </span>
-                    <span className="text-muted-foreground">/ 月</span>
+                    <span className="text-muted-foreground">/ {billingCycle === 'yearly' ? '年' : '月'}</span>
                   </div>
-                  {billingCycle === 'yearly' && (
-                    <div className="mt-2 flex flex-col items-center gap-1">
-                      <Badge variant="secondary" className="text-sm">
-                        年繳 NT$3,990
-                      </Badge>
-                      <span className="text-xs text-green-600 dark:text-green-400 font-medium">
-                        省下 NT$798 (17%)
-                      </span>
-                    </div>
-                  )}
+                  <div className="text-xs text-muted-foreground mt-2">
+                    {billingCycle === 'yearly' ? '平均 NT$800 / 月' : '年繳 NT$9,600'}
+                  </div>
                 </div>
               </CardHeader>
 
@@ -761,17 +754,13 @@ export default function Home() {
                 {/* Features */}
                 <div className="space-y-3 flex-1">
                   {[
-                    '包含免費方案所有功能',
-                    'IP 人設規劃工具（AI 深度對話建立個人品牌）',
-                    '14 天短影音內容規劃',
-                    '今日腳本快速生成',
-                    '創作者資料庫完整功能',
-                    '腳本歷史記錄與管理',
-                    '多平台腳本優化建議',
-                    '優先客服支援',
-                    '使用量限制：每日 300 次 / 每月 10,000 次',
-                    'Premium 高規模型：❌（VIP 才開放）',
-                    ...(billingCycle === 'yearly' ? ['年度專屬優惠', '新功能搶先體驗'] : [])
+                    'BYOK 為主（推薦）',
+                    '提供 Fallback 單篇救援（每月 10 次）',
+                    '日曆排程 / 選題管理',
+                    'AI 人設規劃',
+                    '單篇生成（含 Fallback）',
+                    '批次生成：✖',
+                    'AI 智能分析：✖（Fallback 狀態）'
                   ].map((feature, index) => (
                     <div key={index} className="flex items-start gap-3">
                       <div className="mt-0.5">
@@ -792,7 +781,7 @@ export default function Home() {
                         handleGoogleLogin();
                         return;
                       }
-                      navigate('/pricing');
+                      navigate(`/checkout?tier=pro&plan=${billingCycle}&amount=${billingCycle === 'yearly' ? 9600 : 800}`);
                     }}
                   >
                     <CreditCard className="w-5 h-5 mr-2" />
@@ -808,7 +797,7 @@ export default function Home() {
               </CardContent>
             </Card>
 
-            {/* 右邊：VIP 方案卡片 */}
+            {/* Max */}
             <Card className="border-2 border-purple-200 dark:border-purple-800 flex flex-col h-full hover:shadow-lg transition-shadow">
               <CardHeader className="text-center pb-6 flex-shrink-0">
                 <div className="flex justify-center mb-4">
@@ -816,21 +805,22 @@ export default function Home() {
                     <Shield className="w-8 h-8 text-purple-600 dark:text-purple-400" />
                   </div>
                 </div>
-                <CardTitle className="text-2xl mb-2">VIP 方案</CardTitle>
+                <CardTitle className="text-2xl mb-2">Max 方案</CardTitle>
                 <CardDescription className="text-base">
-                  高階用戶 / 企業 / 課程包（開放 Premium 模型）
+                  包 AI 完整（Platform Mode）
                 </CardDescription>
                 
                 {/* Price */}
                 <div className="mt-6">
                   <div className="flex items-baseline justify-center gap-2">
                     <span className="text-5xl font-bold text-purple-600 dark:text-purple-400">
-                      授權啟用
+                      NT${(billingCycle === 'yearly' ? 24000 : 2000).toLocaleString()}
                     </span>
+                    <span className="text-muted-foreground">/ {billingCycle === 'yearly' ? '年' : '月'}</span>
                   </div>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    透過授權碼或合作開通
-                  </p>
+                  <div className="text-xs text-muted-foreground mt-2">
+                    {billingCycle === 'yearly' ? '平均 NT$2,000 / 月' : '年繳 NT$24,000'}
+                  </div>
                 </div>
               </CardHeader>
 
@@ -838,11 +828,12 @@ export default function Home() {
                 {/* Features */}
                 <div className="space-y-3 flex-1">
                   {[
-                    '包含 Pro 所有功能',
-                    'Premium 高規模型（預設 gemini-2.5-flash-lite）',
-                    '使用量限制：每日 1,000 次 / 每月 30,000 次',
-                    'Premium 額度：每月 5,000 次（超過自動降級 Economy）',
-                    '優先支援與合作授權'
+                    '不需 BYOK（Platform Mode）',
+                    '日曆排程 / 選題管理',
+                    'AI 人設規劃',
+                    '單篇生成',
+                    '批次生成（有上限）',
+                    'AI 智能分析（有上限）'
                   ].map((feature, index) => (
                     <div key={index} className="flex items-start gap-3">
                       <div className="mt-0.5">
@@ -859,10 +850,16 @@ export default function Home() {
                     size="lg"
                     variant="outline"
                     className="w-full text-lg h-14 border-purple-600 dark:border-purple-400 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20"
-                    onClick={() => navigate('/settings')}
+                    onClick={() => {
+                      if (!isLoggedIn) {
+                        handleGoogleLogin();
+                        return;
+                      }
+                      navigate(`/checkout?tier=max&plan=${billingCycle}&amount=${billingCycle === 'yearly' ? 24000 : 2000}`);
+                    }}
                   >
                     <Shield className="w-5 h-5 mr-2" />
-                    使用授權碼啟用
+                    前往付款
                   </Button>
                 </div>
               </CardContent>
@@ -874,7 +871,7 @@ export default function Home() {
             <div className="flex flex-wrap justify-center gap-4 text-sm text-muted-foreground">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-primary" />
-                <span>Free / Pro / VIP 三方案</span>
+                <span>Lite / Pro / Max 三方案</span>
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-primary" />

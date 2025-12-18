@@ -32,59 +32,66 @@ export default function Checkout() {
   });
   
   const [plan, setPlan] = useState<'monthly' | 'yearly'>('yearly');
-  const [amount, setAmount] = useState<number>(3990);
+  const [tier, setTier] = useState<'lite' | 'pro' | 'max'>('pro');
+  const [amount, setAmount] = useState<number>(9600);
   const [isProcessing, setIsProcessing] = useState(false);
 
   // 從 URL 參數讀取方案資訊
   useEffect(() => {
     const planParam = searchParams.get('plan');
+    const tierParam = searchParams.get('tier');
     const amountParam = searchParams.get('amount');
+
+    const validTier = (tierParam === 'lite' || tierParam === 'pro' || tierParam === 'max') ? tierParam : 'pro';
+    setTier(validTier);
+
+    const priceTable: Record<'lite' | 'pro' | 'max', { monthly: number; yearly: number }> = {
+      lite: { monthly: 300, yearly: 3600 },
+      pro: { monthly: 800, yearly: 9600 },
+      max: { monthly: 2000, yearly: 24000 }
+    };
     
     if (planParam === 'monthly' || planParam === 'yearly') {
       setPlan(planParam);
-      setAmount(planParam === 'yearly' ? 3990 : 399);
+      setAmount(planParam === 'yearly' ? priceTable[validTier].yearly : priceTable[validTier].monthly);
     } else if (amountParam) {
       const parsedAmount = parseInt(amountParam);
       if (!isNaN(parsedAmount)) {
         setAmount(parsedAmount);
-        setPlan(parsedAmount === 3990 ? 'yearly' : 'monthly');
+        setPlan(parsedAmount === priceTable[validTier].yearly ? 'yearly' : 'monthly');
       }
     }
   }, [searchParams]);
 
   // 方案資訊
+  const tierNameMap: Record<typeof tier, string> = {
+    lite: 'Lite',
+    pro: 'Pro',
+    max: 'Max'
+  };
+
   const planInfo = {
     monthly: {
-      name: 'Script Lite 月租版',
-      price: 399,
+      name: `ReelMind ${tierNameMap[tier]} 月付方案`,
+      price: amount,
       period: '月',
       features: [
-        'AI 顧問無限次對話',
-        'AI 一鍵生成腳本',
-        'IP 人設規劃工具',
-        '14 天短影音規劃',
-        '創作者資料庫',
-        '腳本歷史記錄',
-        '多平台腳本優化',
-        '優先客服支援'
+        tier === 'lite' ? '必須 BYOK（不提供平台保底）' : tier === 'pro' ? 'BYOK 為主（推薦）' : '不需 BYOK（Platform Mode）',
+        '日曆排程 / 選題管理',
+        'AI 人設規劃',
+        '單篇生成'
       ]
     },
     yearly: {
-      name: 'Creator Pro 年度方案',
-      price: 3990,
+      name: `ReelMind ${tierNameMap[tier]} 年付方案`,
+      price: amount,
       period: '年',
-      monthlyPrice: 332,
+      monthlyPrice: Math.round(amount / 12),
       features: [
-        'AI 顧問無限次對話',
-        'AI 一鍵生成腳本',
-        'IP 人設規劃工具',
-        '14 天短影音規劃',
-        '創作者資料庫',
-        '腳本歷史記錄',
-        '多平台腳本優化',
-        '優先客服支援',
-        '年度專屬優惠',
-        '新功能搶先體驗'
+        tier === 'lite' ? '必須 BYOK（不提供平台保底）' : tier === 'pro' ? 'BYOK 為主（推薦）' : '不需 BYOK（Platform Mode）',
+        '日曆排程 / 選題管理',
+        'AI 人設規劃',
+        '單篇生成'
       ]
     }
   };
@@ -153,6 +160,7 @@ export default function Checkout() {
         body: JSON.stringify({
           plan: plan,
           amount: amount,
+          tier: tier,
           frontend_return_url: frontend_return_url,
           name: formData.name,
           email: formData.email,
