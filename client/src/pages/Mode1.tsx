@@ -159,7 +159,16 @@ const FormatText = memo(({ content }: { content: string }) => {
             )}
             <tbody>
               {bodyRows.map((row, rowIndex) => {
+                // 過濾掉分隔符行（只包含 - 或 : 的行）
+                const trimmed = row.trim();
+                if (/^\|[\s\-:]+\|$/.test(trimmed)) {
+                  return null;
+                }
                 const cells = row.split('|').map(c => c.trim()).filter(c => c);
+                // 過濾掉空行或只有分隔符的單元格
+                if (cells.length === 0 || cells.every(cell => /^[\s\-:]+$/.test(cell))) {
+                  return null;
+                }
                 return (
                   <tr key={`row-${rowIndex}`} className="border-b border-border dark:border-border/50 hover:bg-muted/30 dark:hover:bg-muted/20">
                     {cells.map((cell, cellIndex) => (
@@ -722,41 +731,44 @@ export default function Mode1() {
   // 根據對話內容判斷 category
   const detectCategory = (userMessage: string, aiResponse: string): 'positioning' | 'topics' | 'planning' | 'script' => {
     const combinedText = (userMessage + ' ' + aiResponse).toLowerCase();
-    
-    // #region agent log
     const hasTable = /\|.+\|/.test(aiResponse);
-    fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Mode1.tsx:723',message:'開始分類檢測',data:{userMessage:userMessage.substring(0,50),aiResponseLength:aiResponse.length,hasTable:hasTable,combinedTextPreview:combinedText.substring(0,100)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'CATEGORY'})}).catch(()=>{});
-    // #endregion
     
     console.log('[Mode1] 分類檢測:', {
       userMessage: userMessage.substring(0, 50),
       combinedText: combinedText.substring(0, 100),
-      hasTable: /\|.+\|/.test(aiResponse)
+      hasTable: hasTable
     });
     
-    // 1. 檢測腳本相關關鍵字（優先級最高）
-    const scriptKeywords = [
-      '今日腳本', '短影音腳本', '腳本', 'script', '台詞', '劇本', 
-      '腳本內容', '生成腳本', '幫我寫', '幫我生成腳本'
-    ];
-    if (scriptKeywords.some(keyword => combinedText.includes(keyword))) {
-      console.log('[Mode1] 分類結果: script');
-      return 'script';
-    }
-    
-    // 2. 檢測 14天規劃相關關鍵字（需要明確包含14天）
+    // 1. 優先檢測 14天規劃相關關鍵字（提高優先級，避免被誤判為腳本）
     const planningKeywords = [
       '14天', '14 天', '14天規劃', '14 天規劃', '14天內容', '14 天內容',
       'planning', '十四天', '十四 天', '兩週', '兩周', '14日', '14 日',
-      '14 天短影音', '14天短影音', '14 天內容規劃', '14天內容規劃'
+      '14 天短影音', '14天短影音', '14 天內容規劃', '14天內容規劃',
+      '內容策略矩陣', 'content mix framework', '14天內容策略'
     ];
     const matchedPlanningKeyword = planningKeywords.find(keyword => combinedText.includes(keyword));
     if (matchedPlanningKeyword) {
-      // #region agent log
-      fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Mode1.tsx:746',message:'檢測到 14 天規劃關鍵字',data:{matchedKeyword:matchedPlanningKeyword,hasTable:hasTable},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'CATEGORY'})}).catch(()=>{});
-      // #endregion
-      console.log('[Mode1] 分類結果: planning (14天規劃)');
+      console.log('[Mode1] 分類結果: planning (14天規劃)', { matchedKeyword: matchedPlanningKeyword });
       return 'planning';
+    }
+    
+    // 2. 檢測腳本相關關鍵字（需要更精確的匹配，避免誤判）
+    // 只有在明確提到腳本生成時才分類為腳本
+    const scriptKeywords = [
+      '今日腳本', '短影音腳本', '生成腳本', '幫我寫腳本', '幫我生成腳本',
+      'script', '台詞', '劇本', '腳本內容'
+    ];
+    // 檢查是否在用戶訊息中明確提到腳本（優先級更高）
+    const userMessageLower = userMessage.toLowerCase();
+    if (scriptKeywords.some(keyword => userMessageLower.includes(keyword))) {
+      console.log('[Mode1] 分類結果: script (用戶明確要求腳本)');
+      return 'script';
+    }
+    // 如果 AI 回應中明確提到腳本生成，且沒有規劃相關內容
+    if (scriptKeywords.some(keyword => aiResponse.toLowerCase().includes(keyword)) && 
+        !planningKeywords.some(keyword => combinedText.includes(keyword))) {
+      console.log('[Mode1] 分類結果: script (AI 回應包含腳本)');
+      return 'script';
     }
     
     // 3. 檢測選題方向相關關鍵字
@@ -780,27 +792,22 @@ export default function Mode1() {
     }
     
     // 5. 改進預設值邏輯：根據 AI 回應的結構判斷
-    // 如果 AI 回應包含表格且包含「天」或「day」，可能是 14 天規劃
-    const hasDayPattern = /\d+[天日]|day\s*\d+|第\s*\d+[天日]/i.test(aiResponse);
-    if (hasTable && hasDayPattern) {
-      // #region agent log
-      fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Mode1.tsx:773',message:'根據表格和天數模式識別為 14 天規劃',data:{hasTable:hasTable,hasDayPattern:hasDayPattern},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'CATEGORY'})}).catch(()=>{});
-      // #endregion
-      console.log('[Mode1] 分類結果: planning (根據表格和天數模式)');
+    // 如果 AI 回應包含表格且包含「天」或「day」或「規劃」，優先判斷為 14 天規劃
+    const hasDayPattern = /\d+[天日]|day\s*\d+|第\s*\d+[天日]|規劃|planning/i.test(aiResponse);
+    const hasPlanningPattern = /內容規劃|內容策略|規劃.*天|天.*規劃/i.test(aiResponse);
+    if (hasTable && (hasDayPattern || hasPlanningPattern)) {
+      console.log('[Mode1] 分類結果: planning (根據表格和規劃模式)');
       return 'planning';
     }
     
-    // 如果 AI 回應包含「第 X 天」或「Day X」，可能是規劃
-    if (/\d+[天日]|day\s*\d+|第\s*\d+[天日]/i.test(aiResponse)) {
-      // #region agent log
-      fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Mode1.tsx:779',message:'根據 AI 回應結構識別為 14 天規劃',data:{hasDayPattern:hasDayPattern},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'CATEGORY'})}).catch(()=>{});
-      // #endregion
+    // 如果 AI 回應包含「第 X 天」或「Day X」或明確的規劃內容，可能是規劃
+    if (hasDayPattern || hasPlanningPattern) {
       console.log('[Mode1] 分類結果: planning (根據 AI 回應結構)');
       return 'planning';
     }
     
-    // 如果 AI 回應包含「腳本」或「台詞」，可能是腳本
-    if (/腳本|台詞|劇本/i.test(aiResponse)) {
+    // 如果 AI 回應明確包含「腳本」或「台詞」，且沒有規劃相關內容，可能是腳本
+    if (/腳本|台詞|劇本/i.test(aiResponse) && !hasPlanningPattern) {
       console.log('[Mode1] 分類結果: script (根據 AI 回應結構)');
       return 'script';
     }
@@ -812,10 +819,6 @@ export default function Mode1() {
 
   // 自動儲存結果（改進：自動保存到資料庫）
   const autoSaveResult = async (content: string, category: 'positioning' | 'topics' | 'planning' | 'script') => {
-    // #region agent log
-    fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Mode1.tsx:790',message:'自動儲存結果',data:{category:category,contentLength:content.length,isPlanning:category === 'planning'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'AUTO_SAVE'})}).catch(()=>{});
-    // #endregion
-    
     const categoryTitles: Record<'positioning' | 'topics' | 'planning' | 'script', string> = {
       'positioning': '帳號定位',
       'topics': '選題方向',
@@ -872,18 +875,10 @@ export default function Mode1() {
           }
         };
         
-        // #region agent log
-        fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Mode1.tsx:742',message:'自動保存到資料庫',data:{category:category,resultType:result_type,metadataCategory:savePayload.metadata.category,isPlanning:category === 'planning',title:newResult.title.substring(0,50)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'AUTO_SAVE'})}).catch(()=>{});
-        // #endregion
-        
         console.log('[Mode1 AutoSave] 自動保存到資料庫:', savePayload);
         
         // 靜默保存，不顯示錯誤（除非是網絡錯誤）
         await apiPost('/api/ip-planning/save', savePayload);
-        
-        // #region agent log
-        fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Mode1.tsx:758',message:'自動保存成功',data:{category:category,resultType:result_type},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'AUTO_SAVE'})}).catch(()=>{});
-        // #endregion
         
         console.log('[Mode1 AutoSave] 自動保存成功');
         
@@ -981,10 +976,6 @@ export default function Mode1() {
         quality_mode: qualityMode
       };
 
-      // #region agent log
-      fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Mode1.tsx:857',message:'開始流式請求（修復後驗證）',data:{endpoint:endpoint,userId:user?.user_id,qualityMode:qualityMode,messageLength:userMessage.content.length},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'VERIFY'})}).catch(()=>{});
-      // #endregion
-      
       // 使用流式 API
       await apiStream(
         endpoint,
@@ -1010,16 +1001,6 @@ export default function Mode1() {
           });
         },
         (error: any) => {
-          // #region agent log
-          const hasBackendBug = error?.message?.includes("cannot access local variable 'error_msg'") || 
-                                error?.message?.includes("cannot access local variable 'chat'") ||
-                                error?.message?.includes("cannot access free variable 'chat'") ||
-                                error?.content?.includes("cannot access local variable 'error_msg'") ||
-                                error?.content?.includes("cannot access local variable 'chat'") ||
-                                error?.content?.includes("cannot access free variable 'chat'");
-          fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Mode1.tsx:884',message:'流式請求錯誤回調（修復後驗證）',data:{errorType:error?.constructor?.name,errorMessage:error?.message,errorContent:error?.content,errorCode:error?.error_code,hasResponse:!!error?.response,responseStatus:error?.response?.status,hasBackendBug:hasBackendBug,backendFixed:!hasBackendBug},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'VERIFY'})}).catch(()=>{});
-          // #endregion
-          
           console.error('流式請求錯誤:', error);
           setIsLoading(false);
           
@@ -1031,19 +1012,8 @@ export default function Mode1() {
                               error?.response?.data?.detail ||
                               (typeof error === 'string' ? error : '生成失敗，請稍後再試');
           
-          // #region agent log
-          const detectedErrorMsgBug = errorMessage.includes("cannot access local variable 'error_msg'");
-          const detectedChatBug = errorMessage.includes("cannot access local variable 'chat'") || errorMessage.includes("cannot access free variable 'chat'");
-          fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Mode1.tsx:893',message:'錯誤訊息提取結果（修復後驗證）',data:{extractedMessage:errorMessage,detectedErrorMsgBug:detectedErrorMsgBug,detectedChatBug:detectedChatBug,backendFixed:!detectedErrorMsgBug && !detectedChatBug},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'VERIFY'})}).catch(()=>{});
-          // #endregion
-          
           // 清理錯誤訊息，移除可能的技術性錯誤訊息
           const cleanedErrorMessage = errorMessage.replace(/cannot access local variable 'error_msg' where it is not associated with a value/i, '伺服器處理錯誤，請稍後再試').replace(/cannot access (local variable|free variable) 'chat' where it is not associated with a value/i, '伺服器處理錯誤，請稍後再試');
-          
-          // #region agent log
-          const wasCleaned = cleanedErrorMessage !== errorMessage;
-          fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Mode1.tsx:905',message:'錯誤訊息清理結果（修復後驗證）',data:{cleanedMessage:cleanedErrorMessage,wasCleaned:wasCleaned,backendFixed:!wasCleaned},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'VERIFY'})}).catch(()=>{});
-          // #endregion
           
           const isQuotaError = cleanedErrorMessage.includes('配額') || 
                                cleanedErrorMessage.includes('quota') || 
@@ -1051,10 +1021,6 @@ export default function Mode1() {
                                cleanedErrorMessage.includes('rate limit') ||
                                error?.error_code === '429' ||
                                error?.is_quota_error === true;
-          
-          // #region agent log
-          fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Mode1.tsx:911',message:'錯誤分類（修復後驗證）',data:{isQuotaError:isQuotaError,responseStatus:error?.response?.status,errorType:error?.constructor?.name},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'VERIFY'})}).catch(()=>{});
-          // #endregion
           
           // 處理 403 錯誤 (權限不足/試用期已過)
           // Mode1 必須訂閱或試用期內才能使用，即使有 LLM Key 也不能繞過此限制
@@ -1090,10 +1056,6 @@ export default function Mode1() {
             });
           } 
           else {
-            // #region agent log
-            fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Mode1.tsx:937',message:'顯示通用錯誤（修復後驗證）',data:{finalMessage:cleanedErrorMessage},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'VERIFY'})}).catch(()=>{});
-            // #endregion
-            
             // 使用清理後的錯誤訊息
             toast.error(cleanedErrorMessage, {
               duration: 5000
@@ -1101,10 +1063,6 @@ export default function Mode1() {
           }
         },
         () => {
-          // #region agent log
-          fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Mode1.tsx:942',message:'流式請求完成（修復後驗證）',data:{success:true,assistantMessageLength:assistantMessage.length},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'VERIFY'})}).catch(()=>{});
-          // #endregion
-          
           setIsLoading(false);
           
           // 如果檢測到儲存意圖，自動儲存結果
@@ -1117,10 +1075,6 @@ export default function Mode1() {
             });
             autoSaveResult(assistantMessage, category);
             // 如果是 14 天規劃，確保切換到正確的標籤頁
-            // #region agent log
-            fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Mode1.tsx:992',message:'檢測到儲存意圖',data:{category:category,isPlanning:category === 'planning',contentPreview:content.substring(0,100)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'DETECT'})}).catch(()=>{});
-            // #endregion
-            
             if (category === 'planning') {
               setResultTab('planning');
               toast.info('14 天規劃已自動儲存到生成結果，請點擊「生成結果」查看「14天規劃」標籤頁。', { duration: 5000 });
@@ -1425,17 +1379,9 @@ export default function Mode1() {
         }
       };
       
-      // #region agent log
-      fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Mode1.tsx:1376',message:'準備儲存到 UserDB',data:{category:result.category,resultType:result_type,title:result.title.substring(0,50),metadataCategory:savePayload.metadata.category,isPlanning:result.category === 'planning'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'SAVE'})}).catch(()=>{});
-      // #endregion
-      
       console.log('[Mode1 Save] 發送儲存請求:', savePayload);
       
       await apiPost('/api/ip-planning/save', savePayload);
-      
-      // #region agent log
-      fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Mode1.tsx:1390',message:'儲存成功',data:{category:result.category,resultType:result_type},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'SAVE'})}).catch(()=>{});
-      // #endregion
       
       console.log('[Mode1 Save] 儲存成功');
 

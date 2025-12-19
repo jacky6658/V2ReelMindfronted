@@ -118,23 +118,11 @@ const Settings: React.FC = () => {
 
   const loadPlanStatus = async () => {
     try {
-      // #region agent log
-      fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Settings.tsx:119',message:'開始載入方案狀態',data:{userId:user?.user_id,timestamp:new Date().toISOString()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-      // #endregion
-      
       const data = await apiGet<PlanStatusResponse>('/api/user/plan-status');
-      
-      // #region agent log
-      fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Settings.tsx:123',message:'收到方案狀態數據',data:{dailyUsed:data?.usage?.daily_used,monthlyUsed:data?.usage?.monthly_used,day:data?.usage?.day,month:data?.usage?.month,isInconsistent:data?.usage?.monthly_used < data?.usage?.daily_used,fullData:data},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-      // #endregion
       
       // 檢查數據一致性（後端已修正：monthly_used 現在也包含 BYOK 使用）
       // 理論上 monthly_used 應該 >= daily_used（因為本月包含今日）
       if (data?.usage && data.usage.monthly_used < data.usage.daily_used) {
-        // #region agent log
-        fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Settings.tsx:128',message:'檢測到可能的數據異常（後端已修正，不應出現）',data:{dailyUsed:data.usage.daily_used,monthlyUsed:data.usage.monthly_used,difference:data.usage.daily_used - data.usage.monthly_used,day:data.usage.day,month:data.usage.month},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'VERIFY'})}).catch(()=>{});
-        // #endregion
-        
         console.warn('[Settings] 用量數據異常：本月用量少於今日用量（後端已修正，不應出現）', {
           daily_used: data.usage.daily_used,
           monthly_used: data.usage.monthly_used,
@@ -145,10 +133,6 @@ const Settings: React.FC = () => {
       
       setPlanStatus(data);
     } catch (error) {
-      // #region agent log
-      fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Settings.tsx:140',message:'載入方案狀態失敗',data:{error:error?.message,errorType:error?.constructor?.name},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-      // #endregion
-      
       setPlanStatus(null);
     }
   };
@@ -475,21 +459,9 @@ const Settings: React.FC = () => {
             <CardContent className="space-y-2">
               <div className="text-sm text-muted-foreground">
                 今日用量：<span className="font-medium text-foreground">{planStatus.usage.daily_used}</span> / {planStatus.limits.daily}
-                {/* #region agent log */}
-                {(() => {
-                  fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Settings.tsx:449',message:'顯示今日用量',data:{dailyUsed:planStatus.usage.daily_used,dailyLimit:planStatus.limits.daily,day:planStatus.usage.day},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-                  return null;
-                })()}
-                {/* #endregion */}
               </div>
               <div className="text-sm text-muted-foreground">
                 本月用量：<span className="font-medium text-foreground">{planStatus.usage.monthly_used}</span> / {planStatus.limits.monthly}
-                {/* #region agent log */}
-                {(() => {
-                  fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Settings.tsx:452',message:'顯示本月用量（後端已修正）',data:{monthlyUsed:planStatus.usage.monthly_used,monthlyLimit:planStatus.limits.monthly,dailyUsed:planStatus.usage.daily_used,month:planStatus.usage.month,isConsistent:planStatus.usage.monthly_used >= planStatus.usage.daily_used},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'VERIFY'})}).catch(()=>{});
-                  return null;
-                })()}
-                {/* #endregion */}
               </div>
               {planStatus.plan === 'vip' && (
                 <div className="text-sm text-muted-foreground">
