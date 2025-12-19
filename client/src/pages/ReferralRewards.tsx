@@ -70,15 +70,15 @@ export default function ReferralRewards() {
               <CardContent className="space-y-3">
                 <div className="p-4 bg-green-500/5 rounded-lg border border-green-500/20">
                   <p className="text-sm text-foreground">
-                    每成功邀請一位好友註冊，<strong className="text-green-600 font-bold">邀請人與被邀請人雙方</strong>都可獲得
+                    每成功邀請一位好友註冊，<strong className="text-green-600 font-bold">邀請人</strong>可獲得
                   </p>
                   <p className="text-lg font-bold text-primary mt-2">
-                    🎁 7 天免費試用延長
+                    🎁 +50 次本月額度
                   </p>
                 </div>
                 <div className="p-3 bg-muted/50 rounded-lg text-sm">
                   <p className="text-muted-foreground">
-                    💡 <strong className="text-foreground">一個帳號最多延長至 5 週（共 35 天）</strong>，一個帳號至多可以免費體驗全功能 <strong className="text-primary">2 個月</strong>
+                    💡 <strong className="text-foreground">最多邀請 10 位用戶</strong>，基礎獎勵最多可獲得 <strong className="text-primary">+500 次本月額度</strong>
                   </p>
                 </div>
               </CardContent>
@@ -116,9 +116,9 @@ export default function ReferralRewards() {
                     累積邀請 <strong className="text-purple-500 font-bold text-lg">10 位用戶</strong> →
                   </p>
                   <p className="text-base text-primary font-bold">
-                    🎉 可獲得 <strong className="text-xl">1 個月免費使用</strong>
+                    🎉 可獲得 <strong className="text-xl">+500 次本月額度</strong>
                   </p>
-                  <p className="text-xs text-muted-foreground mt-1">（每個推薦人只能獲得一次）</p>
+                  <p className="text-xs text-muted-foreground mt-1">（每個推薦人只能獲得一次，二擇一）</p>
                 </div>
 
                 {/* 選項 2 */}
@@ -131,9 +131,9 @@ export default function ReferralRewards() {
                     邀請的好友中有一位完成 <strong className="text-pink-500 font-bold">月付或年付付款</strong> →
                   </p>
                   <p className="text-base text-primary font-bold">
-                    🎉 可獲得 <strong className="text-xl">1 個月免費使用</strong>
+                    🎉 可獲得 <strong className="text-xl">+500 次本月額度</strong>
                   </p>
-                  <p className="text-xs text-muted-foreground mt-1">（每個推薦人只能獲得一次）</p>
+                  <p className="text-xs text-muted-foreground mt-1">（每個推薦人只能獲得一次，二擇一）</p>
                 </div>
               </CardContent>
             </Card>
@@ -150,7 +150,7 @@ export default function ReferralRewards() {
                     <ul className="text-sm text-muted-foreground space-y-1.5">
                       <li className="flex items-start gap-2">
                         <span className="text-amber-500 mt-0.5">•</span>
-                        <span>邀請越多，免費使用時間越長（最多 2 個月）</span>
+                        <span>邀請越多，額外額度越多（基礎獎勵最多 +500 次，額外獎勵 +500 次，總計最多 +1000 次）</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <span className="text-amber-500 mt-0.5">•</span>
@@ -158,7 +158,7 @@ export default function ReferralRewards() {
                       </li>
                       <li className="flex items-start gap-2">
                         <span className="text-amber-500 mt-0.5">•</span>
-                        <span>好友訂閱後，您也能立即獲得 1 個月免費使用</span>
+                        <span>好友訂閱後，您也能立即獲得 +500 次本月額度</span>
                       </li>
                     </ul>
                   </div>

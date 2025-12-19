@@ -1259,11 +1259,11 @@ const Profile: React.FC = () => {
                                   </Badge>
                                 </div>
                                 <p className="text-sm text-muted-foreground ml-8">
-                                  每成功邀請一位好友註冊，<strong className="text-foreground">邀請人與被邀請人雙方</strong>都可獲得 <strong className="text-primary font-bold">7 天免費試用延長</strong>
+                                  每成功邀請一位好友註冊，<strong className="text-foreground">邀請人</strong>可獲得 <strong className="text-primary font-bold">+50 次本月額度</strong>
                                 </p>
                                 <div className="mt-2 ml-8 p-2 bg-muted/50 rounded text-xs">
                                   <p className="text-muted-foreground">
-                                    💡 一個帳號最多延長至 <strong className="text-foreground">5 週（共 35 天）</strong>，一個帳號至多可以免費體驗全功能 <strong className="text-primary">2 個月</strong>
+                                    💡 最多邀請 <strong className="text-foreground">10 位用戶</strong>，基礎獎勵最多可獲得 <strong className="text-primary">+500 次本月額度</strong>
                                   </p>
                                 </div>
                               </div>
@@ -1298,9 +1298,9 @@ const Profile: React.FC = () => {
                                         累積邀請 <strong className="text-purple-500 font-bold text-base">10 位用戶</strong> → 
                                       </p>
                                       <p className="text-sm text-primary font-bold mt-1">
-                                        🎉 可獲得 <strong className="text-lg">1 個月免費使用</strong>
+                                        🎉 可獲得 <strong className="text-lg">+500 次本月額度</strong>
                                       </p>
-                                      <p className="text-xs text-muted-foreground mt-1">（每個推薦人只能獲得一次）</p>
+                                      <p className="text-xs text-muted-foreground mt-1">（每個推薦人只能獲得一次，二擇一）</p>
                                     </div>
 
                                     {/* 選項 2 */}
@@ -1313,9 +1313,9 @@ const Profile: React.FC = () => {
                                         邀請的好友中有一位完成 <strong className="text-pink-500 font-bold">月付或年付付款</strong> → 
                                       </p>
                                       <p className="text-sm text-primary font-bold mt-1">
-                                        🎉 可獲得 <strong className="text-lg">1 個月免費使用</strong>
+                                        🎉 可獲得 <strong className="text-lg">+500 次本月額度</strong>
                                       </p>
-                                      <p className="text-xs text-muted-foreground mt-1">（每個推薦人只能獲得一次）</p>
+                                      <p className="text-xs text-muted-foreground mt-1">（每個推薦人只能獲得一次，二擇一）</p>
                                     </div>
                                   </div>
                                 </div>
@@ -1330,9 +1330,9 @@ const Profile: React.FC = () => {
                                       為什麼要現在開始邀請？
                                     </p>
                                     <ul className="text-xs text-muted-foreground space-y-1">
-                                      <li>• 邀請越多，免費使用時間越長（最多 2 個月）</li>
+                                      <li>• 邀請越多，額外額度越多（基礎獎勵最多 +500 次，額外獎勵 +500 次，總計最多 +1000 次）</li>
                                       <li>• 額外獎勵活動可能隨時結束，把握機會！</li>
-                                      <li>• 好友訂閱後，您也能立即獲得 1 個月免費使用</li>
+                                      <li>• 好友訂閱後，您也能立即獲得 +500 次本月額度</li>
                                     </ul>
                                   </div>
                                 </div>
