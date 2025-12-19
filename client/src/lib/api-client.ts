@@ -241,15 +241,15 @@ export async function getCsrfToken(forceRefresh: boolean = false): Promise<strin
   if (forceRefresh) {
     csrfTokenCache = null;
   } else {
-    // 優先從 Cookie 中讀取
-    const csrfTokenFromCookie = getCookie('csrf_token');
-    if (csrfTokenFromCookie) {
-      csrfTokenCache = csrfTokenFromCookie;
-      return csrfTokenCache;
-    }
-    
-    // 如果有緩存，直接返回
-    if (csrfTokenCache) return csrfTokenCache;
+  // 優先從 Cookie 中讀取
+  const csrfTokenFromCookie = getCookie('csrf_token');
+  if (csrfTokenFromCookie) {
+    csrfTokenCache = csrfTokenFromCookie;
+    return csrfTokenCache;
+  }
+  
+  // 如果有緩存，直接返回
+  if (csrfTokenCache) return csrfTokenCache;
   }
   
   // 從 API 獲取
@@ -437,7 +437,18 @@ export async function apiStream(
               continue;
             } else if (parsed.type === 'error') {
               // 根本修复：增强错误消息传递，包含更多错误信息
-              const errorMessage = parsed.message || parsed.content || '發生錯誤';
+              // 处理各种可能的错误消息格式
+              let errorMessage = parsed.message || 
+                                parsed.content || 
+                                parsed.error ||
+                                parsed.detail ||
+                                '發生錯誤';
+              
+              // 清理後端 Python 錯誤訊息，將技術性錯誤轉換為用戶友好的訊息
+              if (errorMessage.includes("cannot access local variable 'error_msg'")) {
+                errorMessage = '伺服器處理錯誤，請稍後再試。如問題持續，請聯繫客服。';
+              }
+              
               const error = new Error(errorMessage) as any;
               
               // 传递额外的错误信息
@@ -445,6 +456,7 @@ export async function apiStream(
               error.is_quota_error = parsed.is_quota_error;
               error.original_error = parsed.original_error;
               error.content = parsed.content; // 确保 content 也被传递
+              error.message = errorMessage; // 確保使用清理後的訊息
               
               console.error('[API Client] 收到流式錯誤:', {
                 type: parsed.type,
@@ -452,7 +464,8 @@ export async function apiStream(
                 content: parsed.content,
                 error_code: parsed.error_code,
                 is_quota_error: parsed.is_quota_error,
-                original_error: parsed.original_error
+                original_error: parsed.original_error,
+                cleaned_message: errorMessage
               });
               
               onError?.(error);
