@@ -666,13 +666,89 @@ export default function Home() {
                 onClick={() => setBillingCycle('yearly')}
                 className="rounded-full"
               >
-                年付
+                🔥 年付優惠
               </Button>
             </div>
           </div>
 
-          {/* Three Column Layout: Lite / Pro / Max */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8 max-w-7xl mx-auto">
+          {/* Four Column Layout: Free / Lite / Pro / Max */}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 md:gap-8 max-w-7xl mx-auto">
+            {/* Free */}
+            <Card className="border-2 border-gray-200 dark:border-gray-700 flex flex-col h-full hover:shadow-lg transition-shadow">
+              <CardHeader className="text-center pb-6 flex-shrink-0">
+                <div className="flex justify-center mb-4">
+                  <div className="p-3 bg-gray-100 dark:bg-gray-800 rounded-full">
+                    <Gift className="w-8 h-8 text-gray-600 dark:text-gray-400" />
+                  </div>
+                </div>
+                <CardTitle className="text-2xl mb-2">免費版</CardTitle>
+                <CardDescription className="text-base">
+                  適合新手體驗，每日 10 次生成額度
+                </CardDescription>
+                
+                {/* Price */}
+                <div className="mt-6">
+                  <div className="flex items-baseline justify-center gap-2">
+                    <span className="text-5xl font-bold text-gray-600 dark:text-gray-400">
+                      NT$0
+                    </span>
+                    <span className="text-muted-foreground">/ 永久</span>
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-2">
+                    完全免費，無需付費
+                  </div>
+                </div>
+              </CardHeader>
+
+              <CardContent className="space-y-6 flex-1 flex flex-col">
+                {/* Features */}
+                <div className="space-y-3 flex-1">
+                  {[
+                    { icon: Sparkles, text: '所有核心功能完整開放' },
+                    { icon: Calendar, text: '14 天內容規劃日曆（一次規劃 = 1 次）' },
+                    { icon: Target, text: 'AI 人設定位與選題建議（每次生成 = 1 次）' },
+                    { icon: FileText, text: '短影音腳本一鍵生成（每次生成 = 1 次）' },
+                    { icon: MessageSquare, text: 'AI 對話式內容規劃（每次對話 = 1 次）' },
+                    { icon: BarChart, text: '每日可用 10 次（約可生成 10 個腳本）' },
+                    { icon: BarChart, text: '每月可用 150 次（約可生成 150 個腳本）' },
+                    { icon: Key, text: '需綁定自己的 AI 金鑰（不計入平台配額）' },
+                    { icon: Shield, text: '平台不提供備用配額' },
+                    { icon: Zap, text: '高品質模式：不支援' },
+                    { icon: Package, text: '批次生成：不支援' }
+                  ].map((feature, index) => {
+                    const IconComponent = feature.icon;
+                    return (
+                      <div key={index} className="flex items-start gap-3">
+                        <div className="mt-0.5">
+                          <IconComponent className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                        </div>
+                        <span className="text-foreground text-sm">{feature.text}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* CTA Button */}
+                <div className="mt-auto pt-4">
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="w-full text-lg h-14 border-gray-600 dark:border-gray-400 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-900/20"
+                    onClick={() => {
+                      if (!isLoggedIn) {
+                        handleGoogleLogin();
+                        return;
+                      }
+                      navigate('/app');
+                    }}
+                  >
+                    <Gift className="w-5 h-5 mr-2" />
+                    {isLoggedIn ? '立即使用' : '免費註冊'}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Lite */}
             <Card className="border-2 border-muted flex flex-col h-full hover:shadow-lg transition-shadow">
               <CardHeader className="text-center pb-6 flex-shrink-0">
@@ -681,6 +757,11 @@ export default function Home() {
                     <Sparkles className="w-8 h-8 text-green-600 dark:text-green-400" />
                   </div>
                 </div>
+                <div className="mb-2">
+                  <Badge className="mb-2 bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-400">
+                    入門首選
+                  </Badge>
+                </div>
                 <CardTitle className="text-2xl mb-2">Lite 方案</CardTitle>
                 <CardDescription className="text-base">
                   適合已有 AI 金鑰的創作者，每日 20 次生成額度
@@ -688,15 +769,36 @@ export default function Home() {
                 
                 {/* Price */}
                 <div className="mt-6">
-                  <div className="flex items-baseline justify-center gap-2">
-                    <span className="text-5xl font-bold text-green-600 dark:text-green-400">
-                      NT${(billingCycle === 'yearly' ? 3600 : 300).toLocaleString()}
-                    </span>
-                    <span className="text-muted-foreground">/ {billingCycle === 'yearly' ? '年' : '月'}</span>
-                  </div>
-                  <div className="text-xs text-muted-foreground mt-2">
-                    {billingCycle === 'yearly' ? '平均 NT$300 / 月' : '年繳 NT$3,600'}
-                  </div>
+                  {billingCycle === 'yearly' ? (
+                    <>
+                      <div className="flex flex-col items-center gap-1 mb-2">
+                        <div className="text-sm text-muted-foreground line-through">
+                          NT$360 / 月
+                        </div>
+                        <div className="flex items-baseline justify-center gap-2">
+                          <span className="text-5xl font-bold text-green-600 dark:text-green-400">
+                            NT$300
+                          </span>
+                          <span className="text-muted-foreground">/ 月（年付）</span>
+                        </div>
+                      </div>
+                      <div className="text-sm font-semibold text-green-600 dark:text-green-400">
+                        年付省 NT$720
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-baseline justify-center gap-2">
+                        <span className="text-5xl font-bold text-green-600 dark:text-green-400">
+                          NT$300
+                        </span>
+                        <span className="text-muted-foreground">/ 月</span>
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-2">
+                        年繳 NT$3,600
+                      </div>
+                    </>
+                  )}
                 </div>
               </CardHeader>
 
@@ -732,8 +834,12 @@ export default function Home() {
                 <div className="mt-auto pt-4">
                   <Button
                     size="lg"
-                    variant="outline"
-                    className="w-full text-lg h-14 border-green-600 dark:border-green-400 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20"
+                    variant={billingCycle === 'yearly' ? 'default' : 'outline'}
+                    className={`w-full text-lg h-14 ${
+                      billingCycle === 'yearly' 
+                        ? 'bg-green-600 dark:bg-green-400 text-white hover:bg-green-700 dark:hover:bg-green-500' 
+                        : 'border-green-600 dark:border-green-400 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20'
+                    }`}
                     onClick={() => {
                       if (!isLoggedIn) {
                         handleGoogleLogin();
@@ -769,15 +875,36 @@ export default function Home() {
                 
                 {/* Price */}
                 <div className="mt-6">
-                  <div className="flex items-baseline justify-center gap-2">
-                    <span className="text-5xl font-bold text-primary">
-                      NT${(billingCycle === 'yearly' ? 9600 : 800).toLocaleString()}
-                    </span>
-                    <span className="text-muted-foreground">/ {billingCycle === 'yearly' ? '年' : '月'}</span>
-                  </div>
-                  <div className="text-xs text-muted-foreground mt-2">
-                    {billingCycle === 'yearly' ? '平均 NT$800 / 月' : '年繳 NT$9,600'}
-                    </div>
+                  {billingCycle === 'yearly' ? (
+                    <>
+                      <div className="flex flex-col items-center gap-1 mb-2">
+                        <div className="text-sm text-muted-foreground line-through">
+                          NT$1,000 / 月
+                        </div>
+                        <div className="flex items-baseline justify-center gap-2">
+                          <span className="text-5xl font-bold text-primary">
+                            NT$800
+                          </span>
+                          <span className="text-muted-foreground">/ 月（年付）</span>
+                        </div>
+                      </div>
+                      <div className="text-sm font-semibold text-primary">
+                        🔥 年付省 NT$2,400
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-baseline justify-center gap-2">
+                        <span className="text-5xl font-bold text-primary">
+                          NT$800
+                        </span>
+                        <span className="text-muted-foreground">/ 月</span>
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-2">
+                        年繳 NT$9,600
+                      </div>
+                    </>
+                  )}
                 </div>
               </CardHeader>
 
@@ -843,6 +970,11 @@ export default function Home() {
                     <Shield className="w-8 h-8 text-purple-600 dark:text-purple-400" />
                   </div>
                 </div>
+                <div className="mb-2">
+                  <Badge className="mb-2 bg-purple-100 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400">
+                    高階方案
+                  </Badge>
+                </div>
                 <CardTitle className="text-2xl mb-2">Max 方案</CardTitle>
                 <CardDescription className="text-base">
                   適合團隊或大量產出，每日 1,000 次 + 高品質模式 5,000 次/月
@@ -850,15 +982,36 @@ export default function Home() {
                 
                 {/* Price */}
                 <div className="mt-6">
-                  <div className="flex items-baseline justify-center gap-2">
-                    <span className="text-5xl font-bold text-purple-600 dark:text-purple-400">
-                      NT${(billingCycle === 'yearly' ? 24000 : 2000).toLocaleString()}
-                    </span>
-                    <span className="text-muted-foreground">/ {billingCycle === 'yearly' ? '年' : '月'}</span>
-                  </div>
-                  <div className="text-xs text-muted-foreground mt-2">
-                    {billingCycle === 'yearly' ? '平均 NT$2,000 / 月' : '年繳 NT$24,000'}
-                  </div>
+                  {billingCycle === 'yearly' ? (
+                    <>
+                      <div className="flex flex-col items-center gap-1 mb-2">
+                        <div className="text-sm text-muted-foreground line-through">
+                          NT$2,500 / 月
+                        </div>
+                        <div className="flex items-baseline justify-center gap-2">
+                          <span className="text-5xl font-bold text-purple-600 dark:text-purple-400">
+                            NT$2,000
+                          </span>
+                          <span className="text-muted-foreground">/ 月（年付）</span>
+                        </div>
+                      </div>
+                      <div className="text-sm font-semibold text-purple-600 dark:text-purple-400">
+                        年付省 NT$6,000
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-baseline justify-center gap-2">
+                        <span className="text-5xl font-bold text-purple-600 dark:text-purple-400">
+                          NT$2,000
+                        </span>
+                        <span className="text-muted-foreground">/ 月</span>
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-2">
+                        年繳 NT$24,000
+                      </div>
+                    </>
+                  )}
                 </div>
               </CardHeader>
 
@@ -895,8 +1048,12 @@ export default function Home() {
                 <div className="mt-auto pt-4">
                   <Button
                     size="lg"
-                    variant="outline"
-                    className="w-full text-lg h-14 border-purple-600 dark:border-purple-400 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20"
+                    variant={billingCycle === 'yearly' ? 'default' : 'outline'}
+                    className={`w-full text-lg h-14 ${
+                      billingCycle === 'yearly' 
+                        ? 'bg-purple-600 dark:bg-purple-400 text-white hover:bg-purple-700 dark:hover:bg-purple-500' 
+                        : 'border-purple-600 dark:border-purple-400 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20'
+                    }`}
                     onClick={() => {
                       if (!isLoggedIn) {
                         handleGoogleLogin();

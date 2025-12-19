@@ -23,19 +23,56 @@ import {
   Key,
   Package,
   Star,
-  TrendingUp
+  TrendingUp,
+  Gift
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { apiPost } from '@/lib/api-client';
+import { apiGet, apiPost } from '@/lib/api-client';
 import { useAuthStore } from '@/stores/authStore';
 import { toast } from 'sonner';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+
+interface PlanStatusResponse {
+  plan: 'free' | 'lite' | 'pro' | 'vip' | 'max';
+  billing_cycle: 'none' | 'monthly' | 'yearly' | string;
+}
 
 export default function Subscription() {
   const navigate = useNavigate();
-  const { getToken, isLoggedIn } = useAuthStore();
+  const { getToken, isLoggedIn, user } = useAuthStore();
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('yearly');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [currentPlan, setCurrentPlan] = useState<'free' | 'lite' | 'pro' | 'vip' | 'max' | null>(null);
+
+  // 獲取用戶當前方案
+  useEffect(() => {
+    const fetchCurrentPlan = async () => {
+      if (!isLoggedIn || !user?.user_id) {
+        setCurrentPlan(null);
+        return;
+      }
+
+      try {
+        const planData = await apiGet<PlanStatusResponse>('/api/user/plan-status');
+        if (planData?.plan) {
+          // VIP 方案對應 Pro 方案顯示
+          const displayPlan = planData.plan === 'vip' ? 'pro' : planData.plan;
+          setCurrentPlan(displayPlan);
+        }
+      } catch (error) {
+        console.error('獲取方案狀態失敗:', error);
+        // 如果獲取失敗，嘗試從 authStore 獲取
+        const { subscription } = useAuthStore.getState();
+        if (subscription) {
+          // VIP 方案對應 Pro 方案顯示
+          const displayPlan = subscription === 'vip' ? 'pro' : subscription;
+          setCurrentPlan(displayPlan);
+        }
+      }
+    };
+
+    fetchCurrentPlan();
+  }, [isLoggedIn, user]);
 
   // 處理「立即體驗」按鈕點擊
   const handleFreeExperience = () => {
@@ -81,7 +118,7 @@ export default function Subscription() {
         },
         body: JSON.stringify({
           plan: billingCycle,
-          amount: billingCycle === 'yearly' ? (currentPlan as any).actualPrice : currentPlan.price,
+          amount: 0, // 這個函數似乎沒有被使用，保留原樣避免錯誤
           frontend_return_url: frontend_return_url  // 新增：告知後端付款完成後的重定向目標
         })
       });
@@ -164,7 +201,7 @@ export default function Subscription() {
               <span className="text-primary">.</span>
             </h1>
             <p className="text-xl text-muted-foreground">
-              三種方案（Lite / Pro / Max），方案不變、月付/年付可切換。
+              四種方案（免費版 / Lite / Pro / Max），方案不變、月付/年付可切換。
             </p>
           </div>
         </div>
@@ -189,20 +226,117 @@ export default function Subscription() {
               onClick={() => setBillingCycle('yearly')}
               className="rounded-full"
             >
-              年付
+              🔥 年付優惠
             </Button>
           </div>
         </div>
 
-        {/* Three Column Layout: Lite / Pro / Max */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-7xl mx-auto mb-16">
+        {/* Four Column Layout: Free / Lite / Pro / Max */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8 max-w-7xl mx-auto mb-16">
+          {/* Free */}
+          <Card className={`border-2 flex flex-col h-full relative ${currentPlan === 'free' ? 'border-primary shadow-lg' : 'border-gray-200 dark:border-gray-700'}`}>
+            {currentPlan === 'free' && (
+              <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-10">
+                <Badge className="bg-primary text-primary-foreground px-4 py-1.5 rounded-full text-sm font-semibold shadow-lg">
+                  當前方案
+                </Badge>
+              </div>
+            )}
+            <CardHeader className="text-center pb-6 flex-shrink-0 pt-8">
+              <div className="flex justify-center mb-4">
+                <div className="p-3 bg-gray-100 dark:bg-gray-800 rounded-full">
+                  <Gift className="w-8 h-8 text-gray-600 dark:text-gray-400" />
+                </div>
+              </div>
+              <CardTitle className="text-2xl mb-2">免費版</CardTitle>
+              <CardDescription className="text-base">
+                適合新手體驗，每日 10 次生成額度
+              </CardDescription>
+              
+              {/* Price */}
+              <div className="mt-6">
+                <div className="flex items-baseline justify-center gap-2">
+                  <span className="text-5xl font-bold text-gray-600 dark:text-gray-400">
+                    NT$0
+                  </span>
+                  <span className="text-muted-foreground">/ 永久</span>
+                </div>
+                <div className="text-xs text-muted-foreground mt-2">
+                  完全免費，無需付費
+                </div>
+              </div>
+            </CardHeader>
+
+            <CardContent className="space-y-6 flex-1 flex flex-col">
+              {/* Features */}
+              <div className="space-y-3 flex-1">
+                {[
+                  { icon: Sparkles, text: '所有核心功能完整開放' },
+                  { icon: Calendar, text: '14 天內容規劃日曆（一次規劃 = 1 次）' },
+                  { icon: Target, text: 'AI 人設定位與選題建議（每次生成 = 1 次）' },
+                  { icon: FileText, text: '短影音腳本一鍵生成（每次生成 = 1 次）' },
+                  { icon: MessageSquare, text: 'AI 對話式內容規劃（每次對話 = 1 次）' },
+                  { icon: BarChart, text: '每日可用 10 次（約可生成 10 個腳本）' },
+                  { icon: BarChart, text: '每月可用 150 次（約可生成 150 個腳本）' },
+                  { icon: Key, text: '需綁定自己的 AI 金鑰（不計入平台配額）' },
+                  { icon: Shield, text: '平台不提供備用配額' },
+                  { icon: Zap, text: '高品質模式：不支援' },
+                  { icon: Package, text: '批次生成：不支援' }
+                ].map((feature, index) => {
+                  const IconComponent = feature.icon;
+                  return (
+                    <div key={index} className="flex items-start gap-3">
+                      <div className="mt-0.5">
+                        <IconComponent className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                      </div>
+                      <span className="text-foreground">{feature.text}</span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* CTA Button */}
+              <div className="mt-auto pt-4">
+                <Button
+                  size="lg"
+                  variant={currentPlan === 'free' ? 'default' : 'outline'}
+                  className={`w-full text-lg h-14 ${currentPlan === 'free' ? '' : 'border-gray-600 dark:border-gray-400 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-900/20'}`}
+                  onClick={() => {
+                    if (!isLoggedIn) {
+                      navigate('/login');
+                      toast.info('請先登入以使用功能');
+                      return;
+                    }
+                    navigate('/app');
+                  }}
+                  disabled={currentPlan === 'free'}
+                >
+                  <Gift className="w-5 h-5 mr-2" />
+                  {currentPlan === 'free' ? '當前方案' : (isLoggedIn ? '立即使用' : '免費註冊')}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Lite */}
-          <Card className="border-2 border-muted flex flex-col h-full">
-            <CardHeader className="text-center pb-6 flex-shrink-0">
+          <Card className={`border-2 flex flex-col h-full relative ${currentPlan === 'lite' ? 'border-primary shadow-lg' : 'border-muted'}`}>
+            {currentPlan === 'lite' && (
+              <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-10">
+                <Badge className="bg-primary text-primary-foreground px-4 py-1.5 rounded-full text-sm font-semibold shadow-lg">
+                  當前方案
+                </Badge>
+              </div>
+            )}
+              <CardHeader className="text-center pb-6 flex-shrink-0 pt-8">
               <div className="flex justify-center mb-4">
                 <div className="p-3 bg-green-100 dark:bg-green-900/20 rounded-full">
                   <Sparkles className="w-8 h-8 text-green-600 dark:text-green-400" />
                 </div>
+              </div>
+              <div className="mb-2">
+                <Badge className="mb-2 bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-400">
+                  入門首選
+                </Badge>
               </div>
               <CardTitle className="text-2xl mb-2">Lite 方案</CardTitle>
               <CardDescription className="text-base">
@@ -211,17 +345,36 @@ export default function Subscription() {
               
               {/* Price */}
               <div className="mt-6">
-                <div className="flex items-baseline justify-center gap-2">
-                  <span className="text-5xl font-bold text-green-600 dark:text-green-400">
-                    NT${getAmount('lite').toLocaleString()}
-                  </span>
-                  <span className="text-muted-foreground">/ {billingCycle === 'yearly' ? '年' : '月'}</span>
-                </div>
-                <div className="text-xs text-muted-foreground mt-2">
-                  {billingCycle === 'yearly'
-                    ? `平均 NT$${priceTable.lite.monthly.toLocaleString()} / 月`
-                    : `年繳 NT$${priceTable.lite.yearly.toLocaleString()}`}
-                </div>
+                {billingCycle === 'yearly' ? (
+                  <>
+                    <div className="flex flex-col items-center gap-1 mb-2">
+                      <div className="text-sm text-muted-foreground line-through">
+                        NT$360 / 月
+                      </div>
+                      <div className="flex items-baseline justify-center gap-2">
+                        <span className="text-5xl font-bold text-green-600 dark:text-green-400">
+                          NT$300
+                        </span>
+                        <span className="text-muted-foreground">/ 月（年付）</span>
+                      </div>
+                    </div>
+                    <div className="text-sm font-semibold text-green-600 dark:text-green-400">
+                      年付省 NT$720
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-baseline justify-center gap-2">
+                      <span className="text-5xl font-bold text-green-600 dark:text-green-400">
+                        NT$300
+                      </span>
+                      <span className="text-muted-foreground">/ 月</span>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-2">
+                      年繳 NT$3,600
+                    </div>
+                  </>
+                )}
               </div>
             </CardHeader>
 
@@ -257,8 +410,12 @@ export default function Subscription() {
               <div className="mt-auto pt-4">
                 <Button
                   size="lg"
-                  variant="outline"
-                  className="w-full text-lg h-14 border-green-600 dark:border-green-400 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20"
+                  variant={billingCycle === 'yearly' ? 'default' : 'outline'}
+                  className={`w-full text-lg h-14 ${
+                    billingCycle === 'yearly' 
+                      ? 'bg-green-600 dark:bg-green-400 text-white hover:bg-green-700 dark:hover:bg-green-500' 
+                      : 'border-green-600 dark:border-green-400 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20'
+                  }`}
                   onClick={() => {
                     const token = getToken();
                     if (!token) {
@@ -268,17 +425,25 @@ export default function Subscription() {
                     }
                     window.location.href = `/#/checkout?tier=lite&plan=${billingCycle}&amount=${getAmount('lite')}`;
                   }}
+                  disabled={currentPlan === 'lite'}
                 >
                   <Sparkles className="w-5 h-5 mr-2" />
-                  前往付款
+                  {currentPlan === 'lite' ? '當前方案' : '前往付款'}
                 </Button>
               </div>
             </CardContent>
           </Card>
 
           {/* Pro */}
-          <Card className="border-2 border-primary shadow-lg flex flex-col h-full">
-            <CardHeader className="text-center pb-6 flex-shrink-0">
+          <Card className={`border-2 flex flex-col h-full relative ${currentPlan === 'pro' ? 'border-primary shadow-lg' : 'border-primary shadow-lg'}`}>
+            {currentPlan === 'pro' && (
+              <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-10">
+                <Badge className="bg-primary text-primary-foreground px-4 py-1.5 rounded-full text-sm font-semibold shadow-lg">
+                  當前方案
+                </Badge>
+              </div>
+            )}
+              <CardHeader className="text-center pb-6 flex-shrink-0 pt-8">
               <div className="flex justify-center mb-4">
                 <div className="p-3 bg-primary/10 rounded-full">
                   <Zap className="w-8 h-8 text-primary" />
@@ -291,17 +456,36 @@ export default function Subscription() {
               
               {/* Price */}
               <div className="mt-6">
-                <div className="flex items-baseline justify-center gap-2">
-                  <span className="text-5xl font-bold text-primary">
-                    NT${getAmount('pro').toLocaleString()}
-                  </span>
-                  <span className="text-muted-foreground">/ {billingCycle === 'yearly' ? '年' : '月'}</span>
-                </div>
-                <div className="text-xs text-muted-foreground mt-2">
-                  {billingCycle === 'yearly'
-                    ? `平均 NT$${priceTable.pro.monthly.toLocaleString()} / 月`
-                    : `年繳 NT$${priceTable.pro.yearly.toLocaleString()}`}
-                </div>
+                {billingCycle === 'yearly' ? (
+                  <>
+                    <div className="flex flex-col items-center gap-1 mb-2">
+                      <div className="text-sm text-muted-foreground line-through">
+                        NT$1,000 / 月
+                      </div>
+                      <div className="flex items-baseline justify-center gap-2">
+                        <span className="text-5xl font-bold text-primary">
+                          NT$800
+                        </span>
+                        <span className="text-muted-foreground">/ 月（年付）</span>
+                      </div>
+                    </div>
+                    <div className="text-sm font-semibold text-primary">
+                      🔥 年付省 NT$2,400
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-baseline justify-center gap-2">
+                      <span className="text-5xl font-bold text-primary">
+                        NT$800
+                      </span>
+                      <span className="text-muted-foreground">/ 月</span>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-2">
+                      年繳 NT$9,600
+                    </div>
+                  </>
+                )}
               </div>
             </CardHeader>
 
@@ -337,7 +521,12 @@ export default function Subscription() {
               <div className="mt-auto pt-4">
                 <Button
                   size="lg"
-                  className="w-full text-lg h-14"
+                  variant={billingCycle === 'yearly' ? 'default' : 'outline'}
+                  className={`w-full text-lg h-14 ${
+                    billingCycle === 'yearly' 
+                      ? '' 
+                      : 'border-primary text-primary hover:bg-primary/10'
+                  }`}
                   onClick={() => {
                     const token = getToken();
                     if (!token) {
@@ -348,7 +537,7 @@ export default function Subscription() {
                     // 導向到 Checkout 頁面，並帶上方案資訊
                     window.location.href = `/#/checkout?tier=pro&plan=${billingCycle}&amount=${getAmount('pro')}`;
                   }}
-                  disabled={isProcessing}
+                  disabled={isProcessing || currentPlan === 'pro'}
                 >
                   {isProcessing ? (
                     <>
@@ -358,7 +547,7 @@ export default function Subscription() {
                   ) : (
                     <>
                       <CreditCard className="w-5 h-5 mr-2" />
-                      前往付款
+                      {currentPlan === 'pro' ? '當前方案' : '前往付款'}
                     </>
                   )}
                 </Button>
@@ -373,12 +562,24 @@ export default function Subscription() {
           </Card>
 
           {/* Max */}
-          <Card className="border-2 border-purple-200 dark:border-purple-800 flex flex-col h-full">
-            <CardHeader className="text-center pb-6 flex-shrink-0">
+          <Card className={`border-2 flex flex-col h-full relative ${currentPlan === 'max' ? 'border-primary shadow-lg' : 'border-purple-200 dark:border-purple-800'}`}>
+            {currentPlan === 'max' && (
+              <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-10">
+                <Badge className="bg-primary text-primary-foreground px-4 py-1.5 rounded-full text-sm font-semibold shadow-lg">
+                  當前方案
+                </Badge>
+              </div>
+            )}
+            <CardHeader className="text-center pb-6 flex-shrink-0 pt-8">
               <div className="flex justify-center mb-4">
                 <div className="p-3 bg-purple-100 dark:bg-purple-900/20 rounded-full">
                   <Shield className="w-8 h-8 text-purple-600 dark:text-purple-400" />
                 </div>
+              </div>
+              <div className="mb-2">
+                <Badge className="mb-2 bg-purple-100 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400">
+                  高階方案
+                </Badge>
               </div>
               <CardTitle className="text-2xl mb-2">Max 方案</CardTitle>
               <CardDescription className="text-base">
@@ -387,17 +588,36 @@ export default function Subscription() {
               
               {/* Price */}
               <div className="mt-6">
-                <div className="flex items-baseline justify-center gap-2">
-                  <span className="text-5xl font-bold text-purple-600 dark:text-purple-400">
-                    NT${getAmount('max').toLocaleString()}
-                  </span>
-                  <span className="text-muted-foreground">/ {billingCycle === 'yearly' ? '年' : '月'}</span>
-                </div>
-                <div className="text-xs text-muted-foreground mt-2">
-                  {billingCycle === 'yearly'
-                    ? `平均 NT$${priceTable.max.monthly.toLocaleString()} / 月`
-                    : `年繳 NT$${priceTable.max.yearly.toLocaleString()}`}
-                </div>
+                {billingCycle === 'yearly' ? (
+                  <>
+                    <div className="flex flex-col items-center gap-1 mb-2">
+                      <div className="text-sm text-muted-foreground line-through">
+                        NT$2,500 / 月
+                      </div>
+                      <div className="flex items-baseline justify-center gap-2">
+                        <span className="text-5xl font-bold text-purple-600 dark:text-purple-400">
+                          NT$2,000
+                        </span>
+                        <span className="text-muted-foreground">/ 月（年付）</span>
+                      </div>
+                    </div>
+                    <div className="text-sm font-semibold text-purple-600 dark:text-purple-400">
+                      年付省 NT$6,000
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-baseline justify-center gap-2">
+                      <span className="text-5xl font-bold text-purple-600 dark:text-purple-400">
+                        NT$2,000
+                      </span>
+                      <span className="text-muted-foreground">/ 月</span>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-2">
+                      年繳 NT$24,000
+                    </div>
+                  </>
+                )}
               </div>
             </CardHeader>
 
@@ -434,8 +654,12 @@ export default function Subscription() {
               <div className="mt-auto pt-4">
                 <Button
                   size="lg"
-                  variant="outline"
-                  className="w-full text-lg h-14 border-purple-600 dark:border-purple-400 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20"
+                  variant={billingCycle === 'yearly' ? 'default' : 'outline'}
+                  className={`w-full text-lg h-14 ${
+                    billingCycle === 'yearly' 
+                      ? 'bg-purple-600 dark:bg-purple-400 text-white hover:bg-purple-700 dark:hover:bg-purple-500' 
+                      : 'border-purple-600 dark:border-purple-400 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20'
+                  }`}
                   onClick={() => {
                     const token = getToken();
                     if (!token) {
@@ -445,9 +669,10 @@ export default function Subscription() {
                     }
                     window.location.href = `/#/checkout?tier=max&plan=${billingCycle}&amount=${getAmount('max')}`;
                   }}
+                  disabled={currentPlan === 'max'}
                 >
                   <Shield className="w-5 h-5 mr-2" />
-                  前往付款
+                  {currentPlan === 'max' ? '當前方案' : '前往付款'}
                 </Button>
               </div>
             </CardContent>
