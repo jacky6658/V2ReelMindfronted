@@ -232,7 +232,7 @@ export default function Subscription() {
         </div>
 
         {/* Four Column Layout: Free / Lite / Pro / Max */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8 max-w-7xl mx-auto mb-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6 max-w-[90rem] mx-auto mb-16">
           {/* Free */}
           <Card className={`border-2 flex flex-col h-full relative ${currentPlan === 'free' ? 'border-primary shadow-lg' : 'border-gray-200 dark:border-gray-700'}`}>
             {currentPlan === 'free' && (
@@ -551,12 +551,6 @@ export default function Subscription() {
                     </>
                   )}
                 </Button>
-
-                {/* Security Badge */}
-                <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground pt-2">
-                  <Shield className="w-4 h-4" />
-                  <span>由綠界金流（ECPay）提供安全加密付款</span>
-                </div>
               </div>
             </CardContent>
           </Card>

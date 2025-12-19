@@ -672,7 +672,7 @@ export default function Home() {
           </div>
 
           {/* Four Column Layout: Free / Lite / Pro / Max */}
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 md:gap-8 max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6 max-w-[90rem] mx-auto">
             {/* Free */}
             <Card className="border-2 border-gray-200 dark:border-gray-700 flex flex-col h-full hover:shadow-lg transition-shadow">
               <CardHeader className="text-center pb-6 flex-shrink-0">
@@ -953,11 +953,6 @@ export default function Home() {
                     {isLoggedIn ? '前往付款' : '登入訂閱'}
                   </Button>
 
-                  {/* Security Badge */}
-                  <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground pt-2">
-                    <Shield className="w-3 h-3" />
-                    <span>由綠界金流（ECPay）提供安全加密付款</span>
-                  </div>
                 </div>
               </CardContent>
             </Card>

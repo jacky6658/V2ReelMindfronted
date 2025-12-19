@@ -478,13 +478,30 @@ export default function Mode3() {
       
       // 根本修复：检查是否为配额错误
       const errorMessage = error?.message || '生成失敗，請稍後再試';
-      const isQuotaError = errorMessage.includes('配額') || 
-                           errorMessage.includes('quota') || 
-                           error?.error_code === '429' ||
-                           error?.is_quota_error === true;
+      
+      // 區分「用量已達上限」和「API 配額用盡」
+      const isDailyLimitReached = errorMessage.includes('已達今日上限') || 
+                                  (errorMessage.includes('已達') && errorMessage.includes('上限')) ||
+                                  (errorMessage.includes('今日') && errorMessage.includes('上限')) ||
+                                  (errorMessage.includes('daily') && errorMessage.includes('limit')) ||
+                                  errorMessage.includes('請明天再試');
+      
+      const isApiQuotaError = (errorMessage.includes('配額') && !isDailyLimitReached) || 
+                             errorMessage.includes('quota') || 
+                             error?.error_code === '429' ||
+                             error?.is_quota_error === true;
       
       if (!handlePermissionError(error)) {
-        if (isQuotaError) {
+        if (isDailyLimitReached) {
+          toast.error('⚠️ 今日用量已達上限', {
+            description: errorMessage || '您今日的使用次數已用完，請明天再試或升級方案',
+            duration: 8000,
+            action: {
+              label: '查看用量',
+              onClick: () => navigate('/settings')
+            }
+          });
+        } else if (isApiQuotaError) {
           toast.error('⚠️ API 配額已用盡', {
             description: '請檢查您的 API 金鑰配額或稍後再試',
             duration: 8000,
@@ -630,20 +647,29 @@ export default function Mode3() {
                           error?.error?.message ||
                           error?.response?.data?.message ||
                           (typeof error === 'string' ? error : '生成失敗，請稍後再試');
-      const isQuotaError = errorMessage.includes('配額') || 
-                           errorMessage.includes('quota') || 
-                           errorMessage.includes('exceeded') ||
-                           errorMessage.includes('rate limit') ||
-                           errorMessage.includes('rate-limit') ||
-                           errorMessage.includes('ResourceExhausted') ||
-                           error?.error_code === '429' ||
-                           error?.is_quota_error === true ||
-                           error?.response?.status === 429;
+      
+      // 區分「用量已達上限」和「API 配額用盡」
+      const isDailyLimitReached = errorMessage.includes('已達今日上限') || 
+                                  (errorMessage.includes('已達') && errorMessage.includes('上限')) ||
+                                  (errorMessage.includes('今日') && errorMessage.includes('上限')) ||
+                                  (errorMessage.includes('daily') && errorMessage.includes('limit')) ||
+                                  errorMessage.includes('請明天再試');
+      
+      const isApiQuotaError = (errorMessage.includes('配額') && !isDailyLimitReached) || 
+                             errorMessage.includes('quota') || 
+                             errorMessage.includes('exceeded') ||
+                             errorMessage.includes('rate limit') ||
+                             errorMessage.includes('rate-limit') ||
+                             errorMessage.includes('ResourceExhausted') ||
+                             error?.error_code === '429' ||
+                             error?.is_quota_error === true ||
+                             error?.response?.status === 429;
       
       // 更好的錯誤序列化
       const errorDetails = {
         errorMessage,
-        isQuotaError,
+        isDailyLimitReached,
+        isApiQuotaError,
         errorCode: error?.error_code,
         status: error?.response?.status,
         errorType: error?.constructor?.name,
@@ -657,17 +683,26 @@ export default function Mode3() {
       if (!result || !result.trim()) {
         setResults(prev => ({
           ...prev,
-          positioning: `❌ 生成失敗：${errorMessage}\n\n請檢查：\n1. 網路連線是否正常\n2. API 配額是否充足\n3. 輸入資訊是否完整`
+          positioning: `❌ 生成失敗：${errorMessage}\n\n請檢查：\n1. 網路連線是否正常\n2. 用量或 API 配額是否充足\n3. 輸入資訊是否完整`
         }));
       }
       
-      if (isQuotaError) {
+      if (isDailyLimitReached) {
+        toast.error('⚠️ 今日用量已達上限', {
+          description: errorMessage || '您今日的使用次數已用完，請明天再試或升級方案',
+          duration: 8000,
+          action: {
+            label: '查看用量',
+            onClick: () => navigate('/settings')
+          }
+        });
+      } else if (isApiQuotaError) {
         // 使用后端返回的用户友好消息，如果没有则使用默认消息
         const quotaMessage = errorMessage.includes('配額') || errorMessage.includes('quota') 
           ? errorMessage 
           : '⚠️ API 配額或速率限制已用盡\n\n您的 Gemini API 可能已達到：\n1. 每日請求限制 (RPD)\n2. 每分鐘請求限制 (RPM)\n3. 總配額限制\n\n請前往 https://ai.dev/usage?tab=rate-limit 查看詳細用量';
         
-        toast.error(quotaMessage, {
+        toast.error('⚠️ API 配額已用盡', {
           description: '請檢查您的 API 金鑰配額和速率限制',
           duration: 10000,
           action: {
@@ -725,32 +760,45 @@ export default function Mode3() {
     }, (error) => {
       // 根本修复：增强错误处理，显示用户友好的提示
       const errorMessage = error?.message || error?.content || '生成失敗，請稍後再試';
-      const isQuotaError = errorMessage.includes('配額') || 
-                           errorMessage.includes('quota') || 
-                           errorMessage.includes('exceeded') ||
-                           errorMessage.includes('rate limit') ||
-                           errorMessage.includes('rate-limit') ||
-                           errorMessage.includes('ResourceExhausted') ||
-                           error?.error_code === '429' ||
-                           error?.is_quota_error === true ||
-                           error?.response?.status === 429;
+      
+      // 區分「用量已達上限」和「API 配額用盡」
+      const isDailyLimitReached = errorMessage.includes('已達今日上限') || 
+                                  (errorMessage.includes('已達') && errorMessage.includes('上限')) ||
+                                  (errorMessage.includes('今日') && errorMessage.includes('上限')) ||
+                                  (errorMessage.includes('daily') && errorMessage.includes('limit')) ||
+                                  errorMessage.includes('請明天再試');
+      
+      const isApiQuotaError = (errorMessage.includes('配額') && !isDailyLimitReached) || 
+                             errorMessage.includes('quota') || 
+                             errorMessage.includes('exceeded') ||
+                             errorMessage.includes('rate limit') ||
+                             errorMessage.includes('rate-limit') ||
+                             errorMessage.includes('ResourceExhausted') ||
+                             error?.error_code === '429' ||
+                             error?.is_quota_error === true ||
+                             error?.response?.status === 429;
       
       console.error('[Mode3] 生成選題建議錯誤:', {
         error,
         errorMessage,
-        isQuotaError,
+        isDailyLimitReached,
+        isApiQuotaError,
         errorCode: error?.error_code,
         status: error?.response?.status,
         originalError: error?.original_error
       });
       
-      if (isQuotaError) {
-        // 使用后端返回的用户友好消息，如果没有则使用默认消息
-        const quotaMessage = errorMessage.includes('配額') || errorMessage.includes('quota') 
-          ? errorMessage 
-          : '⚠️ API 配額或速率限制已用盡\n\n您的 Gemini API 可能已達到：\n1. 每日請求限制 (RPD)\n2. 每分鐘請求限制 (RPM)\n3. 總配額限制\n\n請前往 https://ai.dev/usage?tab=rate-limit 查看詳細用量';
-        
-        toast.error(quotaMessage, {
+      if (isDailyLimitReached) {
+        toast.error('⚠️ 今日用量已達上限', {
+          description: errorMessage || '您今日的使用次數已用完，請明天再試或升級方案',
+          duration: 8000,
+          action: {
+            label: '查看用量',
+            onClick: () => navigate('/settings')
+          }
+        });
+      } else if (isApiQuotaError) {
+        toast.error('⚠️ API 配額已用盡', {
           description: '請檢查您的 API 金鑰配額和速率限制',
           duration: 10000,
           action: {
@@ -823,32 +871,45 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
     }, (error) => {
       // 根本修复：增强错误处理，显示用户友好的提示
       const errorMessage = error?.message || error?.content || '生成失敗，請稍後再試';
-      const isQuotaError = errorMessage.includes('配額') || 
-                           errorMessage.includes('quota') || 
-                           errorMessage.includes('exceeded') ||
-                           errorMessage.includes('rate limit') ||
-                           errorMessage.includes('rate-limit') ||
-                           errorMessage.includes('ResourceExhausted') ||
-                           error?.error_code === '429' ||
-                           error?.is_quota_error === true ||
-                           error?.response?.status === 429;
+      
+      // 區分「用量已達上限」和「API 配額用盡」
+      const isDailyLimitReached = errorMessage.includes('已達今日上限') || 
+                                  (errorMessage.includes('已達') && errorMessage.includes('上限')) ||
+                                  (errorMessage.includes('今日') && errorMessage.includes('上限')) ||
+                                  (errorMessage.includes('daily') && errorMessage.includes('limit')) ||
+                                  errorMessage.includes('請明天再試');
+      
+      const isApiQuotaError = (errorMessage.includes('配額') && !isDailyLimitReached) || 
+                             errorMessage.includes('quota') || 
+                             errorMessage.includes('exceeded') ||
+                             errorMessage.includes('rate limit') ||
+                             errorMessage.includes('rate-limit') ||
+                             errorMessage.includes('ResourceExhausted') ||
+                             error?.error_code === '429' ||
+                             error?.is_quota_error === true ||
+                             error?.response?.status === 429;
       
       console.error('[Mode3] 生成腳本內容錯誤:', {
         error,
         errorMessage,
-        isQuotaError,
+        isDailyLimitReached,
+        isApiQuotaError,
         errorCode: error?.error_code,
         status: error?.response?.status,
         originalError: error?.original_error
       });
       
-      if (isQuotaError) {
-        // 使用后端返回的用户友好消息，如果没有则使用默认消息
-        const quotaMessage = errorMessage.includes('配額') || errorMessage.includes('quota') 
-          ? errorMessage 
-          : '⚠️ API 配額或速率限制已用盡\n\n您的 Gemini API 可能已達到：\n1. 每日請求限制 (RPD)\n2. 每分鐘請求限制 (RPM)\n3. 總配額限制\n\n請前往 https://ai.dev/usage?tab=rate-limit 查看詳細用量';
-        
-        toast.error(quotaMessage, {
+      if (isDailyLimitReached) {
+        toast.error('⚠️ 今日用量已達上限', {
+          description: errorMessage || '您今日的使用次數已用完，請明天再試或升級方案',
+          duration: 8000,
+          action: {
+            label: '查看用量',
+            onClick: () => navigate('/settings')
+          }
+        });
+      } else if (isApiQuotaError) {
+        toast.error('⚠️ API 配額已用盡', {
           description: '請檢查您的 API 金鑰配額和速率限制',
           duration: 10000,
           action: {

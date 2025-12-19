@@ -1016,12 +1016,19 @@ export default function Mode1() {
           // 清理錯誤訊息，移除可能的技術性錯誤訊息
           const cleanedErrorMessage = errorMessage.replace(/cannot access local variable 'error_msg' where it is not associated with a value/i, '伺服器處理錯誤，請稍後再試').replace(/cannot access (local variable|free variable) 'chat' where it is not associated with a value/i, '伺服器處理錯誤，請稍後再試');
           
-          const isQuotaError = cleanedErrorMessage.includes('配額') || 
-                               cleanedErrorMessage.includes('quota') || 
-                               cleanedErrorMessage.includes('exceeded') ||
-                               cleanedErrorMessage.includes('rate limit') ||
-                               error?.error_code === '429' ||
-                               error?.is_quota_error === true;
+          // 區分「用量已達上限」和「API 配額用盡」
+          const isDailyLimitReached = cleanedErrorMessage.includes('已達今日上限') || 
+                                      cleanedErrorMessage.includes('已達') && cleanedErrorMessage.includes('上限') ||
+                                      cleanedErrorMessage.includes('今日') && cleanedErrorMessage.includes('上限') ||
+                                      cleanedErrorMessage.includes('daily') && cleanedErrorMessage.includes('limit') ||
+                                      cleanedErrorMessage.includes('請明天再試');
+          
+          const isApiQuotaError = (cleanedErrorMessage.includes('配額') && !isDailyLimitReached) || 
+                                 cleanedErrorMessage.includes('quota') || 
+                                 cleanedErrorMessage.includes('exceeded') ||
+                                 cleanedErrorMessage.includes('rate limit') ||
+                                 error?.error_code === '429' ||
+                                 error?.is_quota_error === true;
           
           // 處理 403 錯誤 (權限不足/試用期已過)
           // Mode1 必須訂閱或試用期內才能使用，即使有 LLM Key 也不能繞過此限制
@@ -1037,8 +1044,19 @@ export default function Mode1() {
               duration: 5000
             });
           } 
-          // 根本修复：处理 429 配额错误
-          else if (isQuotaError || error?.response?.status === 429) {
+          // 處理「用量已達上限」（平台配額限制）
+          else if (isDailyLimitReached) {
+            toast.error('⚠️ 今日用量已達上限', {
+              description: cleanedErrorMessage || '您今日的使用次數已用完，請明天再試或升級方案',
+              duration: 8000,
+              action: {
+                label: '查看用量',
+                onClick: () => navigate('/settings')
+              }
+            });
+          }
+          // 處理「API 配額用盡」（Gemini API 配額限制）
+          else if (isApiQuotaError || error?.response?.status === 429) {
             toast.error('⚠️ API 配額已用盡', {
               description: '請檢查您的 API 金鑰配額或稍後再試',
               duration: 8000,
