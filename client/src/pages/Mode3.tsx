@@ -1344,12 +1344,12 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
               <Card className="border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20">
                 <CardContent className="pt-6">
                   <div className="flex items-start gap-3">
-                    <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                    <Info className="w-5 h-5 text-blue-600 dark:text-blue-900 mt-0.5 flex-shrink-0" />
                     <div className="flex-1">
-                      <h4 className="font-semibold text-sm mb-1 text-blue-900 dark:text-blue-100">
+                      <h4 className="font-semibold text-sm mb-1 text-blue-900 dark:text-blue-900 font-bold">
                         使用說明
                       </h4>
-                      <p className="text-sm text-blue-800 dark:text-blue-200">
+                      <p className="text-sm text-blue-800 dark:text-blue-900 font-bold">
                         建議等待 <strong>帳號定位</strong>、<strong>選題建議</strong> 和 <strong>腳本內容</strong> 三個部分都生成完成後再儲存，以確保資料完整性。
                         目前進度：{[
                           generationStatus.positioning && '✓ 帳號定位',

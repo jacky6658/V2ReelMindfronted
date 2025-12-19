@@ -15,7 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { apiGet, apiPost, apiDelete } from '@/lib/api-client';
 import { toast } from 'sonner';
-import { ArrowLeft, Key, Eye, EyeOff, Trash2, CheckCircle2, XCircle, Loader2, Download, ExternalLink, FileText } from 'lucide-react';
+import { ArrowLeft, Key, Eye, EyeOff, Trash2, CheckCircle2, XCircle, Loader2, Download, ExternalLink, FileText, HelpCircle, BarChart3 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { guideArticles } from '@/data/guide-articles';
@@ -75,6 +75,7 @@ const Settings: React.FC = () => {
   const [showApiKey, setShowApiKey] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const [showLLMKeyGuideDialog, setShowLLMKeyGuideDialog] = useState(false);
+  const [showUsageCalculationDialog, setShowUsageCalculationDialog] = useState(false);
   
 
   // 載入已保存的 Keys
@@ -142,8 +143,8 @@ const Settings: React.FC = () => {
     
     // 已登入且有用戶信息，載入數據
     if (user?.user_id) {
-      loadKeys();
-      loadAvailableModels();
+    loadKeys();
+    loadAvailableModels();
       loadPlanStatus();
     }
   }, [user?.user_id, authLoading]);
@@ -246,7 +247,7 @@ const Settings: React.FC = () => {
       // 如果還是載入中或沒有用戶，提示用戶
       if (currentLoading || !currentUser?.user_id) {
         toast.error('載入用戶資訊超時，請重新整理頁面');
-        return;
+      return;
       }
     }
 
@@ -421,8 +422,19 @@ const Settings: React.FC = () => {
           <Card className="mb-6">
             <CardHeader>
               <div className="flex items-start justify-between gap-4">
-                <div>
-                  <CardTitle>目前方案</CardTitle>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <CardTitle>目前方案</CardTitle>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={() => setShowUsageCalculationDialog(true)}
+                      title="用量計算說明"
+                    >
+                      <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                    </Button>
+                  </div>
                   <CardDescription>
                     付款週期：{planStatus.billing_cycle === 'monthly' ? '月付' : planStatus.billing_cycle === 'yearly' ? '年付' : '無'}
                   </CardDescription>
@@ -469,15 +481,27 @@ const Settings: React.FC = () => {
                   綁定與管理您的 LLM API Key，用於 AI 生成功能
                 </CardDescription>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowLLMKeyGuideDialog(true)}
-                className="flex items-center gap-2"
-              >
-                <FileText className="w-4 h-4" />
-                如何取得
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.open('https://aistudio.google.com/app/apikey', '_blank')}
+                  className="flex items-center gap-2"
+                  title="前往 Google AI Studio 查看 API Key 和用量"
+                >
+                  <BarChart3 className="w-4 h-4" />
+                  <span className="hidden sm:inline">查看用量</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowLLMKeyGuideDialog(true)}
+                  className="flex items-center gap-2"
+                >
+                  <FileText className="w-4 h-4" />
+                  <span className="hidden sm:inline">如何取得</span>
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -679,6 +703,25 @@ const Settings: React.FC = () => {
             <DialogDescription>詳細教學：如何取得與設定 LLM API Key</DialogDescription>
           </DialogHeader>
           <div className="space-y-6 text-sm">
+            {/* 快速連結區塊 */}
+            <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold text-base text-blue-900 dark:text-blue-900 font-bold">🔗 快速連結</h3>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.open('https://aistudio.google.com/app/apikey', '_blank')}
+                  className="flex items-center gap-2"
+                >
+                  <BarChart3 className="w-4 h-4" />
+                  前往 Google AI Studio
+                </Button>
+              </div>
+              <p className="text-sm text-blue-800 dark:text-blue-900 font-bold">
+                點擊上方按鈕可直接前往 Google AI Studio 查看您的 API Key 和用量統計
+              </p>
+            </div>
+
             {guideArticles['how-to-get-llm-api-key']?.sections.map((section, index) => (
               <div key={index}>
                 {section.heading && (
@@ -747,6 +790,195 @@ const Settings: React.FC = () => {
                 </div>
               </div>
             ))}
+
+            {/* 如何查看用量教學 */}
+            <div className="border-t pt-6">
+              <h3 className="font-semibold text-lg mb-4 text-black dark:text-black font-bold">📊 如何查看 Google AI Studio 用量</h3>
+              <div className="space-y-4 text-black dark:text-black font-bold">
+                <div>
+                  <h4 className="font-semibold mb-2">步驟 1：前往 Google AI Studio</h4>
+                  <p className="leading-relaxed mb-2">
+                    點擊上方的「前往 Google AI Studio」按鈕，或直接訪問：
+                  </p>
+                  <div className="bg-gray-100 dark:bg-gray-800 rounded p-3 mb-2">
+                    <code className="text-sm break-all">https://aistudio.google.com/app/apikey</code>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold mb-2">步驟 2：登入您的 Google 帳號</h4>
+                  <p className="leading-relaxed">
+                    確保使用與建立 API Key 相同的 Google 帳號登入
+                  </p>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold mb-2">步驟 3：查看 API Key 列表</h4>
+                  <p className="leading-relaxed mb-2">
+                    在 Google AI Studio 頁面中，您可以看到：
+                  </p>
+                  <ul className="list-disc list-inside space-y-1 ml-2">
+                    <li>已建立的 API Key 列表</li>
+                    <li>每個 Key 的建立時間</li>
+                    <li>Key 的狀態（啟用/停用）</li>
+                  </ul>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold mb-2">步驟 4：查看用量統計</h4>
+                  <p className="leading-relaxed mb-2">
+                    在 Google AI Studio 中，您可以：
+                  </p>
+                  <ul className="list-disc list-inside space-y-1 ml-2">
+                    <li>查看每個 API Key 的使用量</li>
+                    <li>查看請求次數和配額使用情況</li>
+                    <li>查看錯誤率和速率限制</li>
+                    <li>查看詳細的使用日誌</li>
+                  </ul>
+                </div>
+
+                <div>
+                  <h4 className="font-semibold mb-2">步驟 5：管理 API Key</h4>
+                  <p className="leading-relaxed mb-2">
+                    在 Google AI Studio 中，您可以：
+                  </p>
+                  <ul className="list-disc list-inside space-y-1 ml-2">
+                    <li>建立新的 API Key</li>
+                    <li>刪除不再使用的 API Key</li>
+                    <li>重新命名 API Key 以便管理</li>
+                    <li>設定使用限制和配額</li>
+                  </ul>
+                </div>
+
+                <div className="bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 mt-4">
+                  <h4 className="font-semibold mb-2 text-yellow-900 dark:text-yellow-900">💡 重要提示</h4>
+                  <ul className="space-y-1 text-sm text-yellow-800 dark:text-yellow-900">
+                    <li>• 用量統計通常會有幾分鐘的延遲，請耐心等待</li>
+                    <li>• 如果用量異常，請檢查是否有未授權的使用</li>
+                    <li>• 建議定期查看用量，避免超出配額</li>
+                    <li>• 可以在 Google Cloud Console 中設定用量提醒</li>
+                  </ul>
+                </div>
+
+                <div className="flex justify-center pt-4">
+                  <Button
+                    onClick={() => window.open('https://aistudio.google.com/app/apikey', '_blank')}
+                    className="flex items-center gap-2"
+                  >
+                    <BarChart3 className="w-4 h-4" />
+                    前往 Google AI Studio 查看用量
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 用量計算說明對話框 */}
+      <Dialog open={showUsageCalculationDialog} onOpenChange={setShowUsageCalculationDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>用量計算方式說明</DialogTitle>
+            <DialogDescription>了解您的用量是如何計算的</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6 text-sm">
+            {/* 今日用量 */}
+            <div>
+              <h3 className="font-semibold text-base mb-3 text-black dark:text-black font-bold">📊 今日用量</h3>
+              <div className="space-y-2 text-black dark:text-black font-bold">
+                <p className="leading-relaxed">
+                  <strong className="font-bold">計算方式：</strong>每次使用 AI 生成功能時會消耗 1 次用量
+                </p>
+                <ul className="list-disc list-inside space-y-1 ml-2">
+                  <li>生成短影音腳本（Mode1、Mode3）</li>
+                  <li>帳號定位分析</li>
+                  <li>選題建議</li>
+                  <li>14 天規劃生成</li>
+                  <li>對話式 AI 生成</li>
+                </ul>
+                <p className="leading-relaxed pt-2">
+                  <strong className="font-bold">重置時間：</strong>每日 00:00 (台灣時間) 自動重置
+                </p>
+                <p className="leading-relaxed">
+                  <strong className="font-bold">免費方案限制：</strong>每日 {planStatus?.limits.daily || 20} 次
+                </p>
+              </div>
+            </div>
+
+            {/* 本月用量 */}
+            <div>
+              <h3 className="font-semibold text-base mb-3 text-black dark:text-black font-bold">📅 本月用量</h3>
+              <div className="space-y-2 text-black dark:text-black font-bold">
+                <p className="leading-relaxed">
+                  <strong className="font-bold">計算方式：</strong>與今日用量相同，累計當月所有 AI 生成次數
+                </p>
+                <p className="leading-relaxed pt-2">
+                  <strong className="font-bold">重置時間：</strong>每月 1 日 00:00 (台灣時間) 自動重置
+                </p>
+                <p className="leading-relaxed">
+                  <strong className="font-bold">免費方案限制：</strong>每月 {planStatus?.limits.monthly || 300} 次
+                </p>
+              </div>
+            </div>
+
+            {/* Premium 用量（僅 VIP） */}
+            {planStatus?.plan === 'vip' && (
+              <div>
+                <h3 className="font-semibold text-base mb-3 text-black dark:text-black font-bold">⭐ Premium 本月用量</h3>
+                <div className="space-y-2 text-black dark:text-black font-bold">
+                  <p className="leading-relaxed">
+                    <strong className="font-bold">計算方式：</strong>使用高品質 Premium 模型時會消耗 Premium 用量
+                  </p>
+                  <p className="leading-relaxed">
+                    <strong className="font-bold">Premium 模型：</strong>使用更高品質的 AI 模型，生成內容更優質
+                  </p>
+                  <p className="leading-relaxed pt-2">
+                    <strong className="font-bold">重置時間：</strong>每月 1 日 00:00 (台灣時間) 自動重置
+                  </p>
+                  <p className="leading-relaxed">
+                    <strong className="font-bold">VIP 方案限制：</strong>每月 {planStatus?.limits.premium_monthly || 0} 次
+                  </p>
+                  {planStatus?.limits.vip_premium_default_model && (
+                    <p className="leading-relaxed">
+                      <strong className="font-bold">預設 Premium 模型：</strong>
+                      <span className="font-mono ml-2">{planStatus.limits.vip_premium_default_model}</span>
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* BYOK 說明 */}
+            <div>
+              <h3 className="font-semibold text-base mb-3 text-black dark:text-black font-bold">🔑 BYOK (Bring Your Own Key) 說明</h3>
+              <div className="space-y-2 text-black dark:text-black font-bold">
+                <p className="leading-relaxed">
+                  <strong className="font-bold">優先順序：</strong>綁定 BYOK 後，系統會優先使用您的 API Key
+                </p>
+                <p className="leading-relaxed">
+                  <strong className="font-bold">系統保底：</strong>僅在您的 API Key 不可用時（配額用盡、錯誤等），才會使用系統配額
+                </p>
+                <p className="leading-relaxed">
+                  <strong className="font-bold">用量計算：</strong>
+                </p>
+                <ul className="list-disc list-inside space-y-1 ml-2">
+                  <li>使用您的 API Key 時：<strong className="font-bold">不消耗系統用量</strong></li>
+                  <li>使用系統保底時：<strong className="font-bold">會消耗系統用量</strong></li>
+                </ul>
+              </div>
+            </div>
+
+            {/* 重要提示 */}
+            <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+              <h3 className="font-semibold text-base mb-2 text-blue-900 dark:text-blue-900 font-bold">💡 重要提示</h3>
+              <ul className="space-y-1 text-sm text-blue-900 dark:text-blue-900 font-bold">
+                <li>• 用量統計會即時更新，您可以在這裡隨時查看</li>
+                <li>• 達到用量上限時，需要等待重置或升級方案</li>
+                <li>• 建議綁定 BYOK 以獲得更好的使用體驗和成本控制</li>
+                <li>• 所有時間均以台灣時區（Asia/Taipei）為準</li>
+              </ul>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
