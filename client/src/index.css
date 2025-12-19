@@ -19,12 +19,32 @@
   
   /* 確保 toast 詳細說明在深色模式下是白色 */
   .dark [data-sonner-toast] [data-sonner-description] {
-    color: rgba(255, 255, 255, 0.9) !important;
+    color: rgba(255, 255, 255, 0.95) !important;
+  }
+  
+  /* 確保所有 toast 文字在深色模式下都是白色（包括手機版和 PWA） */
+  .dark [data-sonner-toast] * {
+    color: rgba(255, 255, 255, 0.95) !important;
   }
   
   /* 確保 toast 按鈕在深色模式下也是白色文字 */
   .dark [data-sonner-toast] [data-sonner-toast-button] {
-    @apply text-white;
+    @apply text-white !important;
+  }
+  
+  /* 針對手機版和 PWA 的特殊樣式 */
+  @media (max-width: 768px) {
+    .dark [data-sonner-toast] [data-sonner-description] {
+      color: rgba(255, 255, 255, 0.95) !important;
+    }
+    
+    [data-sonner-toast] [data-sonner-description] {
+      color: inherit;
+    }
+    
+    .dark [data-sonner-toast] [data-sonner-description] {
+      color: rgba(255, 255, 255, 0.95) !important;
+    }
   }
 }
 
