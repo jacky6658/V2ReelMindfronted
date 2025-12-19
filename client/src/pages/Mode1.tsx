@@ -159,8 +159,8 @@ const FormatText = memo(({ content }: { content: string }) => {
       const bodyRows = headerEndIndex > 0 ? rows.slice(headerEndIndex + 1) : rows;
       
       return (
-        <div key={`table-${startIndex}`} className="my-4 overflow-x-auto">
-          <table className="min-w-full border-collapse border border-border dark:border-border/50 bg-card dark:bg-card/50 text-black dark:text-black font-bold">
+        <div key={`table-${startIndex}`} className="my-4 overflow-x-auto overflow-y-visible -mx-4 px-4" style={{ WebkitOverflowScrolling: 'touch' }}>
+          <table className="min-w-full border-collapse border border-border dark:border-border/50 bg-card dark:bg-card/50 text-black dark:text-black font-bold" style={{ minWidth: '600px' }}>
             {headerRows.length > 0 && (
               <thead className="bg-muted/30 dark:bg-muted/20">
                 {headerRows.map((row, rowIndex) => {
@@ -1674,8 +1674,8 @@ export default function Mode1() {
               </div>
             </CardHeader>
 
-            {/* 訊息列表 - 添加 ref 和相對定位 */}
-            <div className="flex-1 min-h-0 relative" ref={scrollAreaRef}>
+            {/* 訊息列表 - 添加 ref 和相對定位，為 PWA 添加底部 padding */}
+            <div className="flex-1 min-h-0 relative pb-[280px] md:pb-[300px]" ref={scrollAreaRef}>
               <ScrollArea className="h-full">
                 <div className="space-y-6 p-6">
                   {messages.length === 0 && (
@@ -1799,8 +1799,8 @@ export default function Mode1() {
               )}
             </div>
 
-            {/* 輸入區 - 確保固定在底部 */}
-            <div className="border-t shrink-0 bg-background sticky bottom-0">
+            {/* 輸入區 - 在 PWA/手機模式下使用 fixed 定位，避免被鍵盤切到 */}
+            <div className="border-t shrink-0 bg-background fixed bottom-0 left-0 right-0 md:sticky md:relative md:left-auto md:right-auto safe-area-bottom z-40 shadow-lg md:shadow-none" data-input-area>
               {/* 快速按鈕 */}
               <div className="border-b p-3 md:p-4 bg-muted/30">
                 <div className="flex flex-wrap gap-2 justify-center max-w-3xl mx-auto">
