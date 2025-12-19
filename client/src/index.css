@@ -29,7 +29,7 @@
   
   /* 確保 toast 按鈕在深色模式下也是白色文字 */
   .dark [data-sonner-toast] [data-sonner-toast-button] {
-    @apply text-white !important;
+    color: white !important;
   }
   
   /* 針對手機版和 PWA 的特殊樣式 */
