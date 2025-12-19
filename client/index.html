@@ -257,6 +257,26 @@
         }
       })();
     </script>
+    <!-- PWA Splash Screen Check -->
+    <script>
+      (function() {
+        // 檢查是否為 PWA 模式且首次啟動
+        const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
+                      (window.navigator).standalone === true ||
+                      document.referrer.includes('android-app://');
+        
+        // 檢查是否已經顯示過啟動畫面（避免每次刷新都顯示）
+        const splashShown = sessionStorage.getItem('splash-shown');
+        
+        if (isPWA && !splashShown && window.location.pathname === '/') {
+          // 標記已顯示過啟動畫面
+          sessionStorage.setItem('splash-shown', 'true');
+          // 跳轉到啟動畫面
+          window.location.href = '/splash.html';
+          return;
+        }
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <!-- Google Analytics / Umami -->
