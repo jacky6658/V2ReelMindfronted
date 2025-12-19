@@ -17,8 +17,9 @@
     @apply text-white;
   }
   
+  /* 確保 toast 詳細說明在深色模式下是白色 */
   .dark [data-sonner-toast] [data-sonner-description] {
-    @apply text-white/80;
+    color: rgba(255, 255, 255, 0.9) !important;
   }
   
   /* 確保 toast 按鈕在深色模式下也是白色文字 */
