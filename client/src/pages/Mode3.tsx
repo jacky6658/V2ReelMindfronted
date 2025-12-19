@@ -101,14 +101,15 @@ export default function Mode3() {
   const { user, loading: authLoading, isLoggedIn, subscription } = useAuthStore();
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
-  const isVip = subscription === 'vip';
+  // Premium 模式支持：Pro、VIP、MAX 方案
+  const supportsPremium = subscription === 'pro' || subscription === 'vip' || subscription === 'max';
   const [usePremium, setUsePremium] = useState(false);
-  const qualityMode = isVip && usePremium ? 'premium' : 'economy';
+  const qualityMode = supportsPremium && usePremium ? 'premium' : 'economy';
   
-  // 非 VIP 時強制關閉 Premium（避免送出 premium 參數）
+  // 不支持 Premium 的方案時強制關閉 Premium（避免送出 premium 參數）
   useEffect(() => {
-    if (!isVip && usePremium) setUsePremium(false);
-  }, [isVip, usePremium]);
+    if (!supportsPremium && usePremium) setUsePremium(false);
+  }, [supportsPremium, usePremium]);
   
   // 調試：在開發環境中輸出認證狀態
   if (import.meta.env.DEV) {
@@ -1134,18 +1135,18 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* 模式切換：VIP 才能開啟 Premium（方案 A） */}
+              {/* 模式切換：Pro/VIP/MAX 才能開啟 Premium */}
               <div className="flex items-center justify-between gap-4 rounded-lg border p-3">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <Label>高品質模式（VIP）</Label>
-                    {!isVip && <span className="text-xs text-muted-foreground">僅 VIP</span>}
+                    <Label>高品質模式（Premium）</Label>
+                    {!supportsPremium && <span className="text-xs text-muted-foreground">僅 Pro/VIP/MAX</span>}
                   </div>
                   <p className="text-xs text-muted-foreground">
                     開啟後會使用較高品質模型；超過本月上限會自動降級為省額度模式（不中斷）。
                   </p>
                 </div>
-                <Switch checked={usePremium} onCheckedChange={setUsePremium} disabled={!isVip} />
+                <Switch checked={usePremium} onCheckedChange={setUsePremium} disabled={!supportsPremium} />
               </div>
 
               {/* 主題或產品 */}

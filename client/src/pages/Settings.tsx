@@ -39,7 +39,7 @@ interface ModelsResponse {
 }
 
 interface PlanStatusResponse {
-  plan: 'free' | 'pro' | 'vip';
+  plan: 'free' | 'lite' | 'pro' | 'vip' | 'max';
   billing_cycle: 'none' | 'monthly' | 'yearly' | string;
   limits: {
     daily: number;
@@ -451,8 +451,13 @@ const Settings: React.FC = () => {
                     付款週期：{planStatus.billing_cycle === 'monthly' ? '月付' : planStatus.billing_cycle === 'yearly' ? '年付' : '無'}
                   </CardDescription>
                 </div>
-                <Badge variant={planStatus.plan === 'vip' ? 'default' : planStatus.plan === 'pro' ? 'secondary' : 'outline'}>
-                  {planStatus.plan.toUpperCase()}
+                <Badge variant={
+                  planStatus.plan === 'max' || planStatus.plan === 'vip' ? 'default' : 
+                  planStatus.plan === 'pro' ? 'secondary' : 
+                  planStatus.plan === 'lite' ? 'outline' : 
+                  'outline'
+                }>
+                  {planStatus.plan === 'max' ? 'MAX' : planStatus.plan.toUpperCase()}
                 </Badge>
               </div>
             </CardHeader>
@@ -463,7 +468,7 @@ const Settings: React.FC = () => {
               <div className="text-sm text-muted-foreground">
                 本月用量：<span className="font-medium text-foreground">{planStatus.usage.monthly_used}</span> / {planStatus.limits.monthly}
               </div>
-              {planStatus.plan === 'vip' && (
+              {(planStatus.plan === 'pro' || planStatus.plan === 'vip' || planStatus.plan === 'max') && (
                 <div className="text-sm text-muted-foreground">
                   Premium 本月用量：<span className="font-medium text-foreground">{planStatus.usage.premium_monthly_used}</span> / {planStatus.limits.premium_monthly}
                   {planStatus.limits.vip_premium_default_model && (
@@ -903,20 +908,31 @@ const Settings: React.FC = () => {
                   <strong className="font-bold">計算方式：</strong>每次使用 AI 生成功能時會消耗 1 次用量
                 </p>
                 <p className="leading-relaxed">
-                  <strong className="font-bold">包含範圍：</strong>包括使用 BYOK 和系統配額的所有使用
+                  <strong className="font-bold">計算範圍：</strong>BYOK + 系統 key 都算
+                </p>
+                <p className="leading-relaxed">
+                  <strong className="font-bold">包含功能：</strong>
                 </p>
                 <ul className="list-disc list-inside space-y-1 ml-2">
-                  <li>生成短影音腳本（Mode1、Mode3）</li>
-                  <li>帳號定位分析</li>
-                  <li>選題建議</li>
+                  <li>Mode1 對話（每次對話請求 = 1 次）</li>
+                  <li>Mode3 一鍵生成（帳號定位、選題推薦、腳本各 = 1 次）</li>
+                  <li>Mode1 一鍵生成（帳號定位、選題推薦、腳本各 = 1 次）</li>
                   <li>14 天規劃生成</li>
-                  <li>對話式 AI 生成</li>
                 </ul>
                 <p className="leading-relaxed pt-2">
                   <strong className="font-bold">重置時間：</strong>每日 00:00 (台灣時間) 自動重置
                 </p>
                 <p className="leading-relaxed">
-                  <strong className="font-bold">免費方案限制：</strong>每日 {planStatus?.limits.daily || 20} 次
+                  <strong className="font-bold">方案限制：</strong>
+                </p>
+                <ul className="list-disc list-inside space-y-1 ml-2">
+                  <li>免費版（Free）：每日 10 次</li>
+                  <li>輕量版（Lite）：每日 20 次</li>
+                  <li>Pro 方案：每日 300 次</li>
+                  <li>MAX 方案：每日 1,000 次</li>
+                </ul>
+                <p className="leading-relaxed pt-2">
+                  <strong className="font-bold">重要說明：</strong>無論 API 調用成功或失敗，都會計入 1 次用量
                 </p>
               </div>
             </div>
@@ -926,27 +942,34 @@ const Settings: React.FC = () => {
               <h3 className="font-semibold text-base mb-3 text-black dark:text-black font-bold">📅 本月用量</h3>
               <div className="space-y-2 text-black dark:text-black font-bold">
                 <p className="leading-relaxed">
-                  <strong className="font-bold">計算方式：</strong>累計當月所有 AI 生成次數，包括使用 BYOK 和系統配額的所有使用
+                  <strong className="font-bold">計算方式：</strong>累計當月所有 AI 生成次數
                 </p>
                 <p className="leading-relaxed">
-                  <strong className="font-bold">包含範圍：</strong>
+                  <strong className="font-bold">計算範圍：</strong>BYOK + 系統 key 都算（已修復數據一致性問題）
                 </p>
-                <ul className="list-disc list-inside space-y-1 ml-2">
-                  <li>使用您的 API Key (BYOK) 的生成次數</li>
-                  <li>使用系統配額的生成次數</li>
-                  <li>所有 AI 生成功能的使用（與今日用量相同）</li>
-                </ul>
+                <p className="leading-relaxed">
+                  <strong className="font-bold">限制檢查：</strong>僅對系統 key 使用時進行檢查（BYOK 不受系統 key 限制）
+                </p>
                 <p className="leading-relaxed pt-2">
                   <strong className="font-bold">重置時間：</strong>每月 1 日 00:00 (台灣時間) 自動重置
                 </p>
                 <p className="leading-relaxed">
-                  <strong className="font-bold">免費方案限制：</strong>每月 {planStatus?.limits.monthly || 300} 次
+                  <strong className="font-bold">方案限制：</strong>
+                </p>
+                <ul className="list-disc list-inside space-y-1 ml-2">
+                  <li>免費版（Free）：每月 100 次</li>
+                  <li>輕量版（Lite）：每月 300 次</li>
+                  <li>Pro 方案：每月 10,000 次</li>
+                  <li>MAX 方案：每月 30,000 次</li>
+                </ul>
+                <p className="leading-relaxed pt-2">
+                  <strong className="font-bold">重要說明：</strong>使用 BYOK 時，用量會計入統計，但不受系統配額限制
                 </p>
               </div>
             </div>
 
-            {/* Premium 用量（僅 VIP） */}
-            {planStatus?.plan === 'vip' && (
+            {/* Premium 用量（僅 Pro、VIP、MAX） */}
+            {(planStatus?.plan === 'pro' || planStatus?.plan === 'vip' || planStatus?.plan === 'max') && (
               <div>
                 <h3 className="font-semibold text-base mb-3 text-black dark:text-black font-bold">⭐ Premium 本月用量</h3>
                 <div className="space-y-2 text-black dark:text-black font-bold">
@@ -954,16 +977,41 @@ const Settings: React.FC = () => {
                     <strong className="font-bold">計算方式：</strong>使用高品質 Premium 模型時會消耗 Premium 用量
                   </p>
                   <p className="leading-relaxed">
-                    <strong className="font-bold">Premium 模型：</strong>使用更高品質的 AI 模型，生成內容更優質
+                    <strong className="font-bold">計算範圍：</strong>僅系統 key 的 Premium 模式使用
                   </p>
+                  <p className="leading-relaxed">
+                    <strong className="font-bold">重要限制：</strong>
+                  </p>
+                  <ul className="list-disc list-inside space-y-1 ml-2">
+                    <li>❌ <strong>不允許使用 BYOK</strong>：Premium 模式必須使用系統 key</li>
+                    <li>✅ 只有同時滿足以下條件才計入 Premium 用量：
+                      <ul className="list-disc list-inside space-y-1 ml-4 mt-1">
+                        <li>用戶選擇 Premium 模式（quality_mode='premium'）</li>
+                        <li>使用系統 API key（used_system_key=True）</li>
+                        <li>方案為 Pro、VIP 或 MAX</li>
+                      </ul>
+                    </li>
+                  </ul>
                   <p className="leading-relaxed pt-2">
                     <strong className="font-bold">重置時間：</strong>每月 1 日 00:00 (台灣時間) 自動重置
                   </p>
                   <p className="leading-relaxed">
-                    <strong className="font-bold">VIP 方案限制：</strong>每月 {planStatus?.limits.premium_monthly || 0} 次
+                    <strong className="font-bold">方案限制：</strong>
                   </p>
+                  <ul className="list-disc list-inside space-y-1 ml-2">
+                    <li>Pro 方案：每月 2,000 次（僅系統 key）</li>
+                    <li>MAX 方案：每月 5,000 次（僅系統 key）</li>
+                    <li>VIP 方案：每月 5,000 次（僅系統 key）</li>
+                  </ul>
+                  <p className="leading-relaxed pt-2">
+                    <strong className="font-bold">Premium 模型：</strong>
+                  </p>
+                  <ul className="list-disc list-inside space-y-1 ml-2">
+                    <li>VIP/MAX：gemini-2.5-flash-lite（Premium）vs gemini-2.0-flash-lite（Economy）</li>
+                    <li>Pro：gemini-2.0-flash（Premium）vs gemini-2.0-flash-lite（Economy）</li>
+                  </ul>
                   {planStatus?.limits.vip_premium_default_model && (
-                    <p className="leading-relaxed">
+                    <p className="leading-relaxed pt-2">
                       <strong className="font-bold">預設 Premium 模型：</strong>
                       <span className="font-mono ml-2">{planStatus.limits.vip_premium_default_model}</span>
                     </p>
@@ -983,13 +1031,35 @@ const Settings: React.FC = () => {
                   <strong className="font-bold">系統保底：</strong>僅在您的 API Key 不可用時（配額用盡、錯誤等），才會使用系統配額
                 </p>
                 <p className="leading-relaxed">
+                  <strong className="font-bold">使用限制：</strong>
+                </p>
+                <ul className="list-disc list-inside space-y-1 ml-2">
+                  <li>✅ <strong>Economy 模式</strong>：所有方案都可以使用 BYOK（自己的 API key）</li>
+                  <li>❌ <strong>Premium 模式</strong>：不允許使用 BYOK，必須使用系統 key</li>
+                  <li>⚠️ 只有 Pro、VIP、MAX 方案支持 Premium 模式</li>
+                </ul>
+                <p className="leading-relaxed pt-2">
                   <strong className="font-bold">用量計算：</strong>
                 </p>
                 <ul className="list-disc list-inside space-y-1 ml-2">
-                  <li>使用您的 API Key 時：<strong className="font-bold">會計入今日和本月用量</strong>（用於統計和追蹤）</li>
-                  <li>使用系統保底時：<strong className="font-bold">會計入今日和本月用量</strong>（消耗系統配額）</li>
-                  <li>所有使用都會被統計，確保用量數據的一致性</li>
+                  <li><strong>使用 BYOK（用戶自己的 key）</strong>：
+                    <ul className="list-disc list-inside space-y-1 ml-4 mt-1">
+                      <li>✅ 計入 <code className="bg-muted px-1 rounded">daily_used</code> 和 <code className="bg-muted px-1 rounded">monthly_used</code></li>
+                      <li>❌ 不計入 <code className="bg-muted px-1 rounded">premium_monthly_used</code>（Premium 模式不允許使用 BYOK）</li>
+                      <li>✅ Economy 模式可以使用</li>
+                    </ul>
+                  </li>
+                  <li><strong>使用系統 key</strong>：
+                    <ul className="list-disc list-inside space-y-1 ml-4 mt-1">
+                      <li>✅ 計入 <code className="bg-muted px-1 rounded">daily_used</code> 和 <code className="bg-muted px-1 rounded">monthly_used</code></li>
+                      <li>✅ Premium 模式下計入 <code className="bg-muted px-1 rounded">premium_monthly_used</code></li>
+                      <li>✅ 所有模式都可以使用（作為保底）</li>
+                    </ul>
+                  </li>
                 </ul>
+                <p className="leading-relaxed pt-2">
+                  <strong className="font-bold">重要說明：</strong>所有使用都會被統計，確保用量數據的一致性。使用 BYOK 時，用量會計入統計，但不受系統配額限制。
+                </p>
               </div>
             </div>
 
@@ -997,10 +1067,12 @@ const Settings: React.FC = () => {
             <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
               <h3 className="font-semibold text-base mb-2 text-blue-900 dark:text-blue-900 font-bold">💡 重要提示</h3>
               <ul className="space-y-1 text-sm text-blue-900 dark:text-blue-900 font-bold">
-                <li>• 用量統計會即時更新，您可以在這裡隨時查看</li>
-                <li>• 達到用量上限時，需要等待重置或升級方案</li>
-                <li>• 建議綁定 BYOK 以獲得更好的使用體驗和成本控制</li>
-                <li>• 所有時間均以台灣時區（Asia/Taipei）為準</li>
+                <li>• <strong>用量計算特點</strong>：無論 API 調用成功或失敗，都會計入 1 次用量（在 finally 塊中計入）</li>
+                <li>• <strong>時間計算基準</strong>：使用台灣時區（Asia/Taipei），每日重置為 0:00，每月重置為 1 日 0:00</li>
+                <li>• <strong>BYOK 使用</strong>：使用 BYOK 時，用量會計入統計，但不受系統配額限制</li>
+                <li>• <strong>Premium 模式</strong>：僅 Pro、VIP、MAX 方案支持，且不允許使用 BYOK，必須使用系統 key</li>
+                <li>• <strong>用量統計</strong>：會即時更新，您可以在這裡隨時查看</li>
+                <li>• <strong>達到上限</strong>：需要等待重置或升級方案</li>
               </ul>
             </div>
           </div>

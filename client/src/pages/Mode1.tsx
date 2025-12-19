@@ -297,9 +297,10 @@ export default function Mode1() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, isLoggedIn, loading: authLoading, subscription } = useAuthStore();
-  const isVip = subscription === 'vip';
+  // Premium 模式支持：Pro、VIP、MAX 方案
+  const supportsPremium = subscription === 'pro' || subscription === 'vip' || subscription === 'max';
   const [usePremium, setUsePremium] = useState(false);
-  const qualityMode = isVip && usePremium ? 'premium' : 'economy';
+  const qualityMode = supportsPremium && usePremium ? 'premium' : 'economy';
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -328,10 +329,10 @@ export default function Mode1() {
   const [uploadingFile, setUploadingFile] = useState(false);
   const [fetchingUrl, setFetchingUrl] = useState(false);
 
-  // 非 VIP 時強制關閉 Premium（避免送出 premium 參數）
+  // 不支持 Premium 的方案時強制關閉 Premium（避免送出 premium 參數）
   useEffect(() => {
-    if (!isVip && usePremium) setUsePremium(false);
-  }, [isVip, usePremium]);
+    if (!supportsPremium && usePremium) setUsePremium(false);
+  }, [supportsPremium, usePremium]);
 
   // 快速按鈕
   const quickButtons = [
@@ -1550,11 +1551,11 @@ export default function Mode1() {
               <div className="flex items-center justify-between pt-2">
                 <div className="text-xs text-muted-foreground">
                   模式：{qualityMode === 'premium' ? '高品質' : '省額度'}
-                  {!isVip && <span className="ml-2">（高品質僅 VIP）</span>}
+                  {!supportsPremium && <span className="ml-2">（高品質僅 Pro/VIP/MAX）</span>}
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs">高品質（VIP）</span>
-                  <Switch checked={usePremium} onCheckedChange={setUsePremium} disabled={!isVip} />
+                  <span className="text-xs">高品質（Premium）</span>
+                  <Switch checked={usePremium} onCheckedChange={setUsePremium} disabled={!supportsPremium} />
                 </div>
               </div>
             </CardHeader>

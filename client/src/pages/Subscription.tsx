@@ -14,7 +14,16 @@ import {
   Shield,
   CreditCard,
   Mail,
-  ArrowLeft
+  ArrowLeft,
+  Calendar,
+  Target,
+  FileText,
+  MessageSquare,
+  BarChart,
+  Key,
+  Package,
+  Star,
+  TrendingUp
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { apiPost } from '@/lib/api-client';
@@ -197,7 +206,7 @@ export default function Subscription() {
               </div>
               <CardTitle className="text-2xl mb-2">Lite 方案</CardTitle>
               <CardDescription className="text-base">
-                我已經有金鑰，只想用一個順手的創作工具
+                適合已有 AI 金鑰的創作者，每日 20 次生成額度
               </CardDescription>
               
               {/* Price */}
@@ -220,23 +229,28 @@ export default function Subscription() {
               {/* Features */}
               <div className="space-y-3 flex-1">
                 {[
-                  '需要綁定自己的 Gemini 金鑰',
-                  '日曆排程 / 選題管理',
-                  'AI 人設規劃',
-                  '單篇生成',
-                  '使用次數：依你的金鑰額度為準',
-                  '平台保底：0 次 / 月',
-                  '批次生成：✖',
-                  'AI 智能分析：✖',
-                  '平台保底：✖'
-                ].map((feature, index) => (
-                  <div key={index} className="flex items-start gap-3">
-                    <div className="mt-0.5">
-                      <Check className="w-5 h-5 text-green-600 dark:text-green-400" />
+                  { icon: Sparkles, text: '所有核心功能完整開放' },
+                  { icon: Calendar, text: '14 天內容規劃日曆（一次規劃 = 1 次）' },
+                  { icon: Target, text: 'AI 人設定位與選題建議（每次生成 = 1 次）' },
+                  { icon: FileText, text: '短影音腳本一鍵生成（每次生成 = 1 次）' },
+                  { icon: MessageSquare, text: 'AI 對話式內容規劃（每次對話 = 1 次）' },
+                  { icon: BarChart, text: '每日可用 20 次（約可生成 20 個腳本）' },
+                  { icon: BarChart, text: '每月可用 300 次（約可生成 300 個腳本）' },
+                  { icon: Key, text: '可使用自己的 AI 金鑰（省成本，不計入平台配額）' },
+                  { icon: Shield, text: '平台提供備用配額（金鑰故障時自動切換，不中斷）' },
+                  { icon: Zap, text: '高品質模式：不支援' },
+                  { icon: Package, text: '批次生成：不支援' }
+                ].map((feature, index) => {
+                  const IconComponent = feature.icon;
+                  return (
+                    <div key={index} className="flex items-start gap-3">
+                      <div className="mt-0.5">
+                        <IconComponent className="w-5 h-5 text-green-600 dark:text-green-400" />
+                      </div>
+                      <span className="text-foreground">{feature.text}</span>
                     </div>
-                    <span className="text-foreground">{feature}</span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* CTA Button */}
@@ -272,7 +286,7 @@ export default function Subscription() {
               </div>
               <CardTitle className="text-2xl mb-2">Pro 方案</CardTitle>
               <CardDescription className="text-base">
-                我想穩定產出，不想被額度卡住
+                適合專業創作者，每日 300 次 + 高品質模式 2,000 次/月
               </CardDescription>
               
               {/* Price */}
@@ -295,22 +309,28 @@ export default function Subscription() {
               {/* Features */}
               <div className="space-y-3 flex-1">
                 {[
-                  '建議綁定自己的 Gemini 金鑰',
-                  '平台保底（單篇生成）：每月 10 次',
-                  '日曆排程 / 選題管理',
-                  'AI 人設規劃',
-                  '單篇生成',
-                  '使用次數：自帶金鑰依你的額度；平台保底依每月 10 次',
-                  '批次生成：✖',
-                  'AI 智能分析：✖'
-                ].map((feature, index) => (
-                  <div key={index} className="flex items-start gap-3">
-                    <div className="mt-0.5">
-                      <Check className="w-5 h-5 text-primary" />
+                  { icon: Sparkles, text: '所有核心功能完整開放' },
+                  { icon: Calendar, text: '14 天內容規劃日曆（一次規劃 = 1 次）' },
+                  { icon: Target, text: 'AI 人設定位與選題建議（每次生成 = 1 次）' },
+                  { icon: FileText, text: '短影音腳本一鍵生成（每次生成 = 1 次）' },
+                  { icon: MessageSquare, text: 'AI 對話式內容規劃（每次對話 = 1 次）' },
+                  { icon: BarChart, text: '每日可用 300 次（約可生成 300 個腳本）' },
+                  { icon: BarChart, text: '每月可用 10,000 次（約可生成 10,000 個腳本）' },
+                  { icon: Key, text: '可使用自己的 AI 金鑰（省成本，不計入平台配額）' },
+                  { icon: Shield, text: '平台提供備用配額（金鑰故障時自動切換，不中斷）' },
+                  { icon: Star, text: '高品質模式：每月 2,000 次（內容更優質，自動降級不中斷）' },
+                  { icon: Package, text: '批次生成：不支援' }
+                ].map((feature, index) => {
+                  const IconComponent = feature.icon;
+                  return (
+                    <div key={index} className="flex items-start gap-3">
+                      <div className="mt-0.5">
+                        <IconComponent className="w-5 h-5 text-primary" />
+                      </div>
+                      <span className="text-foreground">{feature.text}</span>
                     </div>
-                    <span className="text-foreground">{feature}</span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* CTA Button */}
@@ -362,7 +382,7 @@ export default function Subscription() {
               </div>
               <CardTitle className="text-2xl mb-2">Max 方案</CardTitle>
               <CardDescription className="text-base">
-                你幫我包好，我只管用
+                適合團隊或大量產出，每日 1,000 次 + 高品質模式 5,000 次/月
               </CardDescription>
               
               {/* Price */}
@@ -385,22 +405,29 @@ export default function Subscription() {
               {/* Features */}
               <div className="space-y-3 flex-1">
                 {[
-                  '不需要綁定金鑰（平台已提供）',
-                  '日曆排程 / 選題管理',
-                  'AI 人設規劃',
-                  '單篇生成',
-                  '使用次數：每日 1,000 次 / 每月 30,000 次',
-                  '高品質模式：每月 5,000 次（超過自動降級，服務不中斷）',
-                  '批次生成：有上限（可加購）',
-                  'AI 智能分析：有上限（可加購）'
-                ].map((feature, index) => (
-                  <div key={index} className="flex items-start gap-3">
-                    <div className="mt-0.5">
-                      <Check className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                  { icon: Sparkles, text: '所有核心功能完整開放' },
+                  { icon: Calendar, text: '14 天內容規劃日曆（一次規劃 = 1 次）' },
+                  { icon: Target, text: 'AI 人設定位與選題建議（每次生成 = 1 次）' },
+                  { icon: FileText, text: '短影音腳本一鍵生成（每次生成 = 1 次）' },
+                  { icon: MessageSquare, text: 'AI 對話式內容規劃（每次對話 = 1 次）' },
+                  { icon: BarChart, text: '每日可用 1,000 次（約可生成 1,000 個腳本）' },
+                  { icon: BarChart, text: '每月可用 30,000 次（約可生成 30,000 個腳本）' },
+                  { icon: Key, text: '可使用自己的 AI 金鑰（省成本，不計入平台配額）' },
+                  { icon: Shield, text: '平台提供完整配額（無需綁定金鑰也能用，開箱即用）' },
+                  { icon: Star, text: '高品質模式：每月 5,000 次（內容更優質，自動降級不中斷）' },
+                  { icon: Package, text: '批次生成：支援（可加購擴充，一次生成多個腳本）' },
+                  { icon: TrendingUp, text: 'AI 智能分析：支援（可加購擴充，數據洞察與優化建議）' }
+                ].map((feature, index) => {
+                  const IconComponent = feature.icon;
+                  return (
+                    <div key={index} className="flex items-start gap-3">
+                      <div className="mt-0.5">
+                        <IconComponent className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                      </div>
+                      <span className="text-foreground">{feature.text}</span>
                     </div>
-                    <span className="text-foreground">{feature}</span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* CTA Button */}
