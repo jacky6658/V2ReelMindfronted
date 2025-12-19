@@ -5,6 +5,7 @@
  */
 
 import { useState, useMemo, useCallback, memo, useEffect } from 'react';
+import { flushSync } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -336,6 +337,19 @@ export default function Mode3() {
     }
   }, [formData, results, generationStatus, currentStep, user?.user_id]);
 
+  // 監聽步驟變化，確保渲染正確（特別針對電腦版、iOS 和 Android 的渲染問題）
+  useEffect(() => {
+    console.log('[Mode3] 步驟變化:', currentStep);
+    // 當步驟切換到 3 時，確保 DOM 已更新
+    if (currentStep === 3) {
+      // 使用 requestAnimationFrame 確保 DOM 更新完成
+      requestAnimationFrame(() => {
+        // 觸發一次滾動，強制瀏覽器重新計算布局（有助於解決某些渲染問題）
+        window.scrollTo({ top: window.scrollY, behavior: 'auto' });
+      });
+    }
+  }, [currentStep]);
+
   // 使用 useMemo 優化當前結果內容
   const currentResult = useMemo(() => {
     const result = results[activeResultTab as keyof typeof results] || '';
@@ -469,9 +483,25 @@ export default function Mode3() {
       localStorage.setItem(getStorageKey(), JSON.stringify(cached));
     }
     
-    // 先跳到步驟3並設置loading，確保動畫立即顯示
-    setCurrentStep(3);
-    setLoading(true);
+    // 確保步驟已經切換到 3（如果還沒有）
+    // 使用 flushSync 強制同步更新，確保所有平台（包括電腦版）都能立即看到步驟切換
+    // 注意：按鈕點擊時已經設置了，這裡再次確保（防止直接調用 handleGenerate 的情況）
+    console.log('[Mode3] handleGenerate 開始，當前步驟:', currentStep);
+    flushSync(() => {
+      console.log('[Mode3] handleGenerate flushSync 設置步驟 3');
+      setCurrentStep(3);
+      setLoading(true);
+    });
+    
+    // 等待兩幀確保 DOM 更新完成（特別針對電腦版、iOS 和 Android 的渲染問題）
+    await new Promise(resolve => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          console.log('[Mode3] handleGenerate DOM 更新完成');
+          resolve(undefined);
+        });
+      });
+    });
     
     try {
       // 生成帳號定位
@@ -575,6 +605,12 @@ export default function Mode3() {
             script: false
           });
           return; 
+      }
+      
+      // 如果發生錯誤，確保步驟切換到步驟 3（顯示結果頁面，即使有錯誤）
+      // 這樣用戶可以看到部分生成的結果或錯誤訊息
+      if (currentStep !== 3) {
+        setCurrentStep(3);
       }
     } finally {
       setLoading(false);
@@ -1446,7 +1482,26 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
                 <Button onClick={goToPrevStep} variant="outline">
                   上一步
                 </Button>
-                <Button onClick={handleGenerate} disabled={loading}>
+                <Button 
+                  onClick={async () => {
+                    // 使用 flushSync 強制同步更新狀態，確保所有平台都能立即看到步驟切換
+                    flushSync(() => {
+                      setCurrentStep(3);
+                      setLoading(true);
+                    });
+                    // 等待兩幀確保 DOM 更新完成（特別針對電腦版、iOS 和 Android 的渲染問題）
+                    await new Promise(resolve => {
+                      requestAnimationFrame(() => {
+                        requestAnimationFrame(() => {
+                          resolve(undefined);
+                        });
+                      });
+                    });
+                    // 然後執行生成邏輯
+                    await handleGenerate();
+                  }}
+                  disabled={loading}
+                >
                   {loading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
