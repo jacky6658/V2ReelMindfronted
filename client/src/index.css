@@ -3,6 +3,30 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Toast 通知樣式 - 確保深色模式下文字為白色 */
+@layer components {
+  [data-sonner-toast] {
+    @apply text-popover-foreground;
+  }
+  
+  [data-sonner-toast] [data-sonner-description] {
+    @apply text-popover-foreground/80;
+  }
+  
+  .dark [data-sonner-toast] {
+    @apply text-white;
+  }
+  
+  .dark [data-sonner-toast] [data-sonner-description] {
+    @apply text-white/80;
+  }
+  
+  /* 確保 toast 按鈕在深色模式下也是白色文字 */
+  .dark [data-sonner-toast] [data-sonner-toast-button] {
+    @apply text-white;
+  }
+}
+
 /* iOS Safe Area Support for PWA */
 @supports (padding: max(0px)) {
   :root {
