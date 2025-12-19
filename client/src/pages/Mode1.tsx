@@ -113,48 +113,140 @@ function formatInlineMarkdown(text: string): (string | JSX.Element)[] {
 }
 
 // 格式化文字：將 Markdown 符號轉換為 HTML 格式
-// 支援 **粗體**、*斜體*、## 標題、### 標題等
+// 支援 **粗體**、*斜體*、## 標題、### 標題、表格等
 const FormatText = memo(({ content }: { content: string }) => {
   const formattedContent = useMemo(() => {
     const lines = content.split('\n');
     const result: JSX.Element[] = [];
+    let tableRows: string[] = [];
+    let isInTable = false;
+    let tableStartIndex = -1;
     
-    lines.forEach((line, lineIndex) => {
-      // 處理標題（## 或 ### 開頭的行）
-      const headingMatch = line.match(/^(#{2,3})\s+(.+)$/);
-      if (headingMatch) {
-        const level = headingMatch[1].length;
-        const text = headingMatch[2];
-        const HeadingTag = level === 2 ? 'h2' : 'h3';
-        result.push(
-          <HeadingTag 
-            key={`line-${lineIndex}`} 
-            className={`font-bold ${level === 2 ? 'text-xl mt-4 mb-2' : 'text-lg mt-3 mb-1'}`}
-          >
-            {formatInlineMarkdown(text)}
-          </HeadingTag>
-        );
-        return;
+    const renderTable = (rows: string[], startIndex: number) => {
+      if (rows.length === 0) return null;
+      
+      // 找到分隔符位置（通常在第二行）
+      let headerEndIndex = 0;
+      for (let i = 1; i < rows.length; i++) {
+        const trimmed = rows[i].trim();
+        if (/^\|[\s\-:]+\|$/.test(trimmed)) {
+          headerEndIndex = i;
+          break;
+        }
       }
       
-      // 處理普通行（包含粗體和斜體）
-      if (line.trim()) {
-        result.push(
-          <div key={`line-${lineIndex}`}>
-            {formatInlineMarkdown(line)}
-          </div>
-        );
+      const headerRows = headerEndIndex > 0 ? rows.slice(0, headerEndIndex) : [];
+      const bodyRows = headerEndIndex > 0 ? rows.slice(headerEndIndex + 1) : rows;
+      
+      return (
+        <div key={`table-${startIndex}`} className="my-4 overflow-x-auto">
+          <table className="min-w-full border-collapse border border-border dark:border-border/50 bg-card dark:bg-card/50 text-black dark:text-black font-bold">
+            {headerRows.length > 0 && (
+              <thead className="bg-muted/30 dark:bg-muted/20">
+                {headerRows.map((row, rowIndex) => {
+                  const cells = row.split('|').map(c => c.trim()).filter(c => c);
+                  return (
+                    <tr key={`header-${rowIndex}`} className="border-b border-border dark:border-border/50">
+                      {cells.map((cell, cellIndex) => (
+                        <th key={cellIndex} className="border border-border dark:border-border/50 px-4 py-2 text-left font-bold">
+                          {formatInlineMarkdown(cell)}
+                        </th>
+                      ))}
+                    </tr>
+                  );
+                })}
+              </thead>
+            )}
+            <tbody>
+              {bodyRows.map((row, rowIndex) => {
+                const cells = row.split('|').map(c => c.trim()).filter(c => c);
+                return (
+                  <tr key={`row-${rowIndex}`} className="border-b border-border dark:border-border/50 hover:bg-muted/30 dark:hover:bg-muted/20">
+                    {cells.map((cell, cellIndex) => (
+                      <td key={cellIndex} className="border border-border dark:border-border/50 px-4 py-2">
+                        {formatInlineMarkdown(cell)}
+                      </td>
+                    ))}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      );
+    };
+    
+    lines.forEach((line, lineIndex) => {
+      const trimmedLine = line.trim();
+      const isTableRow = /^\|.+\|$/.test(trimmedLine);
+      const isTableSeparator = /^\|[\s\-:]+\|$/.test(trimmedLine);
+      
+      if (isTableRow || isTableSeparator) {
+        // 表格行
+        if (!isInTable) {
+          // 開始新表格
+          isInTable = true;
+          tableStartIndex = lineIndex;
+          tableRows = [];
+        }
+        tableRows.push(trimmedLine);
       } else {
-        // 空行
-        result.push(<br key={`line-${lineIndex}`} />);
+        // 非表格行
+        if (isInTable) {
+          // 結束表格
+          const tableElement = renderTable(tableRows, tableStartIndex);
+          if (tableElement) {
+            result.push(tableElement);
+          }
+          isInTable = false;
+          tableRows = [];
+          tableStartIndex = -1;
+        }
+        
+        // 處理標題（## 或 ### 開頭的行）
+        const headingMatch = line.match(/^(#{2,3})\s+(.+)$/);
+        if (headingMatch) {
+          const level = headingMatch[1].length;
+          const text = headingMatch[2];
+          const HeadingTag = level === 2 ? 'h2' : 'h3';
+          result.push(
+            <HeadingTag 
+              key={`line-${lineIndex}`} 
+              className={`font-bold text-black dark:text-black ${level === 2 ? 'text-xl mt-4 mb-2' : 'text-lg mt-3 mb-1'}`}
+            >
+              {formatInlineMarkdown(text)}
+            </HeadingTag>
+          );
+          return;
+        }
+        
+        // 處理普通行（包含粗體和斜體）
+        if (line.trim()) {
+          result.push(
+            <div key={`line-${lineIndex}`} className="text-black dark:text-black font-bold">
+              {formatInlineMarkdown(line)}
+            </div>
+          );
+        } else {
+          // 空行
+          result.push(<br key={`line-${lineIndex}`} />);
+        }
       }
     });
+    
+    // 處理最後的表格（如果內容以表格結尾）
+    if (isInTable && tableRows.length > 0) {
+      const tableElement = renderTable(tableRows, tableStartIndex);
+      if (tableElement) {
+        result.push(tableElement);
+      }
+    }
     
     return result;
   }, [content]);
   
   return (
-    <div className="break-words">
+    <div className="break-words text-black dark:text-black font-bold">
       {formattedContent}
     </div>
   );
@@ -631,9 +723,15 @@ export default function Mode1() {
   const detectCategory = (userMessage: string, aiResponse: string): 'positioning' | 'topics' | 'planning' | 'script' => {
     const combinedText = (userMessage + ' ' + aiResponse).toLowerCase();
     
+    // #region agent log
+    const hasTable = /\|.+\|/.test(aiResponse);
+    fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Mode1.tsx:723',message:'開始分類檢測',data:{userMessage:userMessage.substring(0,50),aiResponseLength:aiResponse.length,hasTable:hasTable,combinedTextPreview:combinedText.substring(0,100)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'CATEGORY'})}).catch(()=>{});
+    // #endregion
+    
     console.log('[Mode1] 分類檢測:', {
       userMessage: userMessage.substring(0, 50),
-      combinedText: combinedText.substring(0, 100)
+      combinedText: combinedText.substring(0, 100),
+      hasTable: /\|.+\|/.test(aiResponse)
     });
     
     // 1. 檢測腳本相關關鍵字（優先級最高）
@@ -649,9 +747,14 @@ export default function Mode1() {
     // 2. 檢測 14天規劃相關關鍵字（需要明確包含14天）
     const planningKeywords = [
       '14天', '14 天', '14天規劃', '14 天規劃', '14天內容', '14 天內容',
-      'planning', '十四天', '十四 天', '兩週', '兩周', '14日', '14 日'
+      'planning', '十四天', '十四 天', '兩週', '兩周', '14日', '14 日',
+      '14 天短影音', '14天短影音', '14 天內容規劃', '14天內容規劃'
     ];
-    if (planningKeywords.some(keyword => combinedText.includes(keyword))) {
+    const matchedPlanningKeyword = planningKeywords.find(keyword => combinedText.includes(keyword));
+    if (matchedPlanningKeyword) {
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Mode1.tsx:746',message:'檢測到 14 天規劃關鍵字',data:{matchedKeyword:matchedPlanningKeyword,hasTable:hasTable},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'CATEGORY'})}).catch(()=>{});
+      // #endregion
       console.log('[Mode1] 分類結果: planning (14天規劃)');
       return 'planning';
     }
@@ -677,8 +780,21 @@ export default function Mode1() {
     }
     
     // 5. 改進預設值邏輯：根據 AI 回應的結構判斷
+    // 如果 AI 回應包含表格且包含「天」或「day」，可能是 14 天規劃
+    const hasDayPattern = /\d+[天日]|day\s*\d+|第\s*\d+[天日]/i.test(aiResponse);
+    if (hasTable && hasDayPattern) {
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Mode1.tsx:773',message:'根據表格和天數模式識別為 14 天規劃',data:{hasTable:hasTable,hasDayPattern:hasDayPattern},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'CATEGORY'})}).catch(()=>{});
+      // #endregion
+      console.log('[Mode1] 分類結果: planning (根據表格和天數模式)');
+      return 'planning';
+    }
+    
     // 如果 AI 回應包含「第 X 天」或「Day X」，可能是規劃
-    if (/\d+[天日]|day\s*\d+/i.test(aiResponse)) {
+    if (/\d+[天日]|day\s*\d+|第\s*\d+[天日]/i.test(aiResponse)) {
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Mode1.tsx:779',message:'根據 AI 回應結構識別為 14 天規劃',data:{hasDayPattern:hasDayPattern},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'CATEGORY'})}).catch(()=>{});
+      // #endregion
       console.log('[Mode1] 分類結果: planning (根據 AI 回應結構)');
       return 'planning';
     }
@@ -696,6 +812,10 @@ export default function Mode1() {
 
   // 自動儲存結果（改進：自動保存到資料庫）
   const autoSaveResult = async (content: string, category: 'positioning' | 'topics' | 'planning' | 'script') => {
+    // #region agent log
+    fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Mode1.tsx:790',message:'自動儲存結果',data:{category:category,contentLength:content.length,isPlanning:category === 'planning'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'AUTO_SAVE'})}).catch(()=>{});
+    // #endregion
+    
     const categoryTitles: Record<'positioning' | 'topics' | 'planning' | 'script', string> = {
       'positioning': '帳號定位',
       'topics': '選題方向',
@@ -746,16 +866,24 @@ export default function Mode1() {
           content: newResult.content,
           metadata: {
             source: 'mode1',
-            category: category,
+            category: category,  // 重要：確保 14天規劃的 category 是 'planning'
             timestamp: newResult.timestamp.toISOString(),
             auto_saved: true // 標記為自動保存
           }
         };
         
+        // #region agent log
+        fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Mode1.tsx:742',message:'自動保存到資料庫',data:{category:category,resultType:result_type,metadataCategory:savePayload.metadata.category,isPlanning:category === 'planning',title:newResult.title.substring(0,50)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'AUTO_SAVE'})}).catch(()=>{});
+        // #endregion
+        
         console.log('[Mode1 AutoSave] 自動保存到資料庫:', savePayload);
         
         // 靜默保存，不顯示錯誤（除非是網絡錯誤）
         await apiPost('/api/ip-planning/save', savePayload);
+        
+        // #region agent log
+        fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Mode1.tsx:758',message:'自動保存成功',data:{category:category,resultType:result_type},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'AUTO_SAVE'})}).catch(()=>{});
+        // #endregion
         
         console.log('[Mode1 AutoSave] 自動保存成功');
         
@@ -854,7 +982,7 @@ export default function Mode1() {
       };
 
       // #region agent log
-      fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Mode1.tsx:857',message:'開始流式請求',data:{endpoint:endpoint,userId:user?.user_id,qualityMode:qualityMode,messageLength:userMessage.content.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+      fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Mode1.tsx:857',message:'開始流式請求（修復後驗證）',data:{endpoint:endpoint,userId:user?.user_id,qualityMode:qualityMode,messageLength:userMessage.content.length},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'VERIFY'})}).catch(()=>{});
       // #endregion
       
       // 使用流式 API
@@ -883,7 +1011,13 @@ export default function Mode1() {
         },
         (error: any) => {
           // #region agent log
-          fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Mode1.tsx:880',message:'流式請求錯誤回調',data:{errorType:error?.constructor?.name,errorMessage:error?.message,errorContent:error?.content,errorCode:error?.error_code,hasResponse:!!error?.response,responseStatus:error?.response?.status},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+          const hasBackendBug = error?.message?.includes("cannot access local variable 'error_msg'") || 
+                                error?.message?.includes("cannot access local variable 'chat'") ||
+                                error?.message?.includes("cannot access free variable 'chat'") ||
+                                error?.content?.includes("cannot access local variable 'error_msg'") ||
+                                error?.content?.includes("cannot access local variable 'chat'") ||
+                                error?.content?.includes("cannot access free variable 'chat'");
+          fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Mode1.tsx:884',message:'流式請求錯誤回調（修復後驗證）',data:{errorType:error?.constructor?.name,errorMessage:error?.message,errorContent:error?.content,errorCode:error?.error_code,hasResponse:!!error?.response,responseStatus:error?.response?.status,hasBackendBug:hasBackendBug,backendFixed:!hasBackendBug},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'VERIFY'})}).catch(()=>{});
           // #endregion
           
           console.error('流式請求錯誤:', error);
@@ -898,14 +1032,17 @@ export default function Mode1() {
                               (typeof error === 'string' ? error : '生成失敗，請稍後再試');
           
           // #region agent log
-          fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Mode1.tsx:893',message:'錯誤訊息提取結果',data:{extractedMessage:errorMessage,hasErrorMsgBug:errorMessage.includes("cannot access local variable 'error_msg'"),hasChatBug:errorMessage.includes("cannot access local variable 'chat'") || errorMessage.includes("cannot access free variable 'chat'")},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+          const detectedErrorMsgBug = errorMessage.includes("cannot access local variable 'error_msg'");
+          const detectedChatBug = errorMessage.includes("cannot access local variable 'chat'") || errorMessage.includes("cannot access free variable 'chat'");
+          fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Mode1.tsx:893',message:'錯誤訊息提取結果（修復後驗證）',data:{extractedMessage:errorMessage,detectedErrorMsgBug:detectedErrorMsgBug,detectedChatBug:detectedChatBug,backendFixed:!detectedErrorMsgBug && !detectedChatBug},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'VERIFY'})}).catch(()=>{});
           // #endregion
           
           // 清理錯誤訊息，移除可能的技術性錯誤訊息
           const cleanedErrorMessage = errorMessage.replace(/cannot access local variable 'error_msg' where it is not associated with a value/i, '伺服器處理錯誤，請稍後再試').replace(/cannot access (local variable|free variable) 'chat' where it is not associated with a value/i, '伺服器處理錯誤，請稍後再試');
           
           // #region agent log
-          fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Mode1.tsx:897',message:'錯誤訊息清理結果',data:{cleanedMessage:cleanedErrorMessage,wasCleaned:cleanedErrorMessage !== errorMessage},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+          const wasCleaned = cleanedErrorMessage !== errorMessage;
+          fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Mode1.tsx:905',message:'錯誤訊息清理結果（修復後驗證）',data:{cleanedMessage:cleanedErrorMessage,wasCleaned:wasCleaned,backendFixed:!wasCleaned},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'VERIFY'})}).catch(()=>{});
           // #endregion
           
           const isQuotaError = cleanedErrorMessage.includes('配額') || 
@@ -916,7 +1053,7 @@ export default function Mode1() {
                                error?.is_quota_error === true;
           
           // #region agent log
-          fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Mode1.tsx:902',message:'錯誤分類',data:{isQuotaError:isQuotaError,responseStatus:error?.response?.status,errorType:error?.constructor?.name},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+          fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Mode1.tsx:911',message:'錯誤分類（修復後驗證）',data:{isQuotaError:isQuotaError,responseStatus:error?.response?.status,errorType:error?.constructor?.name},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'VERIFY'})}).catch(()=>{});
           // #endregion
           
           // 處理 403 錯誤 (權限不足/試用期已過)
@@ -954,7 +1091,7 @@ export default function Mode1() {
           } 
           else {
             // #region agent log
-            fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Mode1.tsx:937',message:'顯示通用錯誤',data:{finalMessage:cleanedErrorMessage},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+            fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Mode1.tsx:937',message:'顯示通用錯誤（修復後驗證）',data:{finalMessage:cleanedErrorMessage},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'VERIFY'})}).catch(()=>{});
             // #endregion
             
             // 使用清理後的錯誤訊息
@@ -964,6 +1101,10 @@ export default function Mode1() {
           }
         },
         () => {
+          // #region agent log
+          fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Mode1.tsx:942',message:'流式請求完成（修復後驗證）',data:{success:true,assistantMessageLength:assistantMessage.length},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'VERIFY'})}).catch(()=>{});
+          // #endregion
+          
           setIsLoading(false);
           
           // 如果檢測到儲存意圖，自動儲存結果
@@ -976,6 +1117,10 @@ export default function Mode1() {
             });
             autoSaveResult(assistantMessage, category);
             // 如果是 14 天規劃，確保切換到正確的標籤頁
+            // #region agent log
+            fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Mode1.tsx:992',message:'檢測到儲存意圖',data:{category:category,isPlanning:category === 'planning',contentPreview:content.substring(0,100)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'DETECT'})}).catch(()=>{});
+            // #endregion
+            
             if (category === 'planning') {
               setResultTab('planning');
               toast.info('14 天規劃已自動儲存到生成結果，請點擊「生成結果」查看「14天規劃」標籤頁。', { duration: 5000 });
@@ -1275,14 +1420,22 @@ export default function Mode1() {
         content: result.content,
         metadata: {
           source: 'mode1',        // 標記來源為 IP人設規劃功能
-          category: result.category,  // 保存原始 category 用於區分
+          category: result.category,  // 保存原始 category 用於區分（重要：14天規劃必須是 'planning'）
           timestamp: result.timestamp.toISOString()
         }
       };
       
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Mode1.tsx:1376',message:'準備儲存到 UserDB',data:{category:result.category,resultType:result_type,title:result.title.substring(0,50),metadataCategory:savePayload.metadata.category,isPlanning:result.category === 'planning'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'SAVE'})}).catch(()=>{});
+      // #endregion
+      
       console.log('[Mode1 Save] 發送儲存請求:', savePayload);
       
       await apiPost('/api/ip-planning/save', savePayload);
+      
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Mode1.tsx:1390',message:'儲存成功',data:{category:result.category,resultType:result_type},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'SAVE'})}).catch(()=>{});
+      // #endregion
       
       console.log('[Mode1 Save] 儲存成功');
 
