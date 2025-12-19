@@ -1168,7 +1168,7 @@ const Profile: React.FC = () => {
                             </div>
                             <div className="text-center">
                               <p className="text-2xl font-bold text-primary">{referralStats.rewards}</p>
-                              <p className="text-sm text-muted-foreground">累積獎勵</p>
+                              <p className="text-sm text-muted-foreground">累積獎勵（次數）</p>
                             </div>
                           </div>
                         )}
