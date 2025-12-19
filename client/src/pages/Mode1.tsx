@@ -41,6 +41,26 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 import ThinkingAnimation from '@/components/ThinkingAnimation';
 
+// 用量狀態接口
+interface PlanStatusResponse {
+  plan: 'free' | 'lite' | 'pro' | 'vip' | 'max';
+  billing_cycle: 'none' | 'monthly' | 'yearly' | string;
+  limits: {
+    daily: number;
+    monthly: number;
+    premium_monthly: number;
+    vip_premium_default_model?: string;
+    premium_byok_allowed?: boolean;
+  };
+  usage: {
+    day: string;
+    month: string;
+    daily_used: number;
+    monthly_used: number;
+    premium_monthly_used: number;
+  };
+}
+
 // 處理行內 Markdown（粗體、斜體）
 function formatInlineMarkdown(text: string): (string | JSX.Element)[] {
   const parts: (string | JSX.Element)[] = [];
@@ -328,11 +348,61 @@ export default function Mode1() {
   const [contextSource, setContextSource] = useState<{ type: 'file' | 'url'; name: string } | null>(null); // 上下文來源資訊
   const [uploadingFile, setUploadingFile] = useState(false);
   const [fetchingUrl, setFetchingUrl] = useState(false);
+  const [planStatus, setPlanStatus] = useState<PlanStatusResponse | null>(null);
 
   // 不支持 Premium 的方案時強制關閉 Premium（避免送出 premium 參數）
   useEffect(() => {
     if (!supportsPremium && usePremium) setUsePremium(false);
   }, [supportsPremium, usePremium]);
+
+  // 載入用量狀態
+  const loadPlanStatus = async () => {
+    try {
+      const data = await apiGet<PlanStatusResponse>('/api/user/plan-status');
+      setPlanStatus(data);
+    } catch (error) {
+      console.error('[Mode1] 載入用量狀態失敗:', error);
+      // 不顯示錯誤，因為這不是關鍵功能
+    }
+  };
+
+  // 在用戶登入時載入用量狀態
+  useEffect(() => {
+    if (user?.user_id && !authLoading) {
+      loadPlanStatus();
+    }
+  }, [user?.user_id, authLoading]);
+
+  // 檢查用量是否已達上限
+  const checkUsageLimit = (): { canUse: boolean; message: string; type: 'daily' | 'monthly' | null } => {
+    if (!planStatus) {
+      // 如果無法獲取用量狀態，允許使用（由後端檢查）
+      return { canUse: true, message: '', type: null };
+    }
+
+    const { daily_used, monthly_used } = planStatus.usage;
+    const { daily, monthly } = planStatus.limits;
+
+    // 檢查今日用量
+    if (daily_used >= daily) {
+      return {
+        canUse: false,
+        message: `您今日的使用次數已達上限（${daily_used}/${daily} 次）。請明天再試或升級方案以獲得更多用量。`,
+        type: 'daily'
+      };
+    }
+
+    // 檢查本月用量（僅對系統 key 使用時檢查，但前端無法區分，所以統一檢查）
+    if (monthly_used >= monthly) {
+      return {
+        canUse: false,
+        message: `您本月的使用次數已達上限（${monthly_used}/${monthly} 次）。請等待下個月重置或升級方案以獲得更多用量。`,
+        type: 'monthly'
+      };
+    }
+
+    return { canUse: true, message: '', type: null };
+  };
 
   // 快速按鈕
   const quickButtons = [
@@ -934,6 +1004,20 @@ export default function Mode1() {
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
 
+    // 檢查用量是否已達上限
+    const usageCheck = checkUsageLimit();
+    if (!usageCheck.canUse) {
+      toast.error('⚠️ 用量已達上限', {
+        description: usageCheck.message,
+        duration: 8000,
+        action: {
+          label: '查看用量',
+          onClick: () => navigate('/settings')
+        }
+      });
+      return;
+    }
+
     const inputText = input.trim();
     
     // 檢測是否為 URL，如果是則先抓取內容（允許替換現有上下文）
@@ -977,6 +1061,9 @@ export default function Mode1() {
         quality_mode: qualityMode
       };
 
+      // 在發送前更新用量狀態（以便下次檢查時使用最新數據）
+      await loadPlanStatus();
+
       // 使用流式 API
       await apiStream(
         endpoint,
@@ -1017,18 +1104,23 @@ export default function Mode1() {
           const cleanedErrorMessage = errorMessage.replace(/cannot access local variable 'error_msg' where it is not associated with a value/i, '伺服器處理錯誤，請稍後再試').replace(/cannot access (local variable|free variable) 'chat' where it is not associated with a value/i, '伺服器處理錯誤，請稍後再試');
           
           // 區分「用量已達上限」和「API 配額用盡」
+          // 優先檢查錯誤訊息內容，再檢查狀態碼
           const isDailyLimitReached = cleanedErrorMessage.includes('已達今日上限') || 
-                                      cleanedErrorMessage.includes('已達') && cleanedErrorMessage.includes('上限') ||
-                                      cleanedErrorMessage.includes('今日') && cleanedErrorMessage.includes('上限') ||
-                                      cleanedErrorMessage.includes('daily') && cleanedErrorMessage.includes('limit') ||
+                                      (cleanedErrorMessage.includes('已達') && cleanedErrorMessage.includes('上限')) ||
+                                      (cleanedErrorMessage.includes('今日') && cleanedErrorMessage.includes('上限')) ||
+                                      (cleanedErrorMessage.includes('daily') && cleanedErrorMessage.includes('limit')) ||
                                       cleanedErrorMessage.includes('請明天再試');
           
-          const isApiQuotaError = (cleanedErrorMessage.includes('配額') && !isDailyLimitReached) || 
+          // 只有在不是「用量已達上限」的情況下，才判斷為 API 配額錯誤
+          // 429 狀態碼可能是「用量已達上限」或「API 配額用盡」，需要根據錯誤訊息區分
+          const isApiQuotaError = !isDailyLimitReached && (
+                                 cleanedErrorMessage.includes('配額') || 
                                  cleanedErrorMessage.includes('quota') || 
                                  cleanedErrorMessage.includes('exceeded') ||
                                  cleanedErrorMessage.includes('rate limit') ||
-                                 error?.error_code === '429' ||
-                                 error?.is_quota_error === true;
+                                 cleanedErrorMessage.includes('ResourceExhausted') ||
+                                 error?.is_quota_error === true
+                               );
           
           // 處理 403 錯誤 (權限不足/試用期已過)
           // Mode1 必須訂閱或試用期內才能使用，即使有 LLM Key 也不能繞過此限制
@@ -1044,7 +1136,8 @@ export default function Mode1() {
               duration: 5000
             });
           } 
-          // 處理「用量已達上限」（平台配額限制）
+          // 優先處理「用量已達上限」（平台配額限制）
+          // 即使狀態碼是 429，如果錯誤訊息是「已達今日上限」，也應該顯示用量上限提示
           else if (isDailyLimitReached) {
             toast.error('⚠️ 今日用量已達上限', {
               description: cleanedErrorMessage || '您今日的使用次數已用完，請明天再試或升級方案',
@@ -1056,7 +1149,8 @@ export default function Mode1() {
             });
           }
           // 處理「API 配額用盡」（Gemini API 配額限制）
-          else if (isApiQuotaError || error?.response?.status === 429) {
+          // 只有在不是「用量已達上限」的情況下，429 狀態碼才代表 API 配額錯誤
+          else if (isApiQuotaError || (error?.response?.status === 429 && !isDailyLimitReached)) {
             toast.error('⚠️ API 配額已用盡', {
               description: '請檢查您的 API 金鑰配額或稍後再試',
               duration: 8000,
@@ -1081,8 +1175,10 @@ export default function Mode1() {
             });
           }
         },
-        () => {
+        async () => {
           setIsLoading(false);
+          // 更新用量狀態
+          await loadPlanStatus();
           
           // 如果檢測到儲存意圖，自動儲存結果
           if (shouldAutoSave && assistantMessage) {

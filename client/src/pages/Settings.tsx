@@ -366,7 +366,14 @@ const Settings: React.FC = () => {
       conversations.forEach((conv: any) => {
         const summary = (conv.summary || '').replace(/"/g, '""').replace(/\n/g, ' ').substring(0, 200);
         const date = conv.created_at || '';
-        csvContent += `對話記錄,${conv.id},"${conv.mode || ''}","${summary}",${date}\n`;
+        // 將技術用語轉換為用戶友好用語
+        let modeLabel = conv.mode || '';
+        if (modeLabel === 'mode1' || modeLabel === 'Mode1') {
+          modeLabel = 'IP人設規劃功能';
+        } else if (modeLabel === 'mode3' || modeLabel === 'Mode3') {
+          modeLabel = '一鍵生成功能';
+        }
+        csvContent += `對話記錄,${conv.id},"${modeLabel}","${summary}",${date}\n`;
       });
 
       // 匯出生成記錄
@@ -470,16 +477,16 @@ const Settings: React.FC = () => {
               </div>
               {(planStatus.plan === 'pro' || planStatus.plan === 'vip' || planStatus.plan === 'max') && (
                 <div className="text-sm text-muted-foreground">
-                  Premium 本月用量：<span className="font-medium text-foreground">{planStatus.usage.premium_monthly_used}</span> / {planStatus.limits.premium_monthly}
+                  高品質模式本月用量：<span className="font-medium text-foreground">{planStatus.usage.premium_monthly_used}</span> / {planStatus.limits.premium_monthly}
                   {planStatus.limits.vip_premium_default_model && (
-                    <span className="ml-2">
-                      （預設 Premium：<span className="font-mono">{planStatus.limits.vip_premium_default_model}</span>）
+                    <span className="ml-2 text-xs">
+                      （高品質模式使用更強大的 AI 模型）
                     </span>
                   )}
                 </div>
               )}
               <div className="text-xs text-muted-foreground pt-2">
-                綁定 BYOK 會優先使用您的金鑰；系統保底僅在您金鑰不可用時啟用。
+                綁定您自己的 API 金鑰後，系統會優先使用您的金鑰；當您的金鑰無法使用時，系統會自動切換使用系統提供的金鑰作為保底。
               </div>
             </CardContent>
           </Card>
@@ -908,16 +915,15 @@ const Settings: React.FC = () => {
                   <strong className="font-bold">計算方式：</strong>每次使用 AI 生成功能時會消耗 1 次用量
                 </p>
                 <p className="leading-relaxed">
-                  <strong className="font-bold">計算範圍：</strong>BYOK + 系統 key 都算
+                  <strong className="font-bold">計算範圍：</strong>無論使用您自己的 API 金鑰或系統提供的金鑰，都會計算用量
                 </p>
                 <p className="leading-relaxed">
                   <strong className="font-bold">包含功能：</strong>
                 </p>
                 <ul className="list-disc list-inside space-y-1 ml-2">
-                  <li>Mode1 對話（每次對話請求 = 1 次）</li>
-                  <li>Mode3 一鍵生成（帳號定位、選題推薦、腳本各 = 1 次）</li>
-                  <li>Mode1 一鍵生成（帳號定位、選題推薦、腳本各 = 1 次）</li>
-                  <li>14 天規劃生成</li>
+                  <li>IP人設規劃功能：每次與 AI 對話 = 1 次</li>
+                  <li>一鍵生成功能：每次生成帳號定位、選題建議或腳本內容 = 各 1 次</li>
+                  <li>14 天內容規劃：每次生成規劃 = 1 次</li>
                 </ul>
                 <p className="leading-relaxed pt-2">
                   <strong className="font-bold">重置時間：</strong>每日 00:00 (台灣時間) 自動重置
@@ -932,7 +938,7 @@ const Settings: React.FC = () => {
                   <li>MAX 方案：每日 1,000 次</li>
                 </ul>
                 <p className="leading-relaxed pt-2">
-                  <strong className="font-bold">重要說明：</strong>無論 API 調用成功或失敗，都會計入 1 次用量
+                  <strong className="font-bold">重要說明：</strong>無論生成成功或失敗，每次使用都會計入 1 次用量
                 </p>
               </div>
             </div>
@@ -945,10 +951,10 @@ const Settings: React.FC = () => {
                   <strong className="font-bold">計算方式：</strong>累計當月所有 AI 生成次數
                 </p>
                 <p className="leading-relaxed">
-                  <strong className="font-bold">計算範圍：</strong>BYOK + 系統 key 都算（已修復數據一致性問題）
+                  <strong className="font-bold">計算範圍：</strong>無論使用您自己的 API 金鑰或系統提供的金鑰，都會計算用量
                 </p>
                 <p className="leading-relaxed">
-                  <strong className="font-bold">限制檢查：</strong>僅對系統 key 使用時進行檢查（BYOK 不受系統 key 限制）
+                  <strong className="font-bold">使用限制：</strong>當您使用系統提供的金鑰時，會受到方案限制；使用您自己的金鑰時，則不受系統限制
                 </p>
                 <p className="leading-relaxed pt-2">
                   <strong className="font-bold">重置時間：</strong>每月 1 日 00:00 (台灣時間) 自動重置
@@ -963,7 +969,7 @@ const Settings: React.FC = () => {
                   <li>MAX 方案：每月 30,000 次</li>
                 </ul>
                 <p className="leading-relaxed pt-2">
-                  <strong className="font-bold">重要說明：</strong>使用 BYOK 時，用量會計入統計，但不受系統配額限制
+                  <strong className="font-bold">重要說明：</strong>使用您自己的 API 金鑰時，用量會計入統計，但不受系統配額限制
                 </p>
               </div>
             </div>
@@ -971,26 +977,24 @@ const Settings: React.FC = () => {
             {/* Premium 用量（僅 Pro、VIP、MAX） */}
             {(planStatus?.plan === 'pro' || planStatus?.plan === 'vip' || planStatus?.plan === 'max') && (
               <div>
-                <h3 className="font-semibold text-base mb-3 text-black dark:text-black font-bold">⭐ Premium 本月用量</h3>
+                <h3 className="font-semibold text-base mb-3 text-black dark:text-black font-bold">⭐ 高品質模式（Premium）本月用量</h3>
                 <div className="space-y-2 text-black dark:text-black font-bold">
                   <p className="leading-relaxed">
-                    <strong className="font-bold">計算方式：</strong>使用高品質 Premium 模型時會消耗 Premium 用量
+                    <strong className="font-bold">什麼是 Premium 模式？</strong>
+                  </p>
+                  <p className="leading-relaxed mb-2">
+                    Premium 模式是我們提供的高品質 AI 生成模式，使用更強大的 AI 模型，能夠產生更精準、更優質的內容。只有 Pro、VIP、MAX 方案可以使用此模式。
                   </p>
                   <p className="leading-relaxed">
-                    <strong className="font-bold">計算範圍：</strong>僅系統 key 的 Premium 模式使用
+                    <strong className="font-bold">計算方式：</strong>當您開啟「高品質模式」並使用系統提供的金鑰時，會消耗 Premium 用量
                   </p>
                   <p className="leading-relaxed">
-                    <strong className="font-bold">重要限制：</strong>
+                    <strong className="font-bold">使用限制：</strong>
                   </p>
                   <ul className="list-disc list-inside space-y-1 ml-2">
-                    <li>❌ <strong>不允許使用 BYOK</strong>：Premium 模式必須使用系統 key</li>
-                    <li>✅ 只有同時滿足以下條件才計入 Premium 用量：
-                      <ul className="list-disc list-inside space-y-1 ml-4 mt-1">
-                        <li>用戶選擇 Premium 模式（quality_mode='premium'）</li>
-                        <li>使用系統 API key（used_system_key=True）</li>
-                        <li>方案為 Pro、VIP 或 MAX</li>
-                      </ul>
-                    </li>
+                    <li>❌ <strong>不能使用您自己的 API 金鑰</strong>：高品質模式必須使用系統提供的金鑰</li>
+                    <li>✅ 只有 Pro、VIP、MAX 方案可以使用高品質模式</li>
+                    <li>✅ 需要在功能頁面中手動開啟「高品質模式」開關</li>
                   </ul>
                   <p className="leading-relaxed pt-2">
                     <strong className="font-bold">重置時間：</strong>每月 1 日 00:00 (台灣時間) 自動重置
@@ -999,66 +1003,63 @@ const Settings: React.FC = () => {
                     <strong className="font-bold">方案限制：</strong>
                   </p>
                   <ul className="list-disc list-inside space-y-1 ml-2">
-                    <li>Pro 方案：每月 2,000 次（僅系統 key）</li>
-                    <li>MAX 方案：每月 5,000 次（僅系統 key）</li>
-                    <li>VIP 方案：每月 5,000 次（僅系統 key）</li>
+                    <li>Pro 方案：每月 2,000 次</li>
+                    <li>MAX 方案：每月 5,000 次</li>
+                    <li>VIP 方案：每月 5,000 次</li>
                   </ul>
                   <p className="leading-relaxed pt-2">
-                    <strong className="font-bold">Premium 模型：</strong>
+                    <strong className="font-bold">使用建議：</strong>
                   </p>
                   <ul className="list-disc list-inside space-y-1 ml-2">
-                    <li>VIP/MAX：gemini-2.5-flash-lite（Premium）vs gemini-2.0-flash-lite（Economy）</li>
-                    <li>Pro：gemini-2.0-flash（Premium）vs gemini-2.0-flash-lite（Economy）</li>
+                    <li>高品質模式適合需要更精準內容的重要場合</li>
+                    <li>一般使用建議使用標準模式，可以節省 Premium 用量</li>
+                    <li>您可以在功能頁面隨時切換高品質模式開關</li>
                   </ul>
-                  {planStatus?.limits.vip_premium_default_model && (
-                    <p className="leading-relaxed pt-2">
-                      <strong className="font-bold">預設 Premium 模型：</strong>
-                      <span className="font-mono ml-2">{planStatus.limits.vip_premium_default_model}</span>
-                    </p>
-                  )}
                 </div>
               </div>
             )}
 
-            {/* BYOK 說明 */}
+            {/* 使用自己的 API 金鑰說明 */}
             <div>
-              <h3 className="font-semibold text-base mb-3 text-black dark:text-black font-bold">🔑 BYOK (Bring Your Own Key) 說明</h3>
+              <h3 className="font-semibold text-base mb-3 text-black dark:text-black font-bold">🔑 使用自己的 API 金鑰說明</h3>
               <div className="space-y-2 text-black dark:text-black font-bold">
                 <p className="leading-relaxed">
-                  <strong className="font-bold">優先順序：</strong>綁定 BYOK 後，系統會優先使用您的 API Key
+                  <strong className="font-bold">優先順序：</strong>當您綁定自己的 API 金鑰後，系統會優先使用您的金鑰來生成內容
                 </p>
                 <p className="leading-relaxed">
-                  <strong className="font-bold">系統保底：</strong>僅在您的 API Key 不可用時（配額用盡、錯誤等），才會使用系統配額
+                  <strong className="font-bold">系統保底：</strong>當您的 API 金鑰無法使用時（例如配額用盡、發生錯誤等），系統會自動切換使用系統提供的金鑰，確保服務不中斷
                 </p>
                 <p className="leading-relaxed">
                   <strong className="font-bold">使用限制：</strong>
                 </p>
                 <ul className="list-disc list-inside space-y-1 ml-2">
-                  <li>✅ <strong>Economy 模式</strong>：所有方案都可以使用 BYOK（自己的 API key）</li>
-                  <li>❌ <strong>Premium 模式</strong>：不允許使用 BYOK，必須使用系統 key</li>
-                  <li>⚠️ 只有 Pro、VIP、MAX 方案支持 Premium 模式</li>
+                  <li>✅ <strong>標準模式</strong>：所有方案都可以使用您自己的 API 金鑰</li>
+                  <li>❌ <strong>高品質模式</strong>：不能使用您自己的 API 金鑰，必須使用系統提供的金鑰</li>
+                  <li>⚠️ 只有 Pro、VIP、MAX 方案可以使用高品質模式</li>
                 </ul>
                 <p className="leading-relaxed pt-2">
                   <strong className="font-bold">用量計算：</strong>
                 </p>
                 <ul className="list-disc list-inside space-y-1 ml-2">
-                  <li><strong>使用 BYOK（用戶自己的 key）</strong>：
+                  <li><strong>使用您自己的 API 金鑰時：</strong>
                     <ul className="list-disc list-inside space-y-1 ml-4 mt-1">
-                      <li>✅ 計入 <code className="bg-muted px-1 rounded">daily_used</code> 和 <code className="bg-muted px-1 rounded">monthly_used</code></li>
-                      <li>❌ 不計入 <code className="bg-muted px-1 rounded">premium_monthly_used</code>（Premium 模式不允許使用 BYOK）</li>
-                      <li>✅ Economy 模式可以使用</li>
+                      <li>✅ 會計入今日用量和本月用量統計</li>
+                      <li>✅ 不受系統配額限制（您可以無限使用，只要您的金鑰有配額）</li>
+                      <li>✅ 可以使用標準模式</li>
+                      <li>❌ 不能使用高品質模式</li>
                     </ul>
                   </li>
-                  <li><strong>使用系統 key</strong>：
+                  <li><strong>使用系統提供的金鑰時：</strong>
                     <ul className="list-disc list-inside space-y-1 ml-4 mt-1">
-                      <li>✅ 計入 <code className="bg-muted px-1 rounded">daily_used</code> 和 <code className="bg-muted px-1 rounded">monthly_used</code></li>
-                      <li>✅ Premium 模式下計入 <code className="bg-muted px-1 rounded">premium_monthly_used</code></li>
+                      <li>✅ 會計入今日用量和本月用量統計</li>
+                      <li>✅ 使用高品質模式時，會額外計入高品質模式用量</li>
                       <li>✅ 所有模式都可以使用（作為保底）</li>
+                      <li>⚠️ 會受到您方案的配額限制</li>
                     </ul>
                   </li>
                 </ul>
                 <p className="leading-relaxed pt-2">
-                  <strong className="font-bold">重要說明：</strong>所有使用都會被統計，確保用量數據的一致性。使用 BYOK 時，用量會計入統計，但不受系統配額限制。
+                  <strong className="font-bold">重要說明：</strong>無論使用哪種金鑰，所有使用次數都會被統計，確保用量數據的一致性。使用您自己的 API 金鑰時，用量會計入統計，但不受系統配額限制。
                 </p>
               </div>
             </div>
@@ -1067,12 +1068,12 @@ const Settings: React.FC = () => {
             <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
               <h3 className="font-semibold text-base mb-2 text-blue-900 dark:text-blue-900 font-bold">💡 重要提示</h3>
               <ul className="space-y-1 text-sm text-blue-900 dark:text-blue-900 font-bold">
-                <li>• <strong>用量計算特點</strong>：無論 API 調用成功或失敗，都會計入 1 次用量（在 finally 塊中計入）</li>
-                <li>• <strong>時間計算基準</strong>：使用台灣時區（Asia/Taipei），每日重置為 0:00，每月重置為 1 日 0:00</li>
-                <li>• <strong>BYOK 使用</strong>：使用 BYOK 時，用量會計入統計，但不受系統配額限制</li>
-                <li>• <strong>Premium 模式</strong>：僅 Pro、VIP、MAX 方案支持，且不允許使用 BYOK，必須使用系統 key</li>
+                <li>• <strong>用量計算特點</strong>：無論生成成功或失敗，每次使用都會計入 1 次用量</li>
+                <li>• <strong>時間計算基準</strong>：使用台灣時間，每日在凌晨 0:00 自動重置，每月在 1 日凌晨 0:00 自動重置</li>
+                <li>• <strong>使用自己的 API 金鑰</strong>：用量會計入統計，但不受系統配額限制，您可以無限使用（只要您的金鑰有配額）</li>
+                <li>• <strong>高品質模式</strong>：只有 Pro、VIP、MAX 方案可以使用，且必須使用系統提供的金鑰，不能使用您自己的金鑰</li>
                 <li>• <strong>用量統計</strong>：會即時更新，您可以在這裡隨時查看</li>
-                <li>• <strong>達到上限</strong>：需要等待重置或升級方案</li>
+                <li>• <strong>達到上限</strong>：需要等待重置時間或升級方案以獲得更多用量</li>
               </ul>
             </div>
           </div>

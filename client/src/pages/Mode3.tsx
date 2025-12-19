@@ -20,6 +20,26 @@ import ThinkingAnimation from '@/components/ThinkingAnimation';
 import { useAuthStore } from '@/stores/authStore';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 
+// 用量狀態接口
+interface PlanStatusResponse {
+  plan: 'free' | 'lite' | 'pro' | 'vip' | 'max';
+  billing_cycle: 'none' | 'monthly' | 'yearly' | string;
+  limits: {
+    daily: number;
+    monthly: number;
+    premium_monthly: number;
+    vip_premium_default_model?: string;
+    premium_byok_allowed?: boolean;
+  };
+  usage: {
+    day: string;
+    month: string;
+    daily_used: number;
+    monthly_used: number;
+    premium_monthly_used: number;
+  };
+}
+
 // 格式化文字：將 **文字** 轉換為粗體
 const FormatText = memo(({ content }: { content: string }) => {
   // 使用 useMemo 優化正則匹配結果
@@ -129,6 +149,7 @@ export default function Mode3() {
   const [hasLlmKey, setHasLlmKey] = useState<boolean | null>(null);
   const [showLlmKeyDialog, setShowLlmKeyDialog] = useState(false);
   const [authReady, setAuthReady] = useState(false);
+  const [planStatus, setPlanStatus] = useState<PlanStatusResponse | null>(null);
 
   // 表單資料
   const [formData, setFormData] = useState({
@@ -412,6 +433,20 @@ export default function Mode3() {
 
   // 生成內容
   const handleGenerate = async () => {
+    // 檢查用量是否已達上限
+    const usageCheck = checkUsageLimit();
+    if (!usageCheck.canUse) {
+      toast.error('⚠️ 用量已達上限', {
+        description: usageCheck.message,
+        duration: 8000,
+        action: {
+          label: '查看用量',
+          onClick: () => navigate('/settings')
+        }
+      });
+      return;
+    }
+
     // 清空之前的結果和狀態
     setResults({
       positioning: '',
@@ -473,6 +508,8 @@ export default function Mode3() {
       }
       
       toast.success('生成完成！');
+      // 更新用量狀態
+      await loadPlanStatus();
     } catch (error: any) {
       console.error('生成失敗:', error);
       
@@ -486,12 +523,21 @@ export default function Mode3() {
                                   (errorMessage.includes('daily') && errorMessage.includes('limit')) ||
                                   errorMessage.includes('請明天再試');
       
-      const isApiQuotaError = (errorMessage.includes('配額') && !isDailyLimitReached) || 
+      // 只有在不是「用量已達上限」的情況下，才判斷為 API 配額錯誤
+      // 429 狀態碼可能是「用量已達上限」或「API 配額用盡」，需要根據錯誤訊息區分
+      const isApiQuotaError = !isDailyLimitReached && (
+                             errorMessage.includes('配額') || 
                              errorMessage.includes('quota') || 
-                             error?.error_code === '429' ||
-                             error?.is_quota_error === true;
+                             errorMessage.includes('exceeded') ||
+                             errorMessage.includes('rate limit') ||
+                             errorMessage.includes('rate-limit') ||
+                             errorMessage.includes('ResourceExhausted') ||
+                             error?.is_quota_error === true
+                           );
       
       if (!handlePermissionError(error)) {
+        // 優先處理「用量已達上限」（平台配額限制）
+        // 即使狀態碼是 429，如果錯誤訊息是「已達今日上限」，也應該顯示用量上限提示
         if (isDailyLimitReached) {
           toast.error('⚠️ 今日用量已達上限', {
             description: errorMessage || '您今日的使用次數已用完，請明天再試或升級方案',
@@ -501,10 +547,13 @@ export default function Mode3() {
               onClick: () => navigate('/settings')
             }
           });
-        } else if (isApiQuotaError) {
+        } 
+        // 處理「API 配額用盡」（Gemini API 配額限制）
+        // 只有在不是「用量已達上限」的情況下，429 狀態碼才代表 API 配額錯誤
+        else if (isApiQuotaError || (error?.response?.status === 429 && !isDailyLimitReached)) {
           toast.error('⚠️ API 配額已用盡', {
-            description: '請檢查您的 API 金鑰配額或稍後再試',
-            duration: 8000,
+            description: '請檢查您的 API 金鑰配額和速率限制',
+            duration: 10000,
             action: {
               label: '查看用量',
               onClick: () => window.open('https://ai.dev/usage?tab=rate-limit', '_blank')
@@ -768,15 +817,17 @@ export default function Mode3() {
                                   (errorMessage.includes('daily') && errorMessage.includes('limit')) ||
                                   errorMessage.includes('請明天再試');
       
-      const isApiQuotaError = (errorMessage.includes('配額') && !isDailyLimitReached) || 
+      // 只有在不是「用量已達上限」的情況下，才判斷為 API 配額錯誤
+      // 429 狀態碼可能是「用量已達上限」或「API 配額用盡」，需要根據錯誤訊息區分
+      const isApiQuotaError = !isDailyLimitReached && (
+                             errorMessage.includes('配額') || 
                              errorMessage.includes('quota') || 
                              errorMessage.includes('exceeded') ||
                              errorMessage.includes('rate limit') ||
                              errorMessage.includes('rate-limit') ||
                              errorMessage.includes('ResourceExhausted') ||
-                             error?.error_code === '429' ||
-                             error?.is_quota_error === true ||
-                             error?.response?.status === 429;
+                             error?.is_quota_error === true
+                           );
       
       console.error('[Mode3] 生成選題建議錯誤:', {
         error,
@@ -788,6 +839,8 @@ export default function Mode3() {
         originalError: error?.original_error
       });
       
+      // 優先處理「用量已達上限」（平台配額限制）
+      // 即使狀態碼是 429，如果錯誤訊息是「已達今日上限」，也應該顯示用量上限提示
       if (isDailyLimitReached) {
         toast.error('⚠️ 今日用量已達上限', {
           description: errorMessage || '您今日的使用次數已用完，請明天再試或升級方案',
@@ -797,7 +850,10 @@ export default function Mode3() {
             onClick: () => navigate('/settings')
           }
         });
-      } else if (isApiQuotaError) {
+      } 
+      // 處理「API 配額用盡」（Gemini API 配額限制）
+      // 只有在不是「用量已達上限」的情況下，429 狀態碼才代表 API 配額錯誤
+      else if (isApiQuotaError || (error?.response?.status === 429 && !isDailyLimitReached)) {
         toast.error('⚠️ API 配額已用盡', {
           description: '請檢查您的 API 金鑰配額和速率限制',
           duration: 10000,
@@ -879,15 +935,17 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
                                   (errorMessage.includes('daily') && errorMessage.includes('limit')) ||
                                   errorMessage.includes('請明天再試');
       
-      const isApiQuotaError = (errorMessage.includes('配額') && !isDailyLimitReached) || 
+      // 只有在不是「用量已達上限」的情況下，才判斷為 API 配額錯誤
+      // 429 狀態碼可能是「用量已達上限」或「API 配額用盡」，需要根據錯誤訊息區分
+      const isApiQuotaError = !isDailyLimitReached && (
+                             errorMessage.includes('配額') || 
                              errorMessage.includes('quota') || 
                              errorMessage.includes('exceeded') ||
                              errorMessage.includes('rate limit') ||
                              errorMessage.includes('rate-limit') ||
                              errorMessage.includes('ResourceExhausted') ||
-                             error?.error_code === '429' ||
-                             error?.is_quota_error === true ||
-                             error?.response?.status === 429;
+                             error?.is_quota_error === true
+                           );
       
       console.error('[Mode3] 生成腳本內容錯誤:', {
         error,
@@ -899,6 +957,8 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
         originalError: error?.original_error
       });
       
+      // 優先處理「用量已達上限」（平台配額限制）
+      // 即使狀態碼是 429，如果錯誤訊息是「已達今日上限」，也應該顯示用量上限提示
       if (isDailyLimitReached) {
         toast.error('⚠️ 今日用量已達上限', {
           description: errorMessage || '您今日的使用次數已用完，請明天再試或升級方案',
@@ -908,7 +968,10 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
             onClick: () => navigate('/settings')
           }
         });
-      } else if (isApiQuotaError) {
+      } 
+      // 處理「API 配額用盡」（Gemini API 配額限制）
+      // 只有在不是「用量已達上限」的情況下，429 狀態碼才代表 API 配額錯誤
+      else if (isApiQuotaError || (error?.response?.status === 429 && !isDailyLimitReached)) {
         toast.error('⚠️ API 配額已用盡', {
           description: '請檢查您的 API 金鑰配額和速率限制',
           duration: 10000,
