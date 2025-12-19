@@ -710,7 +710,7 @@ export default function Home() {
                     { icon: FileText, text: '短影音腳本一鍵生成（每次生成 = 1 次）' },
                     { icon: MessageSquare, text: 'AI 對話式內容規劃（每次對話 = 1 次）' },
                     { icon: BarChart, text: '每日可用 10 次（約可生成 10 個腳本）' },
-                    { icon: BarChart, text: '每月可用 150 次（約可生成 150 個腳本）' },
+                    { icon: BarChart, text: '每月可用 100 次（約可生成 100 個腳本）' },
                     { icon: Key, text: '需綁定自己的 AI 金鑰（不計入平台配額）' },
                     { icon: Shield, text: '平台不提供備用配額' },
                     { icon: Zap, text: '高品質模式：不支援' },
