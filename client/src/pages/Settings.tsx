@@ -128,13 +128,14 @@ const Settings: React.FC = () => {
       fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Settings.tsx:123',message:'收到方案狀態數據',data:{dailyUsed:data?.usage?.daily_used,monthlyUsed:data?.usage?.monthly_used,day:data?.usage?.day,month:data?.usage?.month,isInconsistent:data?.usage?.monthly_used < data?.usage?.daily_used,fullData:data},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
       // #endregion
       
-      // 檢查數據一致性
+      // 檢查數據一致性（後端已修正：monthly_used 現在也包含 BYOK 使用）
+      // 理論上 monthly_used 應該 >= daily_used（因為本月包含今日）
       if (data?.usage && data.usage.monthly_used < data.usage.daily_used) {
         // #region agent log
-        fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Settings.tsx:128',message:'檢測到數據不一致',data:{dailyUsed:data.usage.daily_used,monthlyUsed:data.usage.monthly_used,difference:data.usage.daily_used - data.usage.monthly_used,day:data.usage.day,month:data.usage.month},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+        fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Settings.tsx:128',message:'檢測到可能的數據異常（後端已修正，不應出現）',data:{dailyUsed:data.usage.daily_used,monthlyUsed:data.usage.monthly_used,difference:data.usage.daily_used - data.usage.monthly_used,day:data.usage.day,month:data.usage.month},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'VERIFY'})}).catch(()=>{});
         // #endregion
         
-        console.warn('[Settings] 用量數據不一致：本月用量少於今日用量', {
+        console.warn('[Settings] 用量數據異常：本月用量少於今日用量（後端已修正，不應出現）', {
           daily_used: data.usage.daily_used,
           monthly_used: data.usage.monthly_used,
           day: data.usage.day,
@@ -485,16 +486,10 @@ const Settings: React.FC = () => {
                 本月用量：<span className="font-medium text-foreground">{planStatus.usage.monthly_used}</span> / {planStatus.limits.monthly}
                 {/* #region agent log */}
                 {(() => {
-                  const isInconsistent = planStatus.usage.monthly_used < planStatus.usage.daily_used;
-                  fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Settings.tsx:452',message:'顯示本月用量',data:{monthlyUsed:planStatus.usage.monthly_used,monthlyLimit:planStatus.limits.monthly,month:planStatus.usage.month,isInconsistent:isInconsistent,difference:isInconsistent ? planStatus.usage.daily_used - planStatus.usage.monthly_used : 0},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
+                  fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Settings.tsx:452',message:'顯示本月用量（後端已修正）',data:{monthlyUsed:planStatus.usage.monthly_used,monthlyLimit:planStatus.limits.monthly,dailyUsed:planStatus.usage.daily_used,month:planStatus.usage.month,isConsistent:planStatus.usage.monthly_used >= planStatus.usage.daily_used},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'VERIFY'})}).catch(()=>{});
                   return null;
                 })()}
                 {/* #endregion */}
-                {planStatus.usage.monthly_used < planStatus.usage.daily_used && (
-                  <span className="ml-2 text-xs text-yellow-600 dark:text-yellow-500">
-                    ⚠️ 數據異常
-                  </span>
-                )}
               </div>
               {planStatus.plan === 'vip' && (
                 <div className="text-sm text-muted-foreground">
@@ -935,6 +930,9 @@ const Settings: React.FC = () => {
                 <p className="leading-relaxed">
                   <strong className="font-bold">計算方式：</strong>每次使用 AI 生成功能時會消耗 1 次用量
                 </p>
+                <p className="leading-relaxed">
+                  <strong className="font-bold">包含範圍：</strong>包括使用 BYOK 和系統配額的所有使用
+                </p>
                 <ul className="list-disc list-inside space-y-1 ml-2">
                   <li>生成短影音腳本（Mode1、Mode3）</li>
                   <li>帳號定位分析</li>
@@ -956,8 +954,16 @@ const Settings: React.FC = () => {
               <h3 className="font-semibold text-base mb-3 text-black dark:text-black font-bold">📅 本月用量</h3>
               <div className="space-y-2 text-black dark:text-black font-bold">
                 <p className="leading-relaxed">
-                  <strong className="font-bold">計算方式：</strong>與今日用量相同，累計當月所有 AI 生成次數
+                  <strong className="font-bold">計算方式：</strong>累計當月所有 AI 生成次數，包括使用 BYOK 和系統配額的所有使用
                 </p>
+                <p className="leading-relaxed">
+                  <strong className="font-bold">包含範圍：</strong>
+                </p>
+                <ul className="list-disc list-inside space-y-1 ml-2">
+                  <li>使用您的 API Key (BYOK) 的生成次數</li>
+                  <li>使用系統配額的生成次數</li>
+                  <li>所有 AI 生成功能的使用（與今日用量相同）</li>
+                </ul>
                 <p className="leading-relaxed pt-2">
                   <strong className="font-bold">重置時間：</strong>每月 1 日 00:00 (台灣時間) 自動重置
                 </p>
@@ -1008,8 +1014,9 @@ const Settings: React.FC = () => {
                   <strong className="font-bold">用量計算：</strong>
                 </p>
                 <ul className="list-disc list-inside space-y-1 ml-2">
-                  <li>使用您的 API Key 時：<strong className="font-bold">不消耗系統用量</strong></li>
-                  <li>使用系統保底時：<strong className="font-bold">會消耗系統用量</strong></li>
+                  <li>使用您的 API Key 時：<strong className="font-bold">會計入今日和本月用量</strong>（用於統計和追蹤）</li>
+                  <li>使用系統保底時：<strong className="font-bold">會計入今日和本月用量</strong>（消耗系統配額）</li>
+                  <li>所有使用都會被統計，確保用量數據的一致性</li>
                 </ul>
               </div>
             </div>
