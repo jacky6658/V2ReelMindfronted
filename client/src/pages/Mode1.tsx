@@ -1011,8 +1011,8 @@ export default function Mode1() {
         description: usageCheck.message,
         duration: 8000,
         action: {
-          label: '查看用量',
-          onClick: () => navigate('/settings')
+          label: '升級方案',
+          onClick: () => navigate('/pricing')
         }
       });
       return;
@@ -1143,8 +1143,8 @@ export default function Mode1() {
               description: cleanedErrorMessage || '您今日的使用次數已用完，請明天再試或升級方案',
               duration: 8000,
               action: {
-                label: '查看用量',
-                onClick: () => navigate('/settings')
+                label: '升級方案',
+                onClick: () => navigate('/pricing')
               }
             });
           }

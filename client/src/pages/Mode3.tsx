@@ -454,8 +454,8 @@ export default function Mode3() {
         description: usageCheck.message,
         duration: 8000,
         action: {
-          label: '查看用量',
-          onClick: () => navigate('/settings')
+          label: '升級方案',
+          onClick: () => navigate('/pricing')
         }
       });
       return;
@@ -573,8 +573,8 @@ export default function Mode3() {
             description: errorMessage || '您今日的使用次數已用完，請明天再試或升級方案',
             duration: 8000,
             action: {
-              label: '查看用量',
-              onClick: () => navigate('/settings')
+              label: '升級方案',
+              onClick: () => navigate('/pricing')
             }
           });
         } 
@@ -777,8 +777,8 @@ export default function Mode3() {
           description: errorMessage || '您今日的使用次數已用完，請明天再試或升級方案',
           duration: 8000,
           action: {
-            label: '查看用量',
-            onClick: () => navigate('/settings')
+            label: '升級方案',
+            onClick: () => navigate('/pricing')
           }
         });
       } else if (isApiQuotaError) {
@@ -882,8 +882,8 @@ export default function Mode3() {
           description: errorMessage || '您今日的使用次數已用完，請明天再試或升級方案',
           duration: 8000,
           action: {
-            label: '查看用量',
-            onClick: () => navigate('/settings')
+            label: '升級方案',
+            onClick: () => navigate('/pricing')
           }
         });
       } 
@@ -1000,8 +1000,8 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
           description: errorMessage || '您今日的使用次數已用完，請明天再試或升級方案',
           duration: 8000,
           action: {
-            label: '查看用量',
-            onClick: () => navigate('/settings')
+            label: '升級方案',
+            onClick: () => navigate('/pricing')
           }
         });
       } 
