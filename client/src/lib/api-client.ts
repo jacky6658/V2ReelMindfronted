@@ -436,16 +436,6 @@ export async function apiStream(
               // 目前先忽略（保持輸出乾淨）；如需顯示可在前端頁面自行處理/顯示 toast
               continue;
             } else if (parsed.type === 'error') {
-              // #region agent log
-              const hasBackendBugInParsed = (parsed.message?.includes("cannot access local variable 'error_msg'") || 
-                                             parsed.message?.includes("cannot access local variable 'chat'") ||
-                                             parsed.message?.includes("cannot access free variable 'chat'") ||
-                                             parsed.content?.includes("cannot access local variable 'error_msg'") ||
-                                             parsed.content?.includes("cannot access local variable 'chat'") ||
-                                             parsed.content?.includes("cannot access free variable 'chat'"));
-              fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-client.ts:438',message:'收到流式錯誤消息（修復後驗證）',data:{parsed:parsed,type:parsed.type,message:parsed.message,content:parsed.content,error_code:parsed.error_code,hasBackendBug:hasBackendBugInParsed,backendFixed:!hasBackendBugInParsed},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'VERIFY'})}).catch(()=>{});
-              // #endregion
-              
               // 根本修复：增强错误消息传递，包含更多错误信息
               // 处理各种可能的错误消息格式
               let errorMessage = parsed.message || 
@@ -454,17 +444,9 @@ export async function apiStream(
                                 parsed.detail ||
                                 '發生錯誤';
               
-              // #region agent log
-              fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-client.ts:451',message:'錯誤訊息提取（修復後驗證）',data:{originalMessage:parsed.message,originalContent:parsed.content,extractedMessage:errorMessage},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'VERIFY'})}).catch(()=>{});
-              // #endregion
-              
               // 清理後端 Python 錯誤訊息，將技術性錯誤轉換為用戶友好的訊息
               const hasErrorMsgBug = errorMessage.includes("cannot access local variable 'error_msg'");
               const hasChatBug = errorMessage.includes("cannot access local variable 'chat'") || errorMessage.includes("cannot access free variable 'chat'");
-              
-              // #region agent log
-              fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-client.ts:456',message:'檢測後端變數作用域錯誤（修復後驗證）',data:{hasErrorMsgBug:hasErrorMsgBug,hasChatBug:hasChatBug,errorMessage:errorMessage,backendFixed:!hasErrorMsgBug && !hasChatBug},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'VERIFY'})}).catch(()=>{});
-              // #endregion
               
               if (hasErrorMsgBug || hasChatBug) {
                 errorMessage = '伺服器處理錯誤，請稍後再試。如問題持續，請聯繫客服。';
@@ -478,10 +460,6 @@ export async function apiStream(
               error.original_error = parsed.original_error;
               error.content = parsed.content; // 确保 content 也被传递
               error.message = errorMessage; // 確保使用清理後的訊息
-              
-              // #region agent log
-              fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'api-client.ts:468',message:'構建錯誤對象（修復後驗證）',data:{finalErrorMessage:errorMessage,errorCode:error.error_code,isQuotaError:error.is_quota_error,hasOriginalError:!!error.original_error,wasCleaned:hasErrorMsgBug || hasChatBug},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'VERIFY'})}).catch(()=>{});
-              // #endregion
               
               console.error('[API Client] 收到流式錯誤:', {
                 type: parsed.type,
