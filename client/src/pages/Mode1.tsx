@@ -282,7 +282,7 @@ export default function Mode1() {
 
         // 對於未訂閱且沒有 LLM Key 的用戶，允許進入但使用時會檢查權限
         // 後端會根據試用期（7天內）或 LLM Key 判斷是否有權限
-        setHasPermission(null); // 設為 null 表示未知，允許進入但使用時會檢查
+          setHasPermission(null); // 設為 null 表示未知，允許進入但使用時會檢查
       } catch (error) {
         console.error('檢查權限時出錯:', error);
         // 開發階段：即使出錯也允許使用
@@ -881,20 +881,31 @@ export default function Mode1() {
           console.error('流式請求錯誤:', error);
           setIsLoading(false);
           
-          // 根本修复：检查是否为流式错误消息（来自 SSE）
-          const errorMessage = error?.message || error?.response?.data?.error || '生成失敗，請稍後再試';
-          const isQuotaError = errorMessage.includes('配額') || 
-                               errorMessage.includes('quota') || 
+          // 根本修复：增强错误消息提取，处理各种可能的错误格式
+          const errorMessage = error?.message || 
+                              error?.content ||
+                              error?.response?.data?.error ||
+                              error?.response?.data?.message ||
+                              error?.response?.data?.detail ||
+                              (typeof error === 'string' ? error : '生成失敗，請稍後再試');
+          
+          // 清理錯誤訊息，移除可能的技術性錯誤訊息
+          const cleanedErrorMessage = errorMessage.replace(/cannot access local variable 'error_msg' where it is not associated with a value/i, '伺服器處理錯誤，請稍後再試');
+          
+          const isQuotaError = cleanedErrorMessage.includes('配額') || 
+                               cleanedErrorMessage.includes('quota') || 
+                               cleanedErrorMessage.includes('exceeded') ||
+                               cleanedErrorMessage.includes('rate limit') ||
                                error?.error_code === '429' ||
                                error?.is_quota_error === true;
           
           // 處理 403 錯誤 (權限不足/試用期已過)
           // Mode1 必須訂閱或試用期內才能使用，即使有 LLM Key 也不能繞過此限制
           if (error?.response?.status === 403 || (error && typeof error === 'object' && 'status' in error && error.status === 403)) {
-            const errorMessage = error?.response?.data?.error || error?.message || '試用期已過，請訂閱以繼續使用';
+            const errorMsg = error?.response?.data?.error || error?.message || cleanedErrorMessage || '試用期已過，請訂閱以繼續使用';
             setHasPermission(false);
             setShowSubscriptionDialog(true);
-            toast.error(errorMessage, {
+            toast.error(errorMsg, {
               action: {
                 label: '去訂閱',
                 onClick: () => navigate('/pricing')
@@ -922,7 +933,8 @@ export default function Mode1() {
             });
           } 
           else {
-            toast.error(errorMessage, {
+            // 使用清理後的錯誤訊息
+            toast.error(cleanedErrorMessage, {
               duration: 5000
             });
           }
@@ -1561,7 +1573,7 @@ export default function Mode1() {
                       size="sm"
                       onClick={() => {
                         // 開發階段：暫時移除權限檢查，直接執行
-                        handleQuickButton(button.prompt);
+                          handleQuickButton(button.prompt);
                         // 正式環境邏輯（暫時註釋）：
                         // if (hasPermission === false) {
                         //   setShowSubscriptionDialog(true);
@@ -1633,7 +1645,7 @@ export default function Mode1() {
                   <Button
                     onClick={() => {
                       // 開發階段：暫時移除權限檢查，直接執行
-                      handleSend();
+                        handleSend();
                       // 正式環境邏輯（暫時註釋）：
                       // if (hasPermission === false) {
                       //   setShowSubscriptionDialog(true);
