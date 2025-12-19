@@ -69,16 +69,16 @@ const FormatText = memo(({ content }: { content: string }) => {
   
   // 如果沒有匹配到任何粗體，直接返回原文字
   if (parts.length === 0) {
-    return <div className="whitespace-pre-wrap text-black font-bold">{content}</div>;
+    return <div className="whitespace-pre-wrap text-black dark:text-black font-bold">{content}</div>;
   }
   
   return (
-    <div className="whitespace-pre-wrap text-black font-bold">
+    <div className="whitespace-pre-wrap text-black dark:text-black font-bold">
       {parts.map((part, index) => {
         if (typeof part === 'object' && part.type === 'bold') {
-          return <strong key={index} className="font-bold">{part.text}</strong>;
+          return <strong key={index} className="font-bold text-black dark:text-black">{part.text}</strong>;
         }
-        return <span key={index} className="font-bold">{part}</span>;
+        return <span key={index} className="font-bold text-black dark:text-black">{part}</span>;
       })}
     </div>
   );
@@ -1469,13 +1469,13 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
               <Card className="border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20">
                 <CardContent className="pt-6">
                   <div className="flex items-start gap-3">
-                    <Info className="w-5 h-5 text-blue-600 dark:text-blue-900 mt-0.5 flex-shrink-0" />
+                    <Info className="w-5 h-5 text-blue-600 dark:text-black mt-0.5 flex-shrink-0" />
                     <div className="flex-1">
-                      <h4 className="font-semibold text-sm mb-1 text-blue-900 dark:text-blue-900 font-bold">
+                      <h4 className="font-semibold text-sm mb-1 text-blue-900 dark:text-black font-bold">
                         使用說明
                       </h4>
-                      <p className="text-sm text-blue-800 dark:text-blue-900 font-bold">
-                        建議等待 <strong>帳號定位</strong>、<strong>選題建議</strong> 和 <strong>腳本內容</strong> 三個部分都生成完成後再儲存，以確保資料完整性。
+                      <p className="text-sm text-blue-800 dark:text-black font-bold">
+                        建議等待 <strong className="text-blue-900 dark:text-black">帳號定位</strong>、<strong className="text-blue-900 dark:text-black">選題建議</strong> 和 <strong className="text-blue-900 dark:text-black">腳本內容</strong> 三個部分都生成完成後再儲存，以確保資料完整性。
                         目前進度：{[
                           generationStatus.positioning && '✓ 帳號定位',
                           generationStatus.topics && '✓ 選題建議',
@@ -1526,7 +1526,7 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
                 )}
                 {currentResult && (
                   <div className="space-y-4">
-                    <div className="prose prose-sm max-w-none whitespace-pre-wrap text-black font-bold">
+                    <div className="prose prose-sm max-w-none whitespace-pre-wrap text-black dark:text-black font-bold">
                       <FormatText content={currentResult} />
                     </div>
                     <div className="flex justify-end gap-2">

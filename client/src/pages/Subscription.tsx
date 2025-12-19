@@ -355,7 +355,7 @@ export default function Subscription() {
                         <span className="text-5xl font-bold text-green-600 dark:text-green-400">
                           NT$300
                         </span>
-                        <span className="text-muted-foreground">/ 月（年付）</span>
+                        <span className="text-muted-foreground">/ 月</span>
                       </div>
                     </div>
                     <div className="text-sm font-semibold text-green-600 dark:text-green-400">
@@ -466,7 +466,7 @@ export default function Subscription() {
                         <span className="text-5xl font-bold text-primary">
                           NT$800
                         </span>
-                        <span className="text-muted-foreground">/ 月（年付）</span>
+                        <span className="text-muted-foreground">/ 月</span>
                       </div>
                     </div>
                     <div className="text-sm font-semibold text-primary">
@@ -592,7 +592,7 @@ export default function Subscription() {
                         <span className="text-5xl font-bold text-purple-600 dark:text-purple-400">
                           NT$2,000
                         </span>
-                        <span className="text-muted-foreground">/ 月（年付）</span>
+                        <span className="text-muted-foreground">/ 月</span>
                       </div>
                     </div>
                     <div className="text-sm font-semibold text-purple-600 dark:text-purple-400">
@@ -690,7 +690,7 @@ export default function Subscription() {
               <CardContent className="p-6">
                 <h3 className="font-bold mb-2">Q：可以隨時取消訂閱嗎？</h3>
                 <p className="text-muted-foreground">
-                  A：可以。您可以隨時在帳戶設定中取消訂閱，取消後將在當前計費週期結束時停止續訂。
+                  A：可以。您可以隨時在帳戶設定中取消訂閱。年付方案取消後將在當前計費週期結束時停止續訂；月付方案到期後不會自動續費，無需取消。
                 </p>
               </CardContent>
             </Card>

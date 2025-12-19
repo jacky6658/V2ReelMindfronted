@@ -227,7 +227,9 @@ export default function Checkout() {
       <div className="border-b border-border bg-gradient-to-br from-primary/5 via-background to-background">
         <div className="container py-12 md:py-16">
           <div className="max-w-3xl mx-auto text-center">
-            <Badge className="mb-4">一次付款 · 自動續約 · 可隨時取消</Badge>
+            <Badge className="mb-4">
+              {plan === 'yearly' ? '一次付款 · 自動續約 · 可隨時取消' : '月付方案 · 不自動續費 · 到期需手動續約'}
+            </Badge>
             <h1 className="text-3xl md:text-4xl font-bold mb-4">填寫付款資訊</h1>
             <p className="text-lg text-muted-foreground">完成以下資訊即可開始使用 ReelMind</p>
           </div>
@@ -251,7 +253,7 @@ export default function Checkout() {
                   NT${amount.toLocaleString()}
                 </div>
                 <div className="text-sm text-muted-foreground mt-1">
-                  {plan === 'yearly' ? '一次購買，一年使用' : '每月自動續約'}
+                  {plan === 'yearly' ? '一次購買，一年使用' : '月付方案，到期不自動續費'}
                 </div>
               </div>
 
@@ -400,7 +402,12 @@ export default function Checkout() {
 
               <div className="border-t pt-4">
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  <strong>※ 所有方案皆為一次性付款並自動續約，可於下期前隨時取消，不另收續約手續費。</strong>
+                  <strong>
+                    {plan === 'yearly' 
+                      ? '※ 年付方案為一次性付款並自動續約，可於下期前隨時取消，不另收續約手續費。'
+                      : '※ 月付方案為一次性付款，到期後不會自動續費，需手動續約。可隨時取消，不另收手續費。'
+                    }
+                  </strong>
                 </p>
               </div>
 

@@ -779,7 +779,7 @@ export default function Home() {
                           <span className="text-5xl font-bold text-green-600 dark:text-green-400">
                             NT$300
                           </span>
-                          <span className="text-muted-foreground">/ 月（年付）</span>
+                          <span className="text-muted-foreground">/ 月</span>
                         </div>
                       </div>
                       <div className="text-sm font-semibold text-green-600 dark:text-green-400">
@@ -885,7 +885,7 @@ export default function Home() {
                           <span className="text-5xl font-bold text-primary">
                             NT$800
                           </span>
-                          <span className="text-muted-foreground">/ 月（年付）</span>
+                          <span className="text-muted-foreground">/ 月</span>
                         </div>
                       </div>
                       <div className="text-sm font-semibold text-primary">
@@ -987,7 +987,7 @@ export default function Home() {
                           <span className="text-5xl font-bold text-purple-600 dark:text-purple-400">
                             NT$2,000
                           </span>
-                          <span className="text-muted-foreground">/ 月（年付）</span>
+                          <span className="text-muted-foreground">/ 月</span>
                         </div>
                       </div>
                       <div className="text-sm font-semibold text-purple-600 dark:text-purple-400">
