@@ -49,16 +49,16 @@ const FormatText = memo(({ content }: { content: string }) => {
   
   // 如果沒有匹配到任何粗體，直接返回原文字
   if (parts.length === 0) {
-    return <div className="whitespace-pre-wrap text-black dark:text-white">{content}</div>;
+    return <div className="whitespace-pre-wrap text-black font-bold">{content}</div>;
   }
   
   return (
-    <div className="whitespace-pre-wrap text-black dark:text-white">
+    <div className="whitespace-pre-wrap text-black font-bold">
       {parts.map((part, index) => {
         if (typeof part === 'object' && part.type === 'bold') {
           return <strong key={index} className="font-bold">{part.text}</strong>;
         }
-        return <span key={index}>{part}</span>;
+        return <span key={index} className="font-bold">{part}</span>;
       })}
     </div>
   );
@@ -624,7 +624,11 @@ export default function Mode3() {
       });
     }, (error) => {
       // 根本修复：增强错误处理，显示用户友好的提示
-      const errorMessage = error?.message || error?.content || '生成失敗，請稍後再試';
+      const errorMessage = error?.message || 
+                          error?.content || 
+                          error?.error?.message ||
+                          error?.response?.data?.message ||
+                          (typeof error === 'string' ? error : '生成失敗，請稍後再試');
       const isQuotaError = errorMessage.includes('配額') || 
                            errorMessage.includes('quota') || 
                            errorMessage.includes('exceeded') ||
@@ -635,14 +639,26 @@ export default function Mode3() {
                            error?.is_quota_error === true ||
                            error?.response?.status === 429;
       
-      console.error('[Mode3] 生成帳號定位錯誤:', {
-        error,
+      // 更好的錯誤序列化
+      const errorDetails = {
         errorMessage,
         isQuotaError,
         errorCode: error?.error_code,
         status: error?.response?.status,
-        originalError: error?.original_error
-      });
+        errorType: error?.constructor?.name,
+        errorString: String(error),
+        errorJSON: JSON.stringify(error, Object.getOwnPropertyNames(error))
+      };
+      
+      console.error('[Mode3] 生成帳號定位錯誤:', errorDetails);
+      
+      // 如果結果為空，設置錯誤訊息到結果中，讓用戶能看到
+      if (!result || !result.trim()) {
+        setResults(prev => ({
+          ...prev,
+          positioning: `❌ 生成失敗：${errorMessage}\n\n請檢查：\n1. 網路連線是否正常\n2. API 配額是否充足\n3. 輸入資訊是否完整`
+        }));
+      }
       
       if (isQuotaError) {
         // 使用后端返回的用户友好消息，如果没有则使用默认消息
@@ -1385,7 +1401,7 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
                 )}
                 {currentResult && (
                   <div className="space-y-4">
-                    <div className="prose prose-sm max-w-none dark:prose-invert whitespace-pre-wrap text-black dark:text-white">
+                    <div className="prose prose-sm max-w-none whitespace-pre-wrap text-black font-bold">
                       <FormatText content={currentResult} />
                     </div>
                     <div className="flex justify-end gap-2">
