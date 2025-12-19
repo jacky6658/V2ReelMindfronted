@@ -22,9 +22,9 @@ interface User {
   is_admin?: boolean;  // 管理員標識
 }
 
-type Subscription = "free" | "pro" | "vip" | null;
+type Subscription = "free" | "lite" | "pro" | "vip" | "max" | null;
 
-type Plan = "free" | "pro" | "vip";
+type Plan = "free" | "lite" | "pro" | "vip" | "max";
 
 interface PlanStatusResponse {
   plan: Plan;
