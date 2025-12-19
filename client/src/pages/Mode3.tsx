@@ -445,6 +445,55 @@ export default function Mode3() {
       setShowPermissionDialog(false);
   };
 
+  // 載入用量狀態
+  const loadPlanStatus = async () => {
+    try {
+      const data = await apiGet<PlanStatusResponse>('/api/user/plan-status');
+      setPlanStatus(data);
+    } catch (error) {
+      console.error('[Mode3] 載入用量狀態失敗:', error);
+      // 不顯示錯誤，因為這不是關鍵功能
+    }
+  };
+
+  // 在用戶登入時載入用量狀態
+  useEffect(() => {
+    if (user?.user_id && !authLoading) {
+      loadPlanStatus();
+    }
+  }, [user?.user_id, authLoading]);
+
+  // 檢查用量是否已達上限
+  const checkUsageLimit = (): { canUse: boolean; message: string; type: 'daily' | 'monthly' | null } => {
+    if (!planStatus) {
+      // 如果無法獲取用量狀態，允許使用（由後端檢查）
+      return { canUse: true, message: '', type: null };
+    }
+
+    const { daily_used, monthly_used } = planStatus.usage;
+    const { daily, monthly } = planStatus.limits;
+
+    // 檢查今日用量
+    if (daily_used >= daily) {
+      return {
+        canUse: false,
+        message: `您今日的使用次數已達上限（${daily_used}/${daily} 次）。請明天再試或升級方案以獲得更多用量。`,
+        type: 'daily'
+      };
+    }
+
+    // 檢查本月用量（僅對系統 key 使用時檢查，但前端無法區分，所以統一檢查）
+    if (monthly_used >= monthly) {
+      return {
+        canUse: false,
+        message: `您本月的使用次數已達上限（${monthly_used}/${monthly} 次）。請等待下個月重置或升級方案以獲得更多用量。`,
+        type: 'monthly'
+      };
+    }
+
+    return { canUse: true, message: '', type: null };
+  };
+
   // 生成內容
   const handleGenerate = async () => {
     // 檢查用量是否已達上限
