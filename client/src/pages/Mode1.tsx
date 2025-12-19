@@ -853,6 +853,10 @@ export default function Mode1() {
         quality_mode: qualityMode
       };
 
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Mode1.tsx:857',message:'開始流式請求',data:{endpoint:endpoint,userId:user?.user_id,qualityMode:qualityMode,messageLength:userMessage.content.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+      // #endregion
+      
       // 使用流式 API
       await apiStream(
         endpoint,
@@ -878,6 +882,10 @@ export default function Mode1() {
           });
         },
         (error: any) => {
+          // #region agent log
+          fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Mode1.tsx:880',message:'流式請求錯誤回調',data:{errorType:error?.constructor?.name,errorMessage:error?.message,errorContent:error?.content,errorCode:error?.error_code,hasResponse:!!error?.response,responseStatus:error?.response?.status},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+          // #endregion
+          
           console.error('流式請求錯誤:', error);
           setIsLoading(false);
           
@@ -889,8 +897,16 @@ export default function Mode1() {
                               error?.response?.data?.detail ||
                               (typeof error === 'string' ? error : '生成失敗，請稍後再試');
           
+          // #region agent log
+          fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Mode1.tsx:893',message:'錯誤訊息提取結果',data:{extractedMessage:errorMessage,hasErrorMsgBug:errorMessage.includes("cannot access local variable 'error_msg'"),hasChatBug:errorMessage.includes("cannot access local variable 'chat'") || errorMessage.includes("cannot access free variable 'chat'")},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+          // #endregion
+          
           // 清理錯誤訊息，移除可能的技術性錯誤訊息
-          const cleanedErrorMessage = errorMessage.replace(/cannot access local variable 'error_msg' where it is not associated with a value/i, '伺服器處理錯誤，請稍後再試');
+          const cleanedErrorMessage = errorMessage.replace(/cannot access local variable 'error_msg' where it is not associated with a value/i, '伺服器處理錯誤，請稍後再試').replace(/cannot access (local variable|free variable) 'chat' where it is not associated with a value/i, '伺服器處理錯誤，請稍後再試');
+          
+          // #region agent log
+          fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Mode1.tsx:897',message:'錯誤訊息清理結果',data:{cleanedMessage:cleanedErrorMessage,wasCleaned:cleanedErrorMessage !== errorMessage},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+          // #endregion
           
           const isQuotaError = cleanedErrorMessage.includes('配額') || 
                                cleanedErrorMessage.includes('quota') || 
@@ -898,6 +914,10 @@ export default function Mode1() {
                                cleanedErrorMessage.includes('rate limit') ||
                                error?.error_code === '429' ||
                                error?.is_quota_error === true;
+          
+          // #region agent log
+          fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Mode1.tsx:902',message:'錯誤分類',data:{isQuotaError:isQuotaError,responseStatus:error?.response?.status,errorType:error?.constructor?.name},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+          // #endregion
           
           // 處理 403 錯誤 (權限不足/試用期已過)
           // Mode1 必須訂閱或試用期內才能使用，即使有 LLM Key 也不能繞過此限制
@@ -933,6 +953,10 @@ export default function Mode1() {
             });
           } 
           else {
+            // #region agent log
+            fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Mode1.tsx:937',message:'顯示通用錯誤',data:{finalMessage:cleanedErrorMessage},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+            // #endregion
+            
             // 使用清理後的錯誤訊息
             toast.error(cleanedErrorMessage, {
               duration: 5000
