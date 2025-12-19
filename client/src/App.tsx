@@ -2,7 +2,6 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { RouterProvider } from "react-router-dom";
 import ErrorBoundary from "./components/ErrorBoundary";
-import SplashScreen from "./components/SplashScreen";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { ColorThemeProvider } from "./contexts/ColorThemeContext";
 import { router } from "./router";
@@ -223,7 +222,6 @@ function App() {
         >
           {/* AuthProvider 已移除，由 Zustand 全局管理 */}
           <TooltipProvider>
-            <SplashScreen />
             <Toaster />
             <RouterProvider router={router} />
           </TooltipProvider>
