@@ -771,9 +771,15 @@ export default function Mode3() {
       // 過濾談話性開頭後再更新狀態
       const filtered = filterConversationalPrefix(result);
       console.log('[Mode3] 過濾後的帳號定位:', { originalLength: result.length, filteredLength: filtered.length, hasContent: !!filtered.trim() });
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Mode3.tsx:772',message:'過濾內容後更新狀態',data:{originalLength:result.length,filteredLength:filtered.length,hasContent:!!filtered.trim(),filteredPreview:filtered.substring(0,100)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
       setResults(prev => {
         const newResults = { ...prev, positioning: filtered };
         console.log('[Mode3] 更新 results.positioning:', { newLength: filtered.length, hasContent: !!filtered.trim() });
+        // #region agent log
+        fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Mode3.tsx:774',message:'setResults 更新 positioning',data:{newLength:filtered.length,hasContent:!!filtered.trim(),prevState:prev,newState:newResults},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
         return newResults;
       });
     }, (error) => {
@@ -900,9 +906,15 @@ export default function Mode3() {
       // 過濾談話性開頭後再更新狀態
       const filtered = filterConversationalPrefix(result);
       console.log('[Mode3] 過濾後的選題建議:', { originalLength: result.length, filteredLength: filtered.length, hasContent: !!filtered.trim() });
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Mode3.tsx:899',message:'過濾選題內容後更新狀態',data:{originalLength:result.length,filteredLength:filtered.length,hasContent:!!filtered.trim(),filteredPreview:filtered.substring(0,100)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
       setResults(prev => {
         const newResults = { ...prev, topics: filtered };
         console.log('[Mode3] 更新 results.topics:', { newLength: filtered.length, hasContent: !!filtered.trim() });
+        // #region agent log
+        fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Mode3.tsx:901',message:'setResults 更新 topics',data:{newLength:filtered.length,hasContent:!!filtered.trim(),prevState:prev,newState:newResults},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
         return newResults;
       });
     }, (error) => {
@@ -1030,9 +1042,15 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
       // 過濾談話性開頭後再更新狀態
       const filtered = filterConversationalPrefix(result);
       console.log('[Mode3] 過濾後的腳本內容:', { originalLength: result.length, filteredLength: filtered.length, hasContent: !!filtered.trim() });
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Mode3.tsx:1029',message:'過濾腳本內容後更新狀態',data:{originalLength:result.length,filteredLength:filtered.length,hasContent:!!filtered.trim(),filteredPreview:filtered.substring(0,100)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
       setResults(prev => {
         const newResults = { ...prev, script: filtered };
         console.log('[Mode3] 更新 results.script:', { newLength: filtered.length, hasContent: !!filtered.trim() });
+        // #region agent log
+        fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Mode3.tsx:1031',message:'setResults 更新 script',data:{newLength:filtered.length,hasContent:!!filtered.trim(),prevState:prev,newState:newResults},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
         return newResults;
       });
     }, (error) => {
@@ -1121,6 +1139,9 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
 
   // 儲存結果到 UserDB - 使用 useCallback 優化
   const handleSaveResult = useCallback(async (type: 'positioning' | 'topics' | 'script') => {
+    // #region agent log
+    fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Mode3.tsx:1123',message:'儲存按鈕被點擊',data:{type,authLoading,isLoggedIn,hasUser:!!user,userId:user?.user_id,resultsState:results,generationStatus},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
     // 調試日誌 - 強制輸出，確保能看到
     console.log('[Mode3 Save] ========== 儲存按鈕被點擊 ==========');
     console.log('[Mode3 Save] 儲存請求:', {
@@ -1129,7 +1150,9 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
       isLoggedIn,
       hasUser: !!user,
       userId: user?.user_id,
-      userObject: user
+      userObject: user,
+      resultsState: results,
+      generationStatus
     });
     
     // 檢查用戶是否已登入
@@ -1164,8 +1187,15 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
     
     console.log('[Mode3 Save] 通過認證檢查，繼續儲存流程...');
 
+    // #region agent log
+    fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Mode3.tsx:1167',message:'檢查儲存內容',data:{type,contentLength:results[type]?.length,contentPreview:results[type]?.substring(0,100),hasContent:!!results[type]?.trim(),allResults:results},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
+    
     const content = results[type];
-    if (!content.trim()) {
+    if (!content || !content.trim()) {
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Mode3.tsx:1169',message:'內容為空，儲存失敗',data:{type,content,contentLength:content?.length,resultsState:results},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+      // #endregion
       toast.error('沒有可儲存的內容');
       return;
     }
@@ -1204,9 +1234,15 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
       };
       
       console.log('[Mode3 Save] 發送儲存請求:', savePayload);
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Mode3.tsx:1209',message:'發送 API 儲存請求',data:{type,payload:savePayload,contentLength:savePayload.content?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+      // #endregion
 
       // 增加超時時間到 30 秒（保存操作可能需要較長時間）
-      await apiPost('/api/ip-planning/save', savePayload, { timeout: 30000 });
+      const apiResponse = await apiPost('/api/ip-planning/save', savePayload, { timeout: 30000 });
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Mode3.tsx:1210',message:'API 儲存請求成功',data:{type,response:apiResponse},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+      // #endregion
 
       toast.dismiss(loadingToast);
       
@@ -1276,6 +1312,9 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
       // 發送自定義事件通知 UserDB 刷新
       window.dispatchEvent(new CustomEvent('userdb-data-updated', { detail: { type: 'ip-planning' } }));
     } catch (error: any) {
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Mode3.tsx:1278',message:'API 儲存請求失敗',data:{type,errorStatus:error?.response?.status,errorData:error?.response?.data,errorMessage:error?.message,errorCode:error?.code,fullError:JSON.stringify(error,Object.getOwnPropertyNames(error))},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+      // #endregion
       console.error('[Mode3 Save] 儲存失敗:', error);
       console.error('[Mode3 Save] 錯誤詳情:', {
         status: error?.response?.status,
@@ -1712,6 +1751,9 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
                       <Button
                         variant="outline"
                         onClick={() => {
+                          // #region agent log
+                          fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Mode3.tsx:1715',message:'儲存帳號定位按鈕點擊',data:{loading,generationStatus:generationStatus.positioning,authReady,isLoggedIn,hasUserId:!!user?.user_id,resultsPositioning:results.positioning?.substring(0,50)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+                          // #endregion
                           console.log('[Mode3] 儲存帳號定位按鈕被點擊');
                           handleSaveResult('positioning');
                         }}
@@ -1740,6 +1782,9 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
                       <Button
                         variant="outline"
                         onClick={() => {
+                          // #region agent log
+                          fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Mode3.tsx:1743',message:'儲存選題建議按鈕點擊',data:{loading,generationStatus:generationStatus.topics,authReady,isLoggedIn,hasUserId:!!user?.user_id,resultsTopics:results.topics?.substring(0,50)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+                          // #endregion
                           console.log('[Mode3] 儲存選題建議按鈕被點擊');
                           handleSaveResult('topics');
                         }}
@@ -1768,6 +1813,9 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
                       <Button
                         variant="outline"
                         onClick={() => {
+                          // #region agent log
+                          fetch('http://127.0.0.1:7244/ingest/44dfe0fd-35b2-4be2-b1b8-96c92ee33a6b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Mode3.tsx:1771',message:'儲存腳本內容按鈕點擊',data:{loading,generationStatus:generationStatus.script,authReady,isLoggedIn,hasUserId:!!user?.user_id,resultsScript:results.script?.substring(0,50)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+                          // #endregion
                           console.log('[Mode3] 儲存腳本內容按鈕被點擊');
                           handleSaveResult('script');
                         }}
