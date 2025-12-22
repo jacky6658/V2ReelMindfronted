@@ -754,6 +754,8 @@ export default function Mode3() {
 重要：直接生成完整內容，不要詢問任何問題，不要說「需要您先提供資訊」之類的話，不要說「好的！」、「針對...我將為您...」等開場白，直接從內容開始。格式要求：分段清楚，短句，每段換行，適度加入表情符號（如：✅✨🔥📌）。`;
 
     let result = '';
+    let streamError: Error | null = null; // 追蹤流式錯誤
+    
     // 使用 Mode3 專用端點，傳遞結構化參數
     await apiStream('/api/mode3/generate/positioning', { 
         message: prompt,
@@ -775,6 +777,8 @@ export default function Mode3() {
         return newResults;
       });
     }, (error) => {
+      // 保存錯誤，以便在 apiStream 完成後檢查
+      streamError = error;
       // 根本修复：增强错误处理，显示用户友好的提示
       const errorMessage = error?.message || 
                           error?.content || 
@@ -851,9 +855,17 @@ export default function Mode3() {
           duration: 5000
         });
       }
-      
-      throw error; // 仍然抛出错误供 handleGenerate 捕获
     });
+    
+    // 如果流式過程中發生錯誤，拋出錯誤讓外層 catch 處理
+    if (streamError) {
+      throw streamError;
+    }
+    
+    // 如果結果為空，也視為錯誤
+    if (!result || !result.trim()) {
+      throw new Error('生成結果為空，請稍後再試');
+    }
   };
 
   // 生成選題
@@ -871,6 +883,8 @@ export default function Mode3() {
 重要：直接生成完整內容，不要詢問任何問題，不要說「好的！」、「針對...我將為您...」等開場白，直接從內容開始。格式要求：分段清楚，短句，每段換行，適度加入表情符號（如：✅✨🔥📌）。`;
 
     let result = '';
+    let streamError: Error | null = null; // 追蹤流式錯誤
+    
     // 使用 Mode3 專用端點，傳遞結構化參數
     await apiStream('/api/mode3/generate/topics', { 
         message: prompt,
@@ -892,6 +906,8 @@ export default function Mode3() {
         return newResults;
       });
     }, (error) => {
+      // 保存錯誤，以便在 apiStream 完成後檢查
+      streamError = error;
       // 根本修复：增强错误处理，显示用户友好的提示
       const errorMessage = error?.message || error?.content || '生成失敗，請稍後再試';
       
@@ -954,9 +970,17 @@ export default function Mode3() {
           duration: 5000
         });
       }
-      
-      throw error; // 仍然抛出错误供 handleGenerate 捕获
     });
+    
+    // 如果流式過程中發生錯誤，拋出錯誤讓外層 catch 處理
+    if (streamError) {
+      throw streamError;
+    }
+    
+    // 如果結果為空，也視為錯誤
+    if (!result || !result.trim()) {
+      throw new Error('生成結果為空，請稍後再試');
+    }
   };
 
   // 生成腳本
@@ -987,6 +1011,8 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
 重要：直接生成完整內容，不要詢問任何問題，不要說「好的！」、「針對...我將為您...」等開場白，直接從內容開始。格式要求：分段清楚，短句，每段換行，適度加入表情符號（如：✅✨🔥📌）。`;
 
     let result = '';
+    let streamError: Error | null = null; // 追蹤流式錯誤
+    
     // 使用 Mode3 專用端點，傳遞結構化參數
     await apiStream('/api/mode3/generate/script', { 
         message: prompt,
@@ -1010,6 +1036,8 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
         return newResults;
       });
     }, (error) => {
+      // 保存錯誤，以便在 apiStream 完成後檢查
+      streamError = error;
       // 根本修复：增强错误处理，显示用户友好的提示
       const errorMessage = error?.message || error?.content || '生成失敗，請稍後再試';
       
@@ -1072,9 +1100,17 @@ ${formData.additionalInfo ? `補充說明：${formData.additionalInfo}` : ''}
           duration: 5000
         });
       }
-      
-      throw error; // 仍然抛出错误供 handleGenerate 捕获
     });
+    
+    // 如果流式過程中發生錯誤，拋出錯誤讓外層 catch 處理
+    if (streamError) {
+      throw streamError;
+    }
+    
+    // 如果結果為空，也視為錯誤
+    if (!result || !result.trim()) {
+      throw new Error('生成結果為空，請稍後再試');
+    }
   };
 
   // 複製到剪貼簿 - 使用 useCallback 優化
